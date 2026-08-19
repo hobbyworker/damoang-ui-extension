@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --fg: #1c1c1e;
+    --muted: #8e8e93;
+    --track-off: #d9d9de;
+    --track-on: #34c759;
+    --thumb: #ffffff;
+    --divider: rgba(0, 0, 0, 0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1e1e20;
+      --fg: #f2f2f4;
+      --muted: #98989e;
+      --track-off: #3a3a3e;
+      --divider: rgba(255, 255, 255, 0.08);
+    }
+  }
+  body {
+    width: 520px;
+    margin: 0;
+    padding: 6px 0 8px;
+    background: var(--bg);
+    color: var(--fg);
+    font: 13px/1.4 -apple-system, "Apple SD Gothic Neo", "Pretendard", system-ui, sans-serif;
+    user-select: none;
+  }
+  /* display 지정된 요소에서도 hidden이 우선하도록 */
+  [hidden] { display: none !important; }
+  h1 {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    margin: 6px 14px 4px;
+  }
+  /* 좌우 패널. .panel을 추가하면 칼럼이 늘어난다 */
+  #columns {
+    display: flex;
+    align-items: stretch;
+  }
+  .panel {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .panel + .panel { border-left: 1px solid var(--divider); }
+
+  .empty {
+    padding: 7px 14px;
+    color: var(--muted);
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 14px;
+  }
+  .row + .row { border-top: 1px solid var(--divider); }
+  .row label { flex: 1; cursor: pointer; }
+
+  .switch { position: relative; display: inline-block; width: 34px; height: 20px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .track {
+    position: absolute; inset: 0;
+    background: var(--track-off);
+    border-radius: 999px;
+    transition: background 0.15s ease;
+    cursor: pointer;
+  }
+  .switch .track::after {
+    content: "";
+    position: absolute; top: 2px; left: 2px;
+    width: 16px; height: 16px;
+    background: var(--thumb);
+    border-radius: 50%;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+    transition: transform 0.15s ease;
+  }
+  .switch input:checked + .track { background: var(--track-on); }
+  .switch input:checked + .track::after { transform: translateX(14px); }
+  .switch input:focus-visible + .track { outline: 2px solid var(--track-on); outline-offset: 2px; }
+  .switch input:disabled + .track { opacity: 0.4; cursor: default; }
+
+  .fav {
+    padding: 7px 14px;
+    cursor: pointer;
+  }
+  .fav:hover { background: var(--divider); }
+  .fav:active { opacity: 0.7; }
+
+  #actions {
+    display: flex;
+    gap: 8px;
+    margin: 10px 14px 0;
+  }
+  #actions button {
+    flex: 1;
+    padding: 6px 0;
+    border-radius: 7px;
+    border: 1px solid var(--divider);
+    background: transparent;
+    color: var(--fg);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #apply {
+    background: var(--track-on);
+    border-color: transparent;
+    color: #fff;
+  }
+  #actions button:disabled { opacity: 0.4; cursor: default; }
+  #actions button:not(:disabled):active { opacity: 0.75; }
+
+  /* 팝업 창은 한번 열리면 줄어들지 않으므로 전체 폭 기준으로 센터링 */
+  #gate {
+    min-height: 240px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+  }
+  #gate p {
+    margin: 0 0 14px;
+    color: var(--muted);
+  }
+  #gate button {
+    width: 240px;
+    padding: 7px 0;
+    border-radius: 7px;
+    border: none;
+    background: var(--track-on);
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #gate button:active { opacity: 0.75; }
+
+  #status {
+    margin: 6px 14px 0;
+    font-size: 11px;
+    color: var(--muted);
+    min-height: 14px;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  #status.error { color: #e0483e; }
+</style>
+</head>
+<body>
+  <div id="columns">
+    <section class="panel">
+      <h1>즐겨찾기</h1>
+      <div id="favorites"></div>
+    </section>
+    <section class="panel">
+      <h1>메모 설정</h1>
+      <div id="rows"></div>
+      <div id="actions">
+        <button id="apply" disabled>적용</button>
+        <button id="refresh" disabled>새로고침</button>
+      </div>
+    </section>
+  </div>
+  <div id="gate" hidden>
+    <p id="gate-msg"></p>
+    <button id="gate-btn">다모앙 열기</button>
+  </div>
+  <div id="status">불러오는 중…</div>
+  <script src="popup.js"></script>
+</body>
+</html>
