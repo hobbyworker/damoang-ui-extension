@@ -96,12 +96,13 @@
   .fav:hover { background: var(--divider); }
   .fav:active { opacity: 0.7; }
 
-  #actions {
+  .actions {
     display: flex;
     gap: 8px;
     margin: 10px 14px 0;
   }
-  #actions button {
+  .actions + .actions { margin-top: 8px; }
+  .actions button {
     flex: 1;
     padding: 6px 0;
     border-radius: 7px;
@@ -117,8 +118,8 @@
     border-color: transparent;
     color: #fff;
   }
-  #actions button:disabled { opacity: 0.4; cursor: default; }
-  #actions button:not(:disabled):active { opacity: 0.75; }
+  .actions button:disabled { opacity: 0.4; cursor: default; }
+  .actions button:not(:disabled):active { opacity: 0.75; }
 
   /* 팝업 창은 한번 열리면 줄어들지 않으므로 전체 폭 기준으로 센터링 */
   #gate {
@@ -167,9 +168,13 @@
     <section class="panel">
       <h1>메모 설정</h1>
       <div id="rows"></div>
-      <div id="actions">
+      <div class="actions">
         <button id="apply" disabled>적용</button>
         <button id="refresh" disabled>새로고침</button>
+      </div>
+      <div class="actions">
+        <button id="hide-all" disabled>전체 메모 가리기</button>
+        <button id="show-all" disabled>전체 메모 표시</button>
       </div>
     </section>
   </div>

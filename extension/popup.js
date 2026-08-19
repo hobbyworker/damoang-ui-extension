@@ -13,6 +13,8 @@ const rowsEl = document.getElementById("rows");
 const statusEl = document.getElementById("status");
 const applyBtn = document.getElementById("apply");
 const refreshBtn = document.getElementById("refresh");
+const hideAllBtn = document.getElementById("hide-all");
+const showAllBtn = document.getElementById("show-all");
 const favoritesEl = document.getElementById("favorites");
 const columnsEl = document.getElementById("columns");
 const gateEl = document.getElementById("gate");
@@ -216,14 +218,19 @@ function setAllDisabled(disabled) {
   rowsEl.querySelectorAll("input").forEach(i => (i.disabled = disabled));
 }
 
+function setBusy(busy) {
+  setAllDisabled(busy);
+  refreshBtn.disabled = busy;
+  hideAllBtn.disabled = busy;
+  showAllBtn.disabled = busy;
+}
+
 async function onApply() {
-  setAllDisabled(true);
+  setBusy(true);
   applyBtn.disabled = true;
-  refreshBtn.disabled = true;
   setStatus("저장 중…");
   const r = await runInTab(applySettingsInPage, [API, currentUIValues()]);
-  setAllDisabled(false);
-  refreshBtn.disabled = false;
+  setBusy(false);
   if (r && r.ok) {
     // 서버 응답으로 동기화
     for (const f of FIELDS) {
@@ -244,9 +251,32 @@ function onRefresh() {
   setStatus(isDirty() ? "새로고침함 · 저장되지 않은 변경사항이 있습니다." : "새로고침함");
 }
 
+// 배지 가리기 두 값을 현재 스위치 상태와 무관하게 덮어쓴다. 저장 성공 시 바로 새로고침
+async function onBulk(hide) {
+  setBusy(true);
+  applyBtn.disabled = true;
+  setStatus("저장 중…");
+  const r = await runInTab(applySettingsInPage, [API, { hideMemo: hide, hideMemoInList: hide }]);
+  setBusy(false);
+  if (r && r.ok) {
+    for (const key of ["hideMemo", "hideMemoInList"]) {
+      baseline[key] = !!r.settings[key];
+      document.getElementById("sw-" + key).checked = !!r.settings[key];
+    }
+    applyBtn.disabled = !isDirty();
+    chrome.tabs.reload(damoangTab.id);
+    setStatus(isDirty() ? "적용 후 새로고침함 · 저장되지 않은 변경사항이 있습니다." : "적용 후 새로고침함");
+  } else {
+    applyBtn.disabled = !isDirty();
+    setStatus("저장 실패: " + ((r && r.error) || "알 수 없는 오류"), true);
+  }
+}
+
 async function init() {
   applyBtn.addEventListener("click", onApply);
   refreshBtn.addEventListener("click", onRefresh);
+  hideAllBtn.addEventListener("click", () => onBulk(true));
+  showAllBtn.addEventListener("click", () => onBulk(false));
   gateBtn.addEventListener("click", () => {
     if (damoangTab) {
       chrome.tabs.update(damoangTab.id, { url: SITE, active: true });
@@ -273,6 +303,8 @@ async function init() {
   if (fav && fav.ok) renderFavorites(fav.favorites);
   if (r && r.ok) {
     render(r.settings);
+    hideAllBtn.disabled = false;
+    showAllBtn.disabled = false;
     setStatus("");
   } else {
     setStatus("설정을 불러오지 못했습니다: " + ((r && r.error) || "알 수 없는 오류"), true);
