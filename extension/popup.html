@@ -27,7 +27,7 @@
   /* 로딩 전후 팝업 크기가 출렁이지 않도록 고정. 내용이 넘치면 패널 안에서 스크롤 */
   body {
     width: 520px;
-    height: 340px;
+    height: 420px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -47,6 +47,21 @@
     color: var(--muted);
     margin: 6px 14px 4px;
   }
+  /* 접을 수 있는 그룹 제목. 접으면 스위치 행만 숨고 그룹 버튼은 남는다 */
+  .group-head { cursor: pointer; }
+  .group-head .chev {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid currentColor;
+    margin-right: 6px;
+    vertical-align: 1px;
+    transition: transform 0.15s ease;
+  }
+  .collapsed .chev { transform: rotate(-90deg); }
+  .group.collapsed .rows { display: none; }
   /* 팝업 상단부. 차단막은 이 영역까지만 덮고 하단 정보 줄은 남긴다 */
   #main {
     position: relative;
@@ -127,19 +142,81 @@
   }
   @keyframes rotate { to { transform: rotate(360deg); } }
 
+  /* 다모앙 즐겨찾기처럼 2열 배치. 1 2 / 3 4 … 행 우선 순서 */
+  #favorites {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
   .fav {
-    padding: 7px 14px;
+    padding: 9px 14px;
     cursor: pointer;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
   .fav:hover { background: var(--divider); }
   .fav:active { opacity: 0.7; }
+  .empty { grid-column: 1 / -1; }
+
+  /* 즐겨찾기 칼럼. 목록은 스크롤, 다모앙 후원 링크는 하단 고정 */
+  #fav-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #favorites {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+    grid-auto-rows: max-content; /* 공간이 모자라도 행을 누르지 말고 스크롤 */
+    align-content: start;
+  }
+  /* ::-webkit-scrollbar를 지정하면 오버레이 대신 항상 보이는 스크롤바가 된다 */
+  #favorites::-webkit-scrollbar { width: 10px; }
+  #favorites::-webkit-scrollbar-track { background: transparent; }
+  #favorites::-webkit-scrollbar-thumb {
+    background: var(--track-off);
+    border-radius: 5px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  #support {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-top: 1px solid var(--divider);
+  }
+  .support-link {
+    display: flex;
+    align-items: center;
+    padding: 7px 12px;
+    border: 1px solid var(--divider);
+    border-radius: 999px;
+    color: var(--fg);
+    text-decoration: none;
+  }
+  .support-link + .support-link { margin-top: 8px; }
+  .support-link:hover { background: var(--divider); }
+  .support-link .arrow { margin-left: auto; color: var(--muted); }
+
+  /* 설정 칼럼. 그룹들은 스크롤, 전역 버튼(적용·새로고침)은 하단 고정 */
+  #settings {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #groups {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-bottom: 10px;
+  }
 
   .actions {
     display: flex;
     gap: 8px;
     margin: 10px 14px 0;
   }
-  .actions + .actions { margin-top: 8px; }
   .actions button {
     flex: 1;
     padding: 6px 0;
@@ -158,6 +235,20 @@
   }
   .actions button:disabled { opacity: 0.4; cursor: default; }
   .actions button:not(:disabled):active { opacity: 0.75; }
+
+  #global-actions {
+    flex-shrink: 0;
+    margin: 0;
+    padding: 8px 14px;
+    border-top: 1px solid var(--divider);
+  }
+  /* 그룹 전용 보조 버튼. 전역 버튼보다 가볍게 */
+  .group-actions button {
+    padding: 4px 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+  }
 
   #gate p,
   #fail p {
@@ -278,20 +369,29 @@
 <body>
   <div id="main">
     <div id="columns">
-      <section class="panel">
+      <section class="panel" id="fav-panel">
         <h1>즐겨찾기<span id="fav-spin" class="spinner"></span></h1>
         <div id="favorites"></div>
+        <div id="support">
+          <a class="support-link" href="https://damoang.benecent.org/" target="_blank" rel="noopener">♡ 다모앙 후원하기<span class="arrow">→</span></a>
+          <a class="support-link" href="https://forms.gle/Yj3D28THBxVNMWn2A" target="_blank" rel="noopener">♡ 마음메시지 신청하기<span class="arrow">→</span></a>
+          <a class="support-link" href="https://damoang.net/brickang" target="_blank" rel="noopener">♡ 월별 후원 현황<span class="arrow">→</span></a>
+        </div>
       </section>
-      <section class="panel">
-        <h1>메모 설정<span id="memo-spin" class="spinner"></span></h1>
-        <div id="rows"></div>
-        <div class="actions">
+      <section class="panel" id="settings">
+        <div id="groups">
+          <section class="group" id="memo-group">
+            <h1 class="group-head" id="memo-head"><span class="chev"></span>메모 설정<span id="memo-spin" class="spinner"></span></h1>
+            <div id="rows" class="rows"></div>
+            <div class="actions group-actions">
+              <button id="hide-all" disabled>전체 메모 가리기</button>
+              <button id="show-all" disabled>전체 메모 표시</button>
+            </div>
+          </section>
+        </div>
+        <div class="actions" id="global-actions">
           <button id="apply" disabled>적용</button>
           <button id="refresh" disabled>새로고침</button>
-        </div>
-        <div class="actions">
-          <button id="hide-all" disabled>전체 메모 가리기</button>
-          <button id="show-all" disabled>전체 메모 표시</button>
         </div>
       </section>
     </div>
@@ -308,7 +408,7 @@
   <div id="footer">
     <a href="https://damoang-ui-extension.hobbyworker.me" target="_blank">웹사이트</a>
     <span class="right">
-      <span id="version"></span>
+      <a id="version" target="_blank" rel="noopener"></a>
       <span id="dev-badge" title="클릭: 테스트 항목" hidden>DEV</span>
     </span>
   </div>

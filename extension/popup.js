@@ -28,6 +28,8 @@ const showAllBtn = document.getElementById("show-all");
 const favoritesEl = document.getElementById("favorites");
 const favSpinEl = document.getElementById("fav-spin");
 const memoSpinEl = document.getElementById("memo-spin");
+const memoGroupEl = document.getElementById("memo-group");
+const memoHeadEl = document.getElementById("memo-head");
 const gateEl = document.getElementById("gate");
 const gateMsgEl = document.getElementById("gate-msg");
 const gateBtn = document.getElementById("gate-btn");
@@ -478,7 +480,10 @@ function updateDevBadge() {
 }
 
 async function init() {
-  versionEl.textContent = "v" + chrome.runtime.getManifest().version;
+  const version = chrome.runtime.getManifest().version;
+  versionEl.textContent = "v" + version;
+  // 버전 페이지의 해당 버전 앵커로 (versions.md의 {#v0-1-0} 규칙과 짝)
+  versionEl.href = "https://damoang-ui-extension.hobbyworker.me/versions/#v" + version.split(".").join("-");
   if (DEBUG) {
     devBadgeEl.hidden = false;
     updateDevBadge();
@@ -511,6 +516,15 @@ async function init() {
   if (Array.isArray(cached.favorites) && cached.favorites.length) {
     renderFavorites(cached.favorites);
   }
+  // 접힘 상태는 팝업을 닫아도 유지
+  if (localStorage.getItem("memo-collapsed") === "1") {
+    memoGroupEl.classList.add("collapsed");
+  }
+  memoHeadEl.addEventListener("click", () => {
+    const collapsed = memoGroupEl.classList.toggle("collapsed");
+    localStorage.setItem("memo-collapsed", collapsed ? "1" : "0");
+  });
+
   applyBtn.addEventListener("click", onApply);
   refreshBtn.addEventListener("click", onRefresh);
   hideAllBtn.addEventListener("click", () => onBulk(true));
