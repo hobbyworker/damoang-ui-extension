@@ -73,7 +73,7 @@ function setStatus(msg, isError = false) {
 async function readSettingsInPage(apiUrl, debug) {
   const log = (...a) => { if (debug) console.log("[다모앙UI]", ...a); };
   try {
-    const res = await fetch(apiUrl, { credentials: "include" });
+    const res = await fetch(apiUrl, { credentials: "include", signal: AbortSignal.timeout(10000) });
     log("settings GET", res.status);
     if (res.status === 401 || res.status === 403) {
       return { ok: false, loggedOut: true, error: "GET " + res.status };
@@ -91,7 +91,7 @@ async function readSettingsInPage(apiUrl, debug) {
     }
     return { ok: true, settings };
   } catch (e) {
-    return { ok: false, error: String(e) };
+    return { ok: false, error: e && e.name === "TimeoutError" ? "응답 시간 초과" : String(e) };
   }
 }
 
@@ -107,7 +107,7 @@ async function readFavoritesInPage(apiUrl, debug) {
   };
   // 서버 값 우선
   try {
-    const res = await fetch(apiUrl, { credentials: "include" });
+    const res = await fetch(apiUrl, { credentials: "include", signal: AbortSignal.timeout(10000) });
     log("favorites GET", res.status);
     if (res.ok) {
       const data = await res.json();
@@ -133,7 +133,7 @@ async function applySettingsInPage(apiUrl, values, debug) {
   const log = (...a) => { if (debug) console.log("[다모앙UI]", ...a); };
   try {
     // PUT은 전체 저장이므로 최신 설정을 받아 병합해야 다른 필드가 보존된다
-    const getRes = await fetch(apiUrl, { credentials: "include" });
+    const getRes = await fetch(apiUrl, { credentials: "include", signal: AbortSignal.timeout(10000) });
     log("apply GET", getRes.status);
     if (!getRes.ok) return { ok: false, error: "GET " + getRes.status };
     const data = await getRes.json();
@@ -146,7 +146,8 @@ async function applySettingsInPage(apiUrl, values, debug) {
       method: "PUT",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ settings })
+      body: JSON.stringify({ settings }),
+      signal: AbortSignal.timeout(10000)
     });
     log("apply PUT", putRes.status, values);
     if (!putRes.ok) return { ok: false, error: "PUT " + putRes.status };
@@ -164,8 +165,13 @@ async function applySettingsInPage(apiUrl, values, debug) {
     }
     return { ok: true, settings };
   } catch (e) {
-    return { ok: false, error: String(e) };
+    return { ok: false, error: e && e.name === "TimeoutError" ? "응답 시간 초과" : String(e) };
   }
+}
+
+// 타임아웃 시뮬레이션용. 영원히 끝나지 않아 runInTab 시간 제한에 걸린다
+function hangInPage() {
+  return new Promise(() => {});
 }
 
 // ---- 팝업 로직 ----
@@ -177,13 +183,23 @@ async function findDamoangTab() {
   return tabs[0] || null;
 }
 
-async function runInTab(func, args) {
-  const [result] = await chrome.scripting.executeScript({
-    target: { tabId: damoangTab.id },
-    func,
-    args
-  });
-  return result && result.result;
+// 응답 없는 탭에서 매달리지 않게 시간 제한을 두고, 실패는 던지지 않고 오류 객체로 돌려준다
+async function runInTab(func, args, timeoutMs) {
+  try {
+    const [result] = await Promise.race([
+      chrome.scripting.executeScript({
+        target: { tabId: damoangTab.id },
+        func,
+        args
+      }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("탭 응답 시간 초과")), timeoutMs || 15000)
+      )
+    ]);
+    return (result && result.result) || { ok: false, error: "탭에서 결과를 받지 못함" };
+  } catch (e) {
+    return { ok: false, error: String(e) };
+  }
 }
 
 function currentUIValues() {
@@ -221,6 +237,7 @@ function showGate(msg) {
 function showFail(msg) {
   failMsgEl.textContent = msg;
   failEl.hidden = false;
+  setStatus("");
   setBusy(true);
   applyBtn.disabled = true;
 }
@@ -316,7 +333,7 @@ async function onApply() {
   setStatus("저장 중…");
   const values = currentUIValues();
   dbg("apply", values);
-  const r = await runInTab(applySettingsInPage, [API, values, DEBUG]);
+  const r = await runInTab(applySettingsInPage, [API, values, DEBUG], 25000);
   dbg("apply result", r);
   setBusy(false);
   if (r && r.ok) {
@@ -346,7 +363,7 @@ async function onBulk(hide) {
   applyBtn.disabled = true;
   setStatus("저장 중…");
   dbg("bulk", hide);
-  const r = await runInTab(applySettingsInPage, [API, { hideMemo: hide, hideMemoInList: hide }, DEBUG]);
+  const r = await runInTab(applySettingsInPage, [API, { hideMemo: hide, hideMemoInList: hide }, DEBUG], 25000);
   dbg("bulk result", r);
   setBusy(false);
   if (r && r.ok) {
@@ -367,14 +384,20 @@ async function onBulk(hide) {
 async function loadData() {
   favSpinEl.hidden = false;
   memoSpinEl.hidden = false;
+  const started = Date.now();
+  const tick = setInterval(() => {
+    setStatus("불러오는 중… " + Math.floor((Date.now() - started) / 1000) + "초 / 최대 15초");
+  }, 500);
   let fav, r;
   try {
     [fav, r] = await Promise.all([
       runInTab(readFavoritesInPage, [FAV_API, DEBUG]),
-      runInTab(readSettingsInPage, [API, DEBUG])
+      runInTab(simMode === "timeout" ? hangInPage : readSettingsInPage, [API, DEBUG])
     ]);
   } catch (e) {
     r = { ok: false, error: String(e) };
+  } finally {
+    clearInterval(tick);
   }
   if (simMode === "fail") r = { ok: false, error: "로딩 실패 시뮬레이션 (DEV)" };
   if (simMode === "logout") r = { ok: false, loggedOut: true };
@@ -422,20 +445,35 @@ function reloadTabAndWait() {
 
 async function onFailRetry() {
   failBtn.disabled = true;
-  failMsgEl.textContent = "다모앙 탭을 새로고침하고 다시 시도합니다…";
-  damoangTab = await findDamoangTab();
-  if (!damoangTab) {
+  // 단계별 경과와 최대 대기를 같이 보여줘서 무한 대기로 오해하지 않게 한다
+  const stage = { text: "다모앙 탭 새로고침 중", max: 10, started: Date.now() };
+  const render = () => {
+    const s = Math.floor((Date.now() - stage.started) / 1000);
+    failMsgEl.textContent = stage.text + "… " + s + "초 / 최대 " + stage.max + "초";
+  };
+  render();
+  const tick = setInterval(render, 500);
+  try {
+    damoangTab = await findDamoangTab();
+    if (!damoangTab) {
+      showGate("다모앙 탭을 먼저 열어주세요.");
+      return;
+    }
+    await reloadTabAndWait();
+    stage.text = "다시 불러오는 중";
+    stage.max = 15;
+    stage.started = Date.now();
+    render();
+    await loadData();
+  } finally {
+    clearInterval(tick);
     failBtn.disabled = false;
-    showGate("다모앙 탭을 먼저 열어주세요.");
-    return;
   }
-  await reloadTabAndWait();
-  await loadData();
-  failBtn.disabled = false;
 }
 
 function updateDevBadge() {
-  devBadgeEl.textContent = simMode ? "DEV: " + (simMode === "logout" ? "비로그인" : "실패") : "DEV";
+  const names = { logout: "비로그인", fail: "실패", timeout: "타임아웃" };
+  devBadgeEl.textContent = simMode ? "DEV: " + names[simMode] : "DEV";
   devBadgeEl.classList.toggle("fail", !!simMode);
 }
 
