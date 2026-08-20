@@ -12,6 +12,18 @@ function dbg(...args) {
   if (DEBUG) console.log("[dbg]", ...args);
 }
 
+// 화면모드("system"|"light"|"dark"). system이면 OS 설정을 따른다
+let themeMode = localStorage.getItem("theme") || "system";
+
+function applyTheme(mode) {
+  if (mode === "light" || mode === "dark") {
+    document.documentElement.dataset.theme = mode;
+  } else {
+    delete document.documentElement.dataset.theme;
+  }
+}
+applyTheme(themeMode);
+
 const FIELDS = [
   { key: "hideMemo",         label: "메모 배지 가리기" },
   { key: "hideMemoInList",   label: "목록 메모 배지 가리기" },
@@ -39,6 +51,9 @@ const failBtn = document.getElementById("fail-btn");
 const devBadgeEl = document.getElementById("dev-badge");
 const devDialog = document.getElementById("dev-dialog");
 const versionEl = document.getElementById("version");
+const settingsBtn = document.getElementById("settings-btn");
+const settingsDialog = document.getElementById("settings-dialog");
+const themeSelect = document.getElementById("theme-select");
 let damoangTab = null;
 let baseline = {}; // 서버 기준값. 변경 여부 판정용
 
@@ -484,6 +499,20 @@ async function init() {
   versionEl.textContent = "v" + version;
   // 버전 페이지의 해당 버전 앵커로 (versions.md의 {#v0-1-0} 규칙과 짝)
   versionEl.href = "https://damoang-ui-extension.hobbyworker.me/versions/#v" + version.split(".").join("-");
+
+  settingsBtn.addEventListener("click", () => {
+    themeSelect.value = themeMode;
+    settingsDialog.showModal();
+  });
+  settingsDialog.addEventListener("click", (e) => {
+    if (e.target === settingsDialog) settingsDialog.close();
+  });
+  themeSelect.addEventListener("change", () => {
+    themeMode = themeSelect.value;
+    localStorage.setItem("theme", themeMode);
+    applyTheme(themeMode);
+  });
+
   if (DEBUG) {
     devBadgeEl.hidden = false;
     updateDevBadge();
