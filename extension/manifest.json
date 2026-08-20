@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "다모앙 UI 확장",
   "description": "다모앙(damoang.net) 즐겨찾기 바로가기와 메모 UI 설정을 팝업에서 관리합니다.",
-  "version": "1.1",
+  "version": "0.1.0",
   "permissions": ["scripting", "tabs"],
   "host_permissions": ["https://damoang.net/*"],
   "icons": {

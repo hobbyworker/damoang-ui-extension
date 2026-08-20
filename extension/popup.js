@@ -2,6 +2,16 @@ const API = "https://damoang.net/api/my/ui-settings";
 const FAV_API = "https://damoang.net/api/v1/my/favorites";
 const SITE = "https://damoang.net";
 
+// 스토어 설치본 manifest에는 update_url이 주입된다. 없으면 압축해제 로드(개발)로 본다
+const DEBUG = !("update_url" in chrome.runtime.getManifest());
+
+// 시뮬레이션 모드("logout"|"fail"|""). DEV 배지의 테스트 다이얼로그로 선택, 팝업을 닫아도 유지
+let simMode = DEBUG ? localStorage.getItem("debug-sim") || "" : "";
+
+function dbg(...args) {
+  if (DEBUG) console.log("[dbg]", ...args);
+}
+
 const FIELDS = [
   { key: "hideMemo",         label: "메모 배지 가리기" },
   { key: "hideMemoInList",   label: "목록 메모 배지 가리기" },
@@ -18,13 +28,15 @@ const showAllBtn = document.getElementById("show-all");
 const favoritesEl = document.getElementById("favorites");
 const favSpinEl = document.getElementById("fav-spin");
 const memoSpinEl = document.getElementById("memo-spin");
-const columnsEl = document.getElementById("columns");
 const gateEl = document.getElementById("gate");
 const gateMsgEl = document.getElementById("gate-msg");
 const gateBtn = document.getElementById("gate-btn");
 const failEl = document.getElementById("fail");
 const failMsgEl = document.getElementById("fail-msg");
 const failBtn = document.getElementById("fail-btn");
+const devBadgeEl = document.getElementById("dev-badge");
+const devDialog = document.getElementById("dev-dialog");
+const versionEl = document.getElementById("version");
 let damoangTab = null;
 let baseline = {}; // 서버 기준값. 변경 여부 판정용
 
@@ -58,9 +70,11 @@ function setStatus(msg, isError = false) {
 
 // ---- 다모앙 탭에 주입해 실행하는 함수들. 세션 쿠키를 쓰기 위해 페이지 컨텍스트에서 fetch ----
 
-async function readSettingsInPage(apiUrl) {
+async function readSettingsInPage(apiUrl, debug) {
+  const log = (...a) => { if (debug) console.log("[다모앙UI]", ...a); };
   try {
     const res = await fetch(apiUrl, { credentials: "include" });
+    log("settings GET", res.status);
     if (res.status === 401 || res.status === 403) {
       return { ok: false, loggedOut: true, error: "GET " + res.status };
     }
@@ -81,7 +95,8 @@ async function readSettingsInPage(apiUrl) {
   }
 }
 
-async function readFavoritesInPage(apiUrl) {
+async function readFavoritesInPage(apiUrl, debug) {
+  const log = (...a) => { if (debug) console.log("[다모앙UI]", ...a); };
   // 숫자 키가 표시 순서
   const toList = (obj) => {
     if (!obj || typeof obj !== "object") return [];
@@ -93,27 +108,33 @@ async function readFavoritesInPage(apiUrl) {
   // 서버 값 우선
   try {
     const res = await fetch(apiUrl, { credentials: "include" });
+    log("favorites GET", res.status);
     if (res.ok) {
       const data = await res.json();
       const list = toList(data && data.data);
       if (list.length) return { ok: true, favorites: list, source: "api" };
     }
-  } catch (_) {}
+  } catch (e) {
+    log("favorites GET 실패", String(e));
+  }
   // localStorage 사본 폴백
   try {
     const raw = localStorage.getItem("angple-board-favorites");
     if (raw) {
       const list = toList(JSON.parse(raw));
+      log("favorites localStorage 폴백", list.length);
       if (list.length) return { ok: true, favorites: list, source: "local" };
     }
   } catch (_) {}
   return { ok: true, favorites: [], source: "none" };
 }
 
-async function applySettingsInPage(apiUrl, values) {
+async function applySettingsInPage(apiUrl, values, debug) {
+  const log = (...a) => { if (debug) console.log("[다모앙UI]", ...a); };
   try {
     // PUT은 전체 저장이므로 최신 설정을 받아 병합해야 다른 필드가 보존된다
     const getRes = await fetch(apiUrl, { credentials: "include" });
+    log("apply GET", getRes.status);
     if (!getRes.ok) return { ok: false, error: "GET " + getRes.status };
     const data = await getRes.json();
     const settings = data && data.settings ? data.settings : data;
@@ -127,6 +148,7 @@ async function applySettingsInPage(apiUrl, values) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ settings })
     });
+    log("apply PUT", putRes.status, values);
     if (!putRes.ok) return { ok: false, error: "PUT " + putRes.status };
     // 사이트가 새로고침 첫 렌더에 쓰는 localStorage 사본도 같이 갱신해야 바로 반영된다
     try {
@@ -135,6 +157,7 @@ async function applySettingsInPage(apiUrl, values) {
         const copy = JSON.parse(raw);
         Object.assign(copy, values);
         localStorage.setItem("angple_ui_settings", JSON.stringify(copy));
+        log("localStorage 사본 갱신");
       }
     } catch (_) {
       // 사본이 없거나 깨져 있으면 무시. 페이지가 알아서 동기화한다
@@ -182,13 +205,16 @@ function onLocalChange() {
   setStatus(dirty ? "저장되지 않은 변경사항이 있습니다." : "");
 }
 
-// 비로그인, 탭 없음 상태에서는 기능을 숨기고 이동 버튼만 노출
+// 비로그인, 탭 없음 차단막. 오버레이가 클릭을 막지만 키보드 포커스 대비로 컨트롤도 잠근다
 function showGate(msg) {
-  columnsEl.hidden = true;
-  statusEl.hidden = true;
   failEl.hidden = true;
   gateEl.hidden = false;
   gateMsgEl.textContent = msg;
+  favSpinEl.hidden = true;
+  memoSpinEl.hidden = true;
+  setStatus("");
+  setBusy(true);
+  applyBtn.disabled = true;
 }
 
 // 로딩 실패 차단막. 오버레이가 클릭을 막지만 키보드 포커스 대비로 컨트롤도 잠근다
@@ -202,6 +228,13 @@ function showFail(msg) {
 function hideFail() {
   if (failEl.hidden) return;
   failEl.hidden = true;
+  setBusy(false);
+}
+
+// 시뮬레이션 해제 때만 필요하다
+function hideGate() {
+  if (gateEl.hidden) return;
+  gateEl.hidden = true;
   setBusy(false);
 }
 
@@ -281,7 +314,10 @@ async function onApply() {
   setBusy(true);
   applyBtn.disabled = true;
   setStatus("저장 중…");
-  const r = await runInTab(applySettingsInPage, [API, currentUIValues()]);
+  const values = currentUIValues();
+  dbg("apply", values);
+  const r = await runInTab(applySettingsInPage, [API, values, DEBUG]);
+  dbg("apply result", r);
   setBusy(false);
   if (r && r.ok) {
     // 서버 응답으로 동기화
@@ -309,7 +345,9 @@ async function onBulk(hide) {
   setBusy(true);
   applyBtn.disabled = true;
   setStatus("저장 중…");
-  const r = await runInTab(applySettingsInPage, [API, { hideMemo: hide, hideMemoInList: hide }]);
+  dbg("bulk", hide);
+  const r = await runInTab(applySettingsInPage, [API, { hideMemo: hide, hideMemoInList: hide }, DEBUG]);
+  dbg("bulk result", r);
   setBusy(false);
   if (r && r.ok) {
     for (const key of ["hideMemo", "hideMemoInList"]) {
@@ -332,14 +370,18 @@ async function loadData() {
   let fav, r;
   try {
     [fav, r] = await Promise.all([
-      runInTab(readFavoritesInPage, [FAV_API]),
-      runInTab(readSettingsInPage, [API])
+      runInTab(readFavoritesInPage, [FAV_API, DEBUG]),
+      runInTab(readSettingsInPage, [API, DEBUG])
     ]);
   } catch (e) {
     r = { ok: false, error: String(e) };
   }
+  if (simMode === "fail") r = { ok: false, error: "로딩 실패 시뮬레이션 (DEV)" };
+  if (simMode === "logout") r = { ok: false, loggedOut: true };
   favSpinEl.hidden = true;
   memoSpinEl.hidden = true;
+  dbg("favorites", fav);
+  dbg("settings", r);
   if (r && r.loggedOut) {
     showGate("로그인이 필요한 기능입니다.");
     return false;
@@ -392,9 +434,41 @@ async function onFailRetry() {
   failBtn.disabled = false;
 }
 
+function updateDevBadge() {
+  devBadgeEl.textContent = simMode ? "DEV: " + (simMode === "logout" ? "비로그인" : "실패") : "DEV";
+  devBadgeEl.classList.toggle("fail", !!simMode);
+}
+
 async function init() {
+  versionEl.textContent = "v" + chrome.runtime.getManifest().version;
+  if (DEBUG) {
+    devBadgeEl.hidden = false;
+    updateDevBadge();
+    devBadgeEl.addEventListener("click", () => {
+      for (const b of devDialog.querySelectorAll("button")) {
+        b.classList.toggle("on", b.dataset.sim === simMode);
+      }
+      devDialog.showModal();
+    });
+    devDialog.addEventListener("click", (e) => {
+      // 바깥(backdrop) 클릭은 닫기만
+      if (e.target === devDialog) {
+        devDialog.close();
+        return;
+      }
+      const sim = e.target.dataset ? e.target.dataset.sim : undefined;
+      if (sim === undefined) return;
+      devDialog.close();
+      simMode = sim;
+      localStorage.setItem("debug-sim", simMode);
+      updateDevBadge();
+      hideGate();
+      if (damoangTab) loadData();
+    });
+  }
   renderRows();
   const cached = loadCache();
+  dbg("cache", cached);
   if (cached.settings) fillRows(cached.settings);
   if (Array.isArray(cached.favorites) && cached.favorites.length) {
     renderFavorites(cached.favorites);
@@ -414,6 +488,7 @@ async function init() {
   });
 
   damoangTab = await findDamoangTab();
+  dbg("tab", damoangTab && damoangTab.id, damoangTab && damoangTab.url);
   if (!damoangTab) {
     showGate("다모앙 탭을 먼저 열어주세요.");
     return;

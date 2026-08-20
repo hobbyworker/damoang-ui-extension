@@ -32,7 +32,7 @@
     display: flex;
     flex-direction: column;
     margin: 0;
-    padding: 6px 0 8px;
+    padding: 6px 0 0;
     background: var(--bg);
     color: var(--fg);
     font: 13px/1.4 -apple-system, "Apple SD Gothic Neo", "Pretendard", system-ui, sans-serif;
@@ -47,6 +47,15 @@
     color: var(--muted);
     margin: 6px 14px 4px;
   }
+  /* 팝업 상단부. 차단막은 이 영역까지만 덮고 하단 정보 줄은 남긴다 */
+  #main {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
   /* 좌우 패널. .panel을 추가하면 칼럼이 늘어난다 */
   #columns {
     display: flex;
@@ -150,15 +159,6 @@
   .actions button:disabled { opacity: 0.4; cursor: default; }
   .actions button:not(:disabled):active { opacity: 0.75; }
 
-  #gate {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    text-align: center;
-  }
   #gate p,
   #fail p {
     margin: 0 0 14px;
@@ -180,9 +180,10 @@
   #fail button:not(:disabled):active { opacity: 0.75; }
   #fail button:disabled { opacity: 0.4; cursor: default; }
 
-  /* 로딩 실패 차단막. 뒤 내용은 블러로 비쳐 보이게 */
+  /* 게이트·로딩 실패 차단막. #main 안에서만 덮고 뒤 내용은 블러로 비쳐 보이게 */
+  #gate,
   #fail {
-    position: fixed;
+    position: absolute;
     inset: 0;
     display: flex;
     flex-direction: column;
@@ -198,6 +199,70 @@
     word-break: break-all;
   }
 
+  /* 하단 정보 줄. 차단막·게이트가 덮지 않는 영역 */
+  #footer {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 6px;
+    height: 30px;
+    padding: 0 14px;
+    border-top: 1px solid var(--divider);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  #footer a { color: var(--muted); text-decoration: none; }
+  #footer a:hover { text-decoration: underline; }
+  #footer .right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  #dev-badge {
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: #ff9f0a;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #dev-badge.fail { background: #e0483e; }
+
+  #dev-dialog {
+    border: 1px solid var(--divider);
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--fg);
+    padding: 14px;
+  }
+  #dev-dialog::backdrop { background: rgba(0, 0, 0, 0.35); }
+  #dev-dialog h2 {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    margin: 0 0 10px;
+  }
+  #dev-dialog button {
+    display: block;
+    width: 200px;
+    padding: 6px 0;
+    border-radius: 7px;
+    border: 1px solid var(--divider);
+    background: transparent;
+    color: var(--fg);
+    font: inherit;
+    cursor: pointer;
+  }
+  #dev-dialog button + button { margin-top: 6px; }
+  #dev-dialog button.on {
+    border-color: var(--track-on);
+    color: var(--track-on);
+    font-weight: 600;
+  }
+
   #status {
     flex-shrink: 0;
     margin: 6px 14px 0;
@@ -211,33 +276,48 @@
 </style>
 </head>
 <body>
-  <div id="columns">
-    <section class="panel">
-      <h1>즐겨찾기<span id="fav-spin" class="spinner"></span></h1>
-      <div id="favorites"></div>
-    </section>
-    <section class="panel">
-      <h1>메모 설정<span id="memo-spin" class="spinner"></span></h1>
-      <div id="rows"></div>
-      <div class="actions">
-        <button id="apply" disabled>적용</button>
-        <button id="refresh" disabled>새로고침</button>
-      </div>
-      <div class="actions">
-        <button id="hide-all" disabled>전체 메모 가리기</button>
-        <button id="show-all" disabled>전체 메모 표시</button>
-      </div>
-    </section>
+  <div id="main">
+    <div id="columns">
+      <section class="panel">
+        <h1>즐겨찾기<span id="fav-spin" class="spinner"></span></h1>
+        <div id="favorites"></div>
+      </section>
+      <section class="panel">
+        <h1>메모 설정<span id="memo-spin" class="spinner"></span></h1>
+        <div id="rows"></div>
+        <div class="actions">
+          <button id="apply" disabled>적용</button>
+          <button id="refresh" disabled>새로고침</button>
+        </div>
+        <div class="actions">
+          <button id="hide-all" disabled>전체 메모 가리기</button>
+          <button id="show-all" disabled>전체 메모 표시</button>
+        </div>
+      </section>
+    </div>
+    <div id="gate" hidden>
+      <p id="gate-msg"></p>
+      <button id="gate-btn">다모앙 열기</button>
+    </div>
+    <div id="fail" hidden>
+      <p id="fail-msg"></p>
+      <button id="fail-btn">새로고침</button>
+    </div>
+    <div id="status">불러오는 중…</div>
   </div>
-  <div id="gate" hidden>
-    <p id="gate-msg"></p>
-    <button id="gate-btn">다모앙 열기</button>
+  <div id="footer">
+    <a href="https://damoang-ui-extension.hobbyworker.me" target="_blank">웹사이트</a>
+    <span class="right">
+      <span id="version"></span>
+      <span id="dev-badge" title="클릭: 테스트 항목" hidden>DEV</span>
+    </span>
   </div>
-  <div id="fail" hidden>
-    <p id="fail-msg"></p>
-    <button id="fail-btn">새로고침</button>
-  </div>
-  <div id="status">불러오는 중…</div>
+  <dialog id="dev-dialog">
+    <h2>테스트 항목</h2>
+    <button data-sim="logout">비로그인</button>
+    <button data-sim="fail">로딩 실패</button>
+    <button data-sim="">해제</button>
+  </dialog>
   <script src="popup.js"></script>
 </body>
 </html>
