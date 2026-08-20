@@ -12,6 +12,7 @@
     --track-on: #34c759;
     --thumb: #ffffff;
     --divider: rgba(0, 0, 0, 0.06);
+    --overlay: rgba(255, 255, 255, 0.45);
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -20,6 +21,7 @@
       --muted: #98989e;
       --track-off: #3a3a3e;
       --divider: rgba(255, 255, 255, 0.08);
+      --overlay: rgba(30, 30, 32, 0.5);
     }
   }
   /* 로딩 전후 팝업 크기가 출렁이지 않도록 고정. 내용이 넘치면 패널 안에서 스크롤 */
@@ -157,11 +159,13 @@
     padding: 20px;
     text-align: center;
   }
-  #gate p {
+  #gate p,
+  #fail p {
     margin: 0 0 14px;
     color: var(--muted);
   }
-  #gate button {
+  #gate button,
+  #fail button {
     width: 240px;
     padding: 7px 0;
     border-radius: 7px;
@@ -172,7 +176,27 @@
     font-weight: 600;
     cursor: pointer;
   }
-  #gate button:active { opacity: 0.75; }
+  #gate button:not(:disabled):active,
+  #fail button:not(:disabled):active { opacity: 0.75; }
+  #fail button:disabled { opacity: 0.4; cursor: default; }
+
+  /* 로딩 실패 차단막. 뒤 내용은 블러로 비쳐 보이게 */
+  #fail {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    text-align: center;
+    background: var(--overlay);
+    backdrop-filter: blur(6px);
+  }
+  #fail p {
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
 
   #status {
     flex-shrink: 0;
@@ -208,6 +232,10 @@
   <div id="gate" hidden>
     <p id="gate-msg"></p>
     <button id="gate-btn">다모앙 열기</button>
+  </div>
+  <div id="fail" hidden>
+    <p id="fail-msg"></p>
+    <button id="fail-btn">새로고침</button>
   </div>
   <div id="status">불러오는 중…</div>
   <script src="popup.js"></script>

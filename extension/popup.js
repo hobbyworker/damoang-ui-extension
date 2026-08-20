@@ -22,6 +22,9 @@ const columnsEl = document.getElementById("columns");
 const gateEl = document.getElementById("gate");
 const gateMsgEl = document.getElementById("gate-msg");
 const gateBtn = document.getElementById("gate-btn");
+const failEl = document.getElementById("fail");
+const failMsgEl = document.getElementById("fail-msg");
+const failBtn = document.getElementById("fail-btn");
 let damoangTab = null;
 let baseline = {}; // 서버 기준값. 변경 여부 판정용
 
@@ -183,8 +186,23 @@ function onLocalChange() {
 function showGate(msg) {
   columnsEl.hidden = true;
   statusEl.hidden = true;
+  failEl.hidden = true;
   gateEl.hidden = false;
   gateMsgEl.textContent = msg;
+}
+
+// 로딩 실패 차단막. 오버레이가 클릭을 막지만 키보드 포커스 대비로 컨트롤도 잠근다
+function showFail(msg) {
+  failMsgEl.textContent = msg;
+  failEl.hidden = false;
+  setBusy(true);
+  applyBtn.disabled = true;
+}
+
+function hideFail() {
+  if (failEl.hidden) return;
+  failEl.hidden = true;
+  setBusy(false);
 }
 
 function renderFavorites(favorites) {
@@ -308,6 +326,72 @@ async function onBulk(hide) {
   }
 }
 
+async function loadData() {
+  favSpinEl.hidden = false;
+  memoSpinEl.hidden = false;
+  let fav, r;
+  try {
+    [fav, r] = await Promise.all([
+      runInTab(readFavoritesInPage, [FAV_API]),
+      runInTab(readSettingsInPage, [API])
+    ]);
+  } catch (e) {
+    r = { ok: false, error: String(e) };
+  }
+  favSpinEl.hidden = true;
+  memoSpinEl.hidden = true;
+  if (r && r.loggedOut) {
+    showGate("로그인이 필요한 기능입니다.");
+    return false;
+  }
+  if (fav && fav.ok) {
+    renderFavorites(fav.favorites);
+    saveCache({ favorites: fav.favorites });
+  }
+  if (r && r.ok) {
+    hideFail();
+    fillRows(r.settings);
+    saveCache({ settings: fieldValues(r.settings) });
+    hideAllBtn.disabled = false;
+    showAllBtn.disabled = false;
+    onLocalChange();
+    return true;
+  }
+  showFail("설정을 불러오지 못했습니다.\n" + ((r && r.error) || "알 수 없는 오류"));
+  return false;
+}
+
+// 탭 새로고침 완료까지 대기. 10초가 지나면 그냥 진행
+function reloadTabAndWait() {
+  return new Promise(resolve => {
+    const timer = setTimeout(done, 10000);
+    function listener(tabId, info) {
+      if (tabId === damoangTab.id && info.status === "complete") done();
+    }
+    function done() {
+      clearTimeout(timer);
+      chrome.tabs.onUpdated.removeListener(listener);
+      resolve();
+    }
+    chrome.tabs.onUpdated.addListener(listener);
+    chrome.tabs.reload(damoangTab.id);
+  });
+}
+
+async function onFailRetry() {
+  failBtn.disabled = true;
+  failMsgEl.textContent = "다모앙 탭을 새로고침하고 다시 시도합니다…";
+  damoangTab = await findDamoangTab();
+  if (!damoangTab) {
+    failBtn.disabled = false;
+    showGate("다모앙 탭을 먼저 열어주세요.");
+    return;
+  }
+  await reloadTabAndWait();
+  await loadData();
+  failBtn.disabled = false;
+}
+
 async function init() {
   renderRows();
   const cached = loadCache();
@@ -319,6 +403,7 @@ async function init() {
   refreshBtn.addEventListener("click", onRefresh);
   hideAllBtn.addEventListener("click", () => onBulk(true));
   showAllBtn.addEventListener("click", () => onBulk(false));
+  failBtn.addEventListener("click", onFailRetry);
   gateBtn.addEventListener("click", () => {
     if (damoangTab) {
       chrome.tabs.update(damoangTab.id, { url: SITE, active: true });
@@ -334,29 +419,7 @@ async function init() {
     return;
   }
   refreshBtn.disabled = false;
-  const [fav, r] = await Promise.all([
-    runInTab(readFavoritesInPage, [FAV_API]),
-    runInTab(readSettingsInPage, [API])
-  ]);
-  favSpinEl.hidden = true;
-  memoSpinEl.hidden = true;
-  if (r && r.loggedOut) {
-    showGate("로그인이 필요한 기능입니다.");
-    return;
-  }
-  if (fav && fav.ok) {
-    renderFavorites(fav.favorites);
-    saveCache({ favorites: fav.favorites });
-  }
-  if (r && r.ok) {
-    fillRows(r.settings);
-    saveCache({ settings: fieldValues(r.settings) });
-    hideAllBtn.disabled = false;
-    showAllBtn.disabled = false;
-    onLocalChange();
-  } else {
-    setStatus("설정을 불러오지 못했습니다: " + ((r && r.error) || "알 수 없는 오류"), true);
-  }
+  await loadData();
 }
 
 init();
