@@ -2,14 +2,14 @@ const API = "https://damoang.net/api/my/ui-settings";
 const FAV_API = "https://damoang.net/api/v1/my/favorites";
 const SITE = "https://damoang.net";
 
-// 스토어 설치본 manifest에는 update_url이 주입된다. 없으면 압축해제 로드(개발)로 본다
-const DEBUG = !("update_url" in chrome.runtime.getManifest());
+// 디버그는 설정 다이얼로그의 스위치로 켜는 정식 기능. 팝업을 닫아도 유지
+let debugMode = localStorage.getItem("debug") === "1";
 
 // 시뮬레이션 모드("logout"|"fail"|""). DEV 배지의 테스트 다이얼로그로 선택, 팝업을 닫아도 유지
-let simMode = DEBUG ? localStorage.getItem("debug-sim") || "" : "";
+let simMode = debugMode ? localStorage.getItem("debug-sim") || "" : "";
 
 function dbg(...args) {
-  if (DEBUG) console.log("[dbg]", ...args);
+  if (debugMode) console.log("[dbg]", ...args);
 }
 
 // 화면모드("system"|"light"|"dark"). system이면 OS 설정을 따른다
@@ -54,6 +54,7 @@ const versionEl = document.getElementById("version");
 const settingsBtn = document.getElementById("settings-btn");
 const settingsDialog = document.getElementById("settings-dialog");
 const themeSelect = document.getElementById("theme-select");
+const debugSwitch = document.getElementById("debug-switch");
 let damoangTab = null;
 let baseline = {}; // 서버 기준값. 변경 여부 판정용
 
@@ -350,7 +351,7 @@ async function onApply() {
   setStatus("저장 중…");
   const values = currentUIValues();
   dbg("apply", values);
-  const r = await runInTab(applySettingsInPage, [API, values, DEBUG], 25000);
+  const r = await runInTab(applySettingsInPage, [API, values, debugMode], 25000);
   dbg("apply result", r);
   setBusy(false);
   if (r && r.ok) {
@@ -380,7 +381,7 @@ async function onBulk(hide) {
   applyBtn.disabled = true;
   setStatus("저장 중…");
   dbg("bulk", hide);
-  const r = await runInTab(applySettingsInPage, [API, { hideMemo: hide, hideMemoInList: hide }, DEBUG], 25000);
+  const r = await runInTab(applySettingsInPage, [API, { hideMemo: hide, hideMemoInList: hide }, debugMode], 25000);
   dbg("bulk result", r);
   setBusy(false);
   if (r && r.ok) {
@@ -408,8 +409,8 @@ async function loadData() {
   let fav, r;
   try {
     [fav, r] = await Promise.all([
-      runInTab(readFavoritesInPage, [FAV_API, DEBUG]),
-      runInTab(simMode === "timeout" ? hangInPage : readSettingsInPage, [API, DEBUG])
+      runInTab(readFavoritesInPage, [FAV_API, debugMode]),
+      runInTab(simMode === "timeout" ? hangInPage : readSettingsInPage, [API, debugMode])
     ]);
   } catch (e) {
     r = { ok: false, error: String(e) };
@@ -502,6 +503,7 @@ async function init() {
 
   settingsBtn.addEventListener("click", () => {
     themeSelect.value = themeMode;
+    debugSwitch.checked = debugMode;
     settingsDialog.showModal();
   });
   settingsDialog.addEventListener("click", (e) => {
@@ -512,32 +514,41 @@ async function init() {
     localStorage.setItem("theme", themeMode);
     applyTheme(themeMode);
   });
-
-  if (DEBUG) {
-    devBadgeEl.hidden = false;
+  document.querySelector("#settings-dialog .track").addEventListener("click", () => debugSwitch.click());
+  debugSwitch.addEventListener("change", () => {
+    debugMode = debugSwitch.checked;
+    localStorage.setItem("debug", debugMode ? "1" : "0");
+    // 끄면 걸려 있던 시뮬레이션도 함께 풀고 실제 데이터로 복귀
+    simMode = debugMode ? localStorage.getItem("debug-sim") || "" : "";
+    devBadgeEl.hidden = !debugMode;
     updateDevBadge();
-    devBadgeEl.addEventListener("click", () => {
-      for (const b of devDialog.querySelectorAll("button")) {
-        b.classList.toggle("on", b.dataset.sim === simMode);
-      }
-      devDialog.showModal();
-    });
-    devDialog.addEventListener("click", (e) => {
-      // 바깥(backdrop) 클릭은 닫기만
-      if (e.target === devDialog) {
-        devDialog.close();
-        return;
-      }
-      const sim = e.target.dataset ? e.target.dataset.sim : undefined;
-      if (sim === undefined) return;
+    hideGate();
+    if (damoangTab) loadData();
+  });
+
+  devBadgeEl.hidden = !debugMode;
+  updateDevBadge();
+  devBadgeEl.addEventListener("click", () => {
+    for (const b of devDialog.querySelectorAll("button")) {
+      b.classList.toggle("on", b.dataset.sim === simMode);
+    }
+    devDialog.showModal();
+  });
+  devDialog.addEventListener("click", (e) => {
+    // 바깥(backdrop) 클릭은 닫기만
+    if (e.target === devDialog) {
       devDialog.close();
-      simMode = sim;
-      localStorage.setItem("debug-sim", simMode);
-      updateDevBadge();
-      hideGate();
-      if (damoangTab) loadData();
-    });
-  }
+      return;
+    }
+    const sim = e.target.dataset ? e.target.dataset.sim : undefined;
+    if (sim === undefined) return;
+    devDialog.close();
+    simMode = sim;
+    localStorage.setItem("debug-sim", simMode);
+    updateDevBadge();
+    hideGate();
+    if (damoangTab) loadData();
+  });
   renderRows();
   const cached = loadCache();
   dbg("cache", cached);
