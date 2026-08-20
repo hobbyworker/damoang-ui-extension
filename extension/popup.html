@@ -22,8 +22,13 @@
       --divider: rgba(255, 255, 255, 0.08);
     }
   }
+  /* 로딩 전후 팝업 크기가 출렁이지 않도록 고정. 내용이 넘치면 패널 안에서 스크롤 */
   body {
     width: 520px;
+    height: 340px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
     margin: 0;
     padding: 6px 0 8px;
     background: var(--bg);
@@ -44,10 +49,13 @@
   #columns {
     display: flex;
     align-items: stretch;
+    flex: 1;
+    min-height: 0;
   }
   .panel {
     flex: 1 1 0;
     min-width: 0;
+    overflow-y: auto;
   }
   .panel + .panel { border-left: 1px solid var(--divider); }
 
@@ -89,6 +97,25 @@
   .switch input:focus-visible + .track { outline: 2px solid var(--track-on); outline-offset: 2px; }
   .switch input:disabled + .track { opacity: 0.4; cursor: default; }
 
+  /* 크기는 스위치 높이(20px)와 같게 잡아 교체 시 줄 높이가 안 흔들리게 */
+  .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--track-off);
+    border-top-color: var(--muted);
+    border-radius: 50%;
+    animation: rotate 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+  h1 .spinner {
+    width: 10px;
+    height: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  @keyframes rotate { to { transform: rotate(360deg); } }
+
   .fav {
     padding: 7px 14px;
     cursor: pointer;
@@ -121,9 +148,8 @@
   .actions button:disabled { opacity: 0.4; cursor: default; }
   .actions button:not(:disabled):active { opacity: 0.75; }
 
-  /* 팝업 창은 한번 열리면 줄어들지 않으므로 전체 폭 기준으로 센터링 */
   #gate {
-    min-height: 240px;
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -149,6 +175,7 @@
   #gate button:active { opacity: 0.75; }
 
   #status {
+    flex-shrink: 0;
     margin: 6px 14px 0;
     font-size: 11px;
     color: var(--muted);
@@ -162,11 +189,11 @@
 <body>
   <div id="columns">
     <section class="panel">
-      <h1>즐겨찾기</h1>
+      <h1>즐겨찾기<span id="fav-spin" class="spinner"></span></h1>
       <div id="favorites"></div>
     </section>
     <section class="panel">
-      <h1>메모 설정</h1>
+      <h1>메모 설정<span id="memo-spin" class="spinner"></span></h1>
       <div id="rows"></div>
       <div class="actions">
         <button id="apply" disabled>적용</button>

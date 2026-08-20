@@ -16,12 +16,37 @@ const refreshBtn = document.getElementById("refresh");
 const hideAllBtn = document.getElementById("hide-all");
 const showAllBtn = document.getElementById("show-all");
 const favoritesEl = document.getElementById("favorites");
+const favSpinEl = document.getElementById("fav-spin");
+const memoSpinEl = document.getElementById("memo-spin");
 const columnsEl = document.getElementById("columns");
 const gateEl = document.getElementById("gate");
 const gateMsgEl = document.getElementById("gate-msg");
 const gateBtn = document.getElementById("gate-btn");
 let damoangTab = null;
 let baseline = {}; // 서버 기준값. 변경 여부 판정용
+
+// 마지막으로 확인한 서버 값. 다음에 팝업을 열 때 이 값으로 먼저 그린다
+const CACHE_KEY = "last-data";
+
+function loadCache() {
+  try {
+    return JSON.parse(localStorage.getItem(CACHE_KEY)) || {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function saveCache(patch) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(Object.assign(loadCache(), patch)));
+  } catch (_) {}
+}
+
+function fieldValues(settings) {
+  const out = {};
+  for (const f of FIELDS) out[f.key] = !!settings[f.key];
+  return out;
+}
 
 function setStatus(msg, isError = false) {
   statusEl.textContent = msg;
@@ -184,11 +209,9 @@ function renderFavorites(favorites) {
   }
 }
 
-function render(settings) {
-  rowsEl.textContent = "";
+// 항목은 팝업이 열릴 때 바로 그리고, 값 수신 전까지 스위치를 비활성으로 둔다
+function renderRows() {
   for (const f of FIELDS) {
-    baseline[f.key] = !!settings[f.key];
-
     const row = document.createElement("div");
     row.className = "row";
 
@@ -201,7 +224,7 @@ function render(settings) {
     const input = document.createElement("input");
     input.type = "checkbox";
     input.id = "sw-" + f.key;
-    input.checked = !!settings[f.key];
+    input.disabled = true;
     const track = document.createElement("span");
     track.className = "track";
     track.addEventListener("click", () => input.click());
@@ -211,6 +234,17 @@ function render(settings) {
     wrap.append(input, track);
     row.append(label, wrap);
     rowsEl.append(row);
+  }
+}
+
+function fillRows(settings) {
+  for (const f of FIELDS) {
+    const input = document.getElementById("sw-" + f.key);
+    // 새 값이 도착하기 전에 사용자가 만진 스위치는 유지
+    const touched = !input.disabled && input.checked !== !!baseline[f.key];
+    baseline[f.key] = !!settings[f.key];
+    if (!touched) input.checked = !!settings[f.key];
+    input.disabled = false;
   }
 }
 
@@ -237,6 +271,7 @@ async function onApply() {
       baseline[f.key] = !!r.settings[f.key];
       document.getElementById("sw-" + f.key).checked = !!r.settings[f.key];
     }
+    saveCache({ settings: fieldValues(r.settings) });
     applyBtn.disabled = true;
     setStatus("적용됨 · 새로고침하면 화면에 반영됩니다.");
   } else {
@@ -263,6 +298,7 @@ async function onBulk(hide) {
       baseline[key] = !!r.settings[key];
       document.getElementById("sw-" + key).checked = !!r.settings[key];
     }
+    saveCache({ settings: fieldValues(r.settings) });
     applyBtn.disabled = !isDirty();
     chrome.tabs.reload(damoangTab.id);
     setStatus(isDirty() ? "적용 후 새로고침함 · 저장되지 않은 변경사항이 있습니다." : "적용 후 새로고침함");
@@ -273,6 +309,12 @@ async function onBulk(hide) {
 }
 
 async function init() {
+  renderRows();
+  const cached = loadCache();
+  if (cached.settings) fillRows(cached.settings);
+  if (Array.isArray(cached.favorites) && cached.favorites.length) {
+    renderFavorites(cached.favorites);
+  }
   applyBtn.addEventListener("click", onApply);
   refreshBtn.addEventListener("click", onRefresh);
   hideAllBtn.addEventListener("click", () => onBulk(true));
@@ -296,16 +338,22 @@ async function init() {
     runInTab(readFavoritesInPage, [FAV_API]),
     runInTab(readSettingsInPage, [API])
   ]);
+  favSpinEl.hidden = true;
+  memoSpinEl.hidden = true;
   if (r && r.loggedOut) {
     showGate("로그인이 필요한 기능입니다.");
     return;
   }
-  if (fav && fav.ok) renderFavorites(fav.favorites);
+  if (fav && fav.ok) {
+    renderFavorites(fav.favorites);
+    saveCache({ favorites: fav.favorites });
+  }
   if (r && r.ok) {
-    render(r.settings);
+    fillRows(r.settings);
+    saveCache({ settings: fieldValues(r.settings) });
     hideAllBtn.disabled = false;
     showAllBtn.disabled = false;
-    setStatus("");
+    onLocalChange();
   } else {
     setStatus("설정을 불러오지 못했습니다: " + ((r && r.error) || "알 수 없는 오류"), true);
   }
