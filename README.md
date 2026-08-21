@@ -56,6 +56,7 @@ extension/
   popup.html
   popup.js
   icons/
+  _locales/ko/messages.json   이름과 설명. manifest 가 __MSG_ 키로 참조
 ```
 
 코드를 고친 뒤에는 `chrome://extensions`에서 확장을 새로고침합니다.
