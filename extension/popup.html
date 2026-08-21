@@ -38,7 +38,7 @@
   /* 로딩 전후 팝업 크기가 출렁이지 않도록 고정. 내용이 넘치면 패널 안에서 스크롤 */
   body {
     width: 520px;
-    height: 420px;
+    height: 560px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -59,7 +59,23 @@
     margin: 6px 14px 4px;
   }
   /* 접을 수 있는 그룹 제목. 접으면 스위치 행만 숨고 그룹 버튼은 남는다 */
-  .group-head { cursor: pointer; }
+  .group-head {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+  }
+  /* 그룹 제목 오른쪽 끝의 기능별 설정 버튼 */
+  .head-btn {
+    margin-left: auto;
+    display: inline-flex;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .head-btn:hover { color: var(--fg); }
+  .head-btn svg { width: 14px; height: 14px; }
   .group-head .chev {
     display: inline-block;
     width: 0;
@@ -260,6 +276,35 @@
     font-weight: 500;
     color: var(--muted);
   }
+  .group + .group {
+    margin-top: 8px;
+    border-top: 1px solid var(--divider);
+  }
+
+  /* 바로가기. 즐겨찾기 목록 아래 고정, 접으면 즐겨찾기가 그만큼 넓어진다 */
+  #shortcut-group {
+    flex-shrink: 0;
+    padding-bottom: 6px;
+    border-top: 1px solid var(--divider);
+  }
+  .sc-caption {
+    font-size: 11px;
+    color: var(--muted);
+    margin: 8px 14px 2px;
+  }
+  .sc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+  .sc {
+    padding: 5px 14px;
+    cursor: pointer;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .sc:hover { background: var(--divider); }
+  .sc:active { opacity: 0.7; }
 
   #gate p,
   #fail p {
@@ -395,6 +440,28 @@
     color: var(--fg);
     font: inherit;
   }
+  /* 바로가기 설정: 섹션 제목 + 2열 스위치. 섹션 사이는 구분선 */
+  #shortcut-toggles { min-width: 300px; }
+  .opt-caption {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    margin: 0 0 8px;
+  }
+  .opt-grid + .opt-caption {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--divider);
+  }
+  .opt-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 24px;
+  }
+  .opt-grid .opt-row {
+    min-width: 0;
+    gap: 12px;
+  }
 
   #status {
     flex-shrink: 0;
@@ -414,6 +481,10 @@
       <section class="panel" id="fav-panel">
         <h1>즐겨찾기<span id="fav-spin" class="spinner"></span></h1>
         <div id="favorites"></div>
+        <section class="group" id="shortcut-group">
+          <h1 class="group-head" id="shortcut-head"><span class="chev"></span>바로가기<button id="shortcut-settings-btn" class="head-btn" title="바로가기 설정"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
+          <div id="shortcuts" class="rows"></div>
+        </section>
         <div id="support">
           <a class="support-link" href="https://damoang.benecent.org/" target="_blank" rel="noopener">♡ 다모앙 후원하기<span class="arrow">→</span></a>
           <a class="support-link" href="https://forms.gle/Yj3D28THBxVNMWn2A" target="_blank" rel="noopener">♡ 마음메시지 신청하기<span class="arrow">→</span></a>
@@ -479,6 +550,10 @@
         <span class="track"></span>
       </span>
     </div>
+  </dialog>
+  <dialog id="shortcut-dialog">
+    <h2>바로가기 설정</h2>
+    <div id="shortcut-toggles"></div>
   </dialog>
   <script src="popup.js"></script>
 </body>

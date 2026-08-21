@@ -31,6 +31,33 @@ const FIELDS = [
   { key: "expandMemoInList", label: "목록 메모 배지 넓게 표시" }
 ];
 
+// 다모앙 내 페이지 바로가기. 개별 표시 여부는 설정 다이얼로그에서 고른다
+const SHORTCUTS = [
+  { caption: "활동내역", items: [
+    { key: "points",    label: "포인트",   path: "/my/points" },
+    { key: "exp",       label: "경험치",   path: "/my/exp" },
+    { key: "scraps",    label: "스크랩",   path: "/my/scraps" },
+    { key: "following", label: "팔로잉",   path: "/my/following" },
+    { key: "blocked",   label: "차단목록", path: "/my/blocked" },
+    { key: "memos",     label: "회원메모", path: "/my/memos" },
+    { key: "reports",   label: "신고내역", path: "/my/reports" }
+  ] },
+  { caption: "설정", items: [
+    { key: "settings",   label: "계정설정", path: "/member/settings" },
+    { key: "settingsUi", label: "UI 설정",  path: "/member/settings/ui" }
+  ] }
+];
+
+function loadHiddenShortcuts() {
+  try {
+    const arr = JSON.parse(localStorage.getItem("shortcut-hidden"));
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch (_) {
+    return new Set();
+  }
+}
+let hiddenShortcuts = loadHiddenShortcuts();
+
 const rowsEl = document.getElementById("rows");
 const statusEl = document.getElementById("status");
 const applyBtn = document.getElementById("apply");
@@ -42,6 +69,12 @@ const favSpinEl = document.getElementById("fav-spin");
 const memoSpinEl = document.getElementById("memo-spin");
 const memoGroupEl = document.getElementById("memo-group");
 const memoHeadEl = document.getElementById("memo-head");
+const shortcutGroupEl = document.getElementById("shortcut-group");
+const shortcutHeadEl = document.getElementById("shortcut-head");
+const shortcutsEl = document.getElementById("shortcuts");
+const shortcutTogglesEl = document.getElementById("shortcut-toggles");
+const shortcutSettingsBtn = document.getElementById("shortcut-settings-btn");
+const shortcutDialog = document.getElementById("shortcut-dialog");
 const gateEl = document.getElementById("gate");
 const gateMsgEl = document.getElementById("gate-msg");
 const gateBtn = document.getElementById("gate-btn");
@@ -323,6 +356,77 @@ function renderRows() {
   }
 }
 
+function renderShortcuts() {
+  shortcutsEl.textContent = "";
+  let shown = 0;
+  for (const group of SHORTCUTS) {
+    const items = group.items.filter(i => !hiddenShortcuts.has(i.key));
+    if (!items.length) continue;
+    const caption = document.createElement("div");
+    caption.className = "sc-caption";
+    caption.textContent = group.caption;
+    const grid = document.createElement("div");
+    grid.className = "sc-grid";
+    for (const item of items) {
+      const el = document.createElement("div");
+      el.className = "sc";
+      el.textContent = item.label;
+      el.title = SITE + item.path;
+      el.addEventListener("click", () => {
+        if (!damoangTab) return;
+        chrome.tabs.update(damoangTab.id, { url: SITE + item.path, active: true });
+        setStatus(item.label + " 페이지로 이동함");
+      });
+      grid.append(el);
+      shown++;
+    }
+    shortcutsEl.append(caption, grid);
+  }
+  if (!shown) {
+    const empty = document.createElement("div");
+    empty.className = "empty";
+    empty.textContent = "설정에서 바로가기를 켤 수 있습니다";
+    shortcutsEl.append(empty);
+  }
+}
+
+// 설정 다이얼로그의 바로가기 스위치들. 한 번만 만들고 상태는 change 로 반영
+function renderShortcutToggles() {
+  for (const group of SHORTCUTS) {
+    const caption = document.createElement("div");
+    caption.className = "opt-caption";
+    caption.textContent = group.caption;
+    const grid = document.createElement("div");
+    grid.className = "opt-grid";
+    for (const item of group.items) {
+      const row = document.createElement("div");
+      row.className = "opt-row";
+      const label = document.createElement("label");
+      label.textContent = item.label;
+      label.htmlFor = "sc-" + item.key;
+      const wrap = document.createElement("span");
+      wrap.className = "switch";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.id = "sc-" + item.key;
+      input.checked = !hiddenShortcuts.has(item.key);
+      const track = document.createElement("span");
+      track.className = "track";
+      track.addEventListener("click", () => input.click());
+      input.addEventListener("change", () => {
+        if (input.checked) hiddenShortcuts.delete(item.key);
+        else hiddenShortcuts.add(item.key);
+        localStorage.setItem("shortcut-hidden", JSON.stringify([...hiddenShortcuts]));
+        renderShortcuts();
+      });
+      wrap.append(input, track);
+      row.append(label, wrap);
+      grid.append(row);
+    }
+    shortcutTogglesEl.append(caption, grid);
+  }
+}
+
 function fillRows(settings) {
   for (const f of FIELDS) {
     const input = document.getElementById("sw-" + f.key);
@@ -557,12 +661,23 @@ async function init() {
     renderFavorites(cached.favorites);
   }
   // 접힘 상태는 팝업을 닫아도 유지
-  if (localStorage.getItem("memo-collapsed") === "1") {
-    memoGroupEl.classList.add("collapsed");
-  }
-  memoHeadEl.addEventListener("click", () => {
-    const collapsed = memoGroupEl.classList.toggle("collapsed");
-    localStorage.setItem("memo-collapsed", collapsed ? "1" : "0");
+  const setupCollapse = (el, head, key) => {
+    if (localStorage.getItem(key) === "1") el.classList.add("collapsed");
+    head.addEventListener("click", () => {
+      localStorage.setItem(key, el.classList.toggle("collapsed") ? "1" : "0");
+    });
+  };
+  setupCollapse(memoGroupEl, memoHeadEl, "memo-collapsed");
+  setupCollapse(shortcutGroupEl, shortcutHeadEl, "shortcut-collapsed");
+  renderShortcuts();
+  renderShortcutToggles();
+  // 제목 클릭(접기)과 겹치지 않게 전파를 끊는다
+  shortcutSettingsBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    shortcutDialog.showModal();
+  });
+  shortcutDialog.addEventListener("click", (e) => {
+    if (e.target === shortcutDialog) shortcutDialog.close();
   });
 
   applyBtn.addEventListener("click", onApply);
