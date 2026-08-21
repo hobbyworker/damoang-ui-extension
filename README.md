@@ -23,8 +23,8 @@ Chrome과 Microsoft Edge에서 동작합니다.
 
 ## 설치
 
+- Chrome Web Store: https://chromewebstore.google.com/detail/amlnkdgoebgibpcnlalgmllophgkgbgc
 - Microsoft Edge Add-ons: https://microsoftedge.microsoft.com/addons/detail/cgoaiibgggnpgibehddbpbloipcdbjka
-- Chrome Web Store: 심사 중
 
 직접 로드하려면:
 
