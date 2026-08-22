@@ -712,7 +712,10 @@ function updateDevBadge() {
 }
 
 async function init() {
-  const version = chrome.runtime.getManifest().version;
+  const manifest = chrome.runtime.getManifest();
+  // 확장 이름은 manifest(로케일 해석 후)를 따른다
+  document.getElementById("site-link").textContent = manifest.name;
+  const version = manifest.version;
   versionEl.textContent = "v" + version;
   // 버전 페이지의 해당 버전 앵커로 (versions.md의 {#v0-1-0} 규칙과 짝)
   versionEl.href = "https://damoang-ui-extension.hobbyworker.me/versions/#v" + version.split(".").join("-");
