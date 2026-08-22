@@ -69,8 +69,9 @@ let hiddenShortcuts = loadHiddenShortcuts();
 // 스크린샷 모드가 함께 바꾸는 키. 범위("memo"|"memo-profile")는 빠른 실행 설정에서 고른다
 const SHOT_KEYS = ["hideMemo", "hideMemoInList"];
 let shotScope = localStorage.getItem("shot-scope") || "memo";
-// 빠른 설정의 기능 설명 아이콘 표시. 기본 켜짐
+// 기능 설명 아이콘 표시. 섹션별로 따로 기억, 기본 켜짐
 let showTips = localStorage.getItem("settings-tips") !== "0";
+let showQuickTips = localStorage.getItem("quick-tips") !== "0";
 // 이동 후 팝업 유지. 기본 켜짐. 끄면 이동하고 닫는다
 let keepPopupShortcut = localStorage.getItem("shortcut-keep-open") !== "0";
 let keepPopupFav = localStorage.getItem("fav-keep-open") !== "0";
@@ -87,6 +88,7 @@ const quickHeadEl = document.getElementById("quick-head");
 const quickSettingsBtn = document.getElementById("quick-settings-btn");
 const quickDialog = document.getElementById("quick-dialog");
 const shotScopeSelect = document.getElementById("shot-scope-select");
+const quickTipsSwitch = document.getElementById("quick-tips-switch");
 const favoritesEl = document.getElementById("favorites");
 const favSpinEl = document.getElementById("fav-spin");
 const memoSpinEl = document.getElementById("memo-spin");
@@ -836,6 +838,14 @@ async function init() {
   shotScopeSelect.addEventListener("change", () => {
     shotScope = shotScopeSelect.value;
     localStorage.setItem("shot-scope", shotScope);
+  });
+  quickGroupEl.classList.toggle("no-tips", !showQuickTips);
+  quickTipsSwitch.checked = showQuickTips;
+  quickTipsSwitch.nextElementSibling.addEventListener("click", () => quickTipsSwitch.click());
+  quickTipsSwitch.addEventListener("change", () => {
+    showQuickTips = quickTipsSwitch.checked;
+    localStorage.setItem("quick-tips", showQuickTips ? "1" : "0");
+    quickGroupEl.classList.toggle("no-tips", !showQuickTips);
   });
   failBtn.addEventListener("click", onFailRetry);
   gateBtn.addEventListener("click", () => {

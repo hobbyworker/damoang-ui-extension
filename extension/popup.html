@@ -292,7 +292,7 @@
     cursor: pointer;
   }
   .info svg { width: 13px; height: 13px; }
-  #settings-group.no-tips .info { display: none; }
+  .group.no-tips .info { display: none; }
   .info:hover { color: var(--fg); }
 
   /* 빠른 실행 행의 작은 버튼 쌍 */
@@ -631,6 +631,13 @@
         <option value="memo">전체 메모 가리기</option>
         <option value="memo-profile">전체 메모 + 내 프로필 가리기</option>
       </select>
+    </div>
+    <div class="opt-row">
+      <label for="quick-tips-switch">기능 설명 보기</label>
+      <span class="switch">
+        <input type="checkbox" id="quick-tips-switch">
+        <span class="track"></span>
+      </span>
     </div>
   </dialog>
   <dialog id="shortcut-dialog">
