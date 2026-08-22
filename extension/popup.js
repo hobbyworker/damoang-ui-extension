@@ -65,6 +65,10 @@ function loadHiddenShortcuts() {
   }
 }
 let hiddenShortcuts = loadHiddenShortcuts();
+
+// 스크린샷 모드가 함께 바꾸는 키. 범위("memo"|"memo-profile")는 빠른 실행 설정에서 고른다
+const SHOT_KEYS = ["hideMemo", "hideMemoInList"];
+let shotScope = localStorage.getItem("shot-scope") || "memo";
 // 이동 후 팝업 유지. 기본 켜짐. 끄면 이동하고 닫는다
 let keepPopupShortcut = localStorage.getItem("shortcut-keep-open") !== "0";
 let keepPopupFav = localStorage.getItem("fav-keep-open") !== "0";
@@ -74,8 +78,13 @@ const groupsEl = document.getElementById("groups");
 const statusEl = document.getElementById("status");
 const applyBtn = document.getElementById("apply");
 const refreshBtn = document.getElementById("refresh");
-const hideAllBtn = document.getElementById("hide-all");
-const showAllBtn = document.getElementById("show-all");
+const shotOnBtn = document.getElementById("shot-on");
+const shotOffBtn = document.getElementById("shot-off");
+const quickGroupEl = document.getElementById("quick-group");
+const quickHeadEl = document.getElementById("quick-head");
+const quickSettingsBtn = document.getElementById("quick-settings-btn");
+const quickDialog = document.getElementById("quick-dialog");
+const shotScopeSelect = document.getElementById("shot-scope-select");
 const favoritesEl = document.getElementById("favorites");
 const favSpinEl = document.getElementById("fav-spin");
 const memoSpinEl = document.getElementById("memo-spin");
@@ -373,6 +382,31 @@ function renderFavorites(favorites) {
   }
 }
 
+// data-tip 요소를 클릭하면 아래(공간이 없으면 위)에 툴팁. 다시 클릭하거나 다른 곳을 클릭하면 닫힌다
+function setupTooltips() {
+  const tip = document.getElementById("tip");
+  let current = null;
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest("[data-tip]");
+    if (!el || el === current) {
+      tip.hidden = true;
+      current = null;
+      return;
+    }
+    tip.textContent = el.dataset.tip;
+    tip.hidden = false;
+    const r = el.getBoundingClientRect();
+    const w = tip.offsetWidth;
+    const h = tip.offsetHeight;
+    let left = Math.min(r.left, window.innerWidth - w - 8);
+    let top = r.bottom + 6;
+    if (top + h > window.innerHeight - 8) top = r.top - h - 6;
+    tip.style.left = Math.max(8, left) + "px";
+    tip.style.top = top + "px";
+    current = el;
+  });
+}
+
 // 접힘 상태는 팝업을 닫아도 유지
 function setupCollapse(el, head, key) {
   if (localStorage.getItem(key) === "1") el.classList.add("collapsed");
@@ -519,8 +553,8 @@ function setAllDisabled(disabled) {
 function setBusy(busy) {
   setAllDisabled(busy);
   refreshBtn.disabled = busy;
-  hideAllBtn.disabled = busy;
-  showAllBtn.disabled = busy;
+  shotOnBtn.disabled = busy;
+  shotOffBtn.disabled = busy;
 }
 
 async function onApply() {
@@ -553,24 +587,28 @@ function onRefresh() {
   setStatus(isDirty() ? "새로고침함 · 저장되지 않은 변경사항이 있습니다." : "새로고침함");
 }
 
-// 배지 가리기 두 값을 현재 스위치 상태와 무관하게 덮어쓴다. 저장 성공 시 바로 새로고침
-async function onBulk(hide) {
+// 스크린샷 모드. 스위치 상태와 무관하게 키들을 덮어쓰고 저장 성공 시 바로 새로고침
+async function onShot(on) {
   setBusy(true);
   applyBtn.disabled = true;
   setStatus("저장 중…");
-  dbg("bulk", hide);
-  const r = await runInTab(applySettingsInPage, [API, { hideMemo: hide, hideMemoInList: hide }, debugMode], 25000);
-  dbg("bulk result", r);
+  const values = {};
+  for (const key of SHOT_KEYS) values[key] = on;
+  if (shotScope === "memo-profile") values.hideMyProfile = on;
+  dbg("shot", values);
+  const r = await runInTab(applySettingsInPage, [API, values, debugMode], 25000);
+  dbg("shot result", r);
   setBusy(false);
   if (r && r.ok) {
-    for (const key of ["hideMemo", "hideMemoInList"]) {
+    for (const key of Object.keys(values)) {
       baseline[key] = !!r.settings[key];
       document.getElementById("sw-" + key).checked = !!r.settings[key];
     }
     saveCache({ settings: fieldValues(r.settings) });
     applyBtn.disabled = !isDirty();
     chrome.tabs.reload(damoangTab.id);
-    setStatus(isDirty() ? "적용 후 새로고침함 · 저장되지 않은 변경사항이 있습니다." : "적용 후 새로고침함");
+    const done = "스크린샷 모드 " + (on ? "켬" : "끔") + " · 새로고침함";
+    setStatus(isDirty() ? done + " · 저장되지 않은 변경사항이 있습니다." : done);
   } else {
     applyBtn.disabled = !isDirty();
     setStatus("저장 실패: " + ((r && r.error) || "알 수 없는 오류"), true);
@@ -613,8 +651,8 @@ async function loadData() {
     hideFail();
     fillRows(r.settings);
     saveCache({ settings: fieldValues(r.settings) });
-    hideAllBtn.disabled = false;
-    showAllBtn.disabled = false;
+    shotOnBtn.disabled = false;
+    shotOffBtn.disabled = false;
     onLocalChange();
     return true;
   }
@@ -728,12 +766,14 @@ async function init() {
     if (damoangTab) loadData();
   });
   renderRows();
+  setupTooltips();
   const cached = loadCache();
   dbg("cache", cached);
   if (cached.settings) fillRows(cached.settings);
   if (Array.isArray(cached.favorites) && cached.favorites.length) {
     renderFavorites(cached.favorites);
   }
+  setupCollapse(quickGroupEl, quickHeadEl, "quick-collapsed");
   setupCollapse(memoGroupEl, memoHeadEl, "memo-collapsed");
   setupCollapse(shortcutGroupEl, shortcutHeadEl, "shortcut-collapsed");
   renderShortcuts();
@@ -766,8 +806,20 @@ async function init() {
 
   applyBtn.addEventListener("click", onApply);
   refreshBtn.addEventListener("click", onRefresh);
-  hideAllBtn.addEventListener("click", () => onBulk(true));
-  showAllBtn.addEventListener("click", () => onBulk(false));
+  shotOnBtn.addEventListener("click", () => onShot(true));
+  shotOffBtn.addEventListener("click", () => onShot(false));
+  quickSettingsBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    shotScopeSelect.value = shotScope;
+    quickDialog.showModal();
+  });
+  quickDialog.addEventListener("click", (e) => {
+    if (e.target === quickDialog) quickDialog.close();
+  });
+  shotScopeSelect.addEventListener("change", () => {
+    shotScope = shotScopeSelect.value;
+    localStorage.setItem("shot-scope", shotScope);
+  });
   failBtn.addEventListener("click", onFailRetry);
   gateBtn.addEventListener("click", () => {
     if (damoangTab) {

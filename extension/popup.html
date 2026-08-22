@@ -273,13 +273,52 @@
     padding: 8px 14px;
     border-top: 1px solid var(--divider);
   }
-  /* 그룹 전용 보조 버튼. 전역 버튼보다 가볍게 */
-  .group-actions button {
-    padding: 4px 0;
+  /* 직접 그리는 툴팁. 팝업에서는 기본 title 툴팁이 안 뜨는 경우가 있고,
+     스크롤 영역 안에 두면 잘리므로 body 에 고정 위치로 띄운다 */
+  #tip {
+    position: fixed;
+    z-index: 20;
+    max-width: 240px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: var(--fg);
+    color: var(--bg);
     font-size: 12px;
-    font-weight: 500;
-    color: var(--muted);
+    line-height: 1.45;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    pointer-events: none;
   }
+
+  /* 라벨 옆 설명 아이콘. 설명은 data-tip */
+  .info {
+    display: inline-flex;
+    margin-left: 5px;
+    vertical-align: -2px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .info svg { width: 13px; height: 13px; }
+  .info:hover { color: var(--fg); }
+
+  /* 빠른 실행 행의 작은 버튼 쌍 */
+  .quick-btns {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .quick-btns button {
+    padding: 4px 12px;
+    border-radius: 7px;
+    border: 1px solid var(--divider);
+    background: transparent;
+    color: var(--fg);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .quick-btns button:disabled { opacity: 0.4; cursor: default; }
+  .quick-btns button:not(:disabled):active { opacity: 0.75; }
   .group + .group {
     margin-top: 8px;
     border-top: 1px solid var(--divider);
@@ -502,13 +541,21 @@
       </section>
       <section class="panel" id="settings">
         <div id="groups">
+          <section class="group" id="quick-group">
+            <h1 class="group-head" id="quick-head"><span class="chev"></span>빠른 실행<button id="quick-settings-btn" class="head-btn" title="빠른 실행 설정"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
+            <div class="rows">
+              <div class="row">
+                <label>스크린샷 모드<span class="info" data-tip="다모앙 규칙상 스크린샷에 회원 메모가 보이면 안 됩니다. 켜면 메모를 전부 가리고, 설정에 따라 내 프로필도 가립니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
+                <span class="quick-btns">
+                  <button id="shot-on" disabled>켜기</button>
+                  <button id="shot-off" disabled>끄기</button>
+                </span>
+              </div>
+            </div>
+          </section>
           <section class="group" id="memo-group">
             <h1 class="group-head" id="memo-head"><span class="chev"></span>메모 설정<span id="memo-spin" class="spinner"></span></h1>
             <div id="rows" class="rows"></div>
-            <div class="actions group-actions">
-              <button id="hide-all" disabled>전체 메모 가리기</button>
-              <button id="show-all" disabled>전체 메모 표시</button>
-            </div>
           </section>
         </div>
         <div class="actions" id="global-actions">
@@ -535,6 +582,7 @@
       <span id="dev-badge" title="클릭: 테스트 항목" hidden>DEV</span>
     </span>
   </div>
+  <div id="tip" hidden></div>
   <dialog id="dev-dialog">
     <h2>테스트 항목</h2>
     <button data-sim="logout">비로그인</button>
@@ -568,6 +616,16 @@
         <input type="checkbox" id="fav-keep-switch">
         <span class="track"></span>
       </span>
+    </div>
+  </dialog>
+  <dialog id="quick-dialog">
+    <h2>빠른 실행 설정</h2>
+    <div class="opt-row">
+      <label for="shot-scope-select">스크린샷 모드</label>
+      <select id="shot-scope-select">
+        <option value="memo">전체 메모 가리기</option>
+        <option value="memo-profile">전체 메모 + 내 프로필 가리기</option>
+      </select>
     </div>
   </dialog>
   <dialog id="shortcut-dialog">
