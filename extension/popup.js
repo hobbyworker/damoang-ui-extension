@@ -24,17 +24,17 @@ function applyTheme(mode) {
 }
 applyTheme(themeMode);
 
-// 설정 그룹. key 는 다모앙 ui-settings 의 필드명. memo 그룹은 일괄 버튼이 있어 HTML 에 두고
-// 나머지 그룹은 renderRows 가 만든다. 적용/새로고침은 모든 그룹에 걸린다
+// 설정 그룹. key 는 다모앙 ui-settings 의 필드명. 전부 "빠른 설정" 섹션 안에 소제목으로 나뉘어
+// 들어가고, 적용/새로고침은 모든 그룹에 걸린다
 const SETTING_GROUPS = [
   { id: "memo", title: "메모 설정", fields: [
-    { key: "hideMemo",         label: "메모 배지 가리기" },
-    { key: "hideMemoInList",   label: "목록 메모 배지 가리기" },
-    { key: "blurMemo",         label: "메모 내용 흐리게" },
-    { key: "expandMemoInList", label: "목록 메모 배지 넓게 표시" }
+    { key: "hideMemo",         label: "메모 배지 가리기",        tip: "게시글 상세에서 메모 배지를 숨깁니다" },
+    { key: "hideMemoInList",   label: "목록 메모 배지 가리기",   tip: "게시판 목록에서 메모 배지를 숨깁니다" },
+    { key: "blurMemo",         label: "메모 내용 흐리게",        tip: "메모 배지의 내용을 블러 처리합니다 (호버 시 표시)" },
+    { key: "expandMemoInList", label: "목록 메모 배지 넓게 표시", tip: "게시판 목록에서 메모를 화면 폭에 맞춰 넓게 보여줍니다 (끄면 좁게)" }
   ] },
   { id: "profile", title: "프로필 표시", fields: [
-    { key: "hideMyProfile", label: "내 프로필 가리기" }
+    { key: "hideMyProfile", label: "내 프로필 가리기", tip: "헤더와 사이드바에서 내 닉네임과 프로필 이미지를 숨깁니다" }
   ] }
 ];
 const FIELDS = SETTING_GROUPS.flatMap(g => g.fields);
@@ -69,6 +69,8 @@ let hiddenShortcuts = loadHiddenShortcuts();
 // 스크린샷 모드가 함께 바꾸는 키. 범위("memo"|"memo-profile")는 빠른 실행 설정에서 고른다
 const SHOT_KEYS = ["hideMemo", "hideMemoInList"];
 let shotScope = localStorage.getItem("shot-scope") || "memo";
+// 빠른 설정의 기능 설명 아이콘 표시. 기본 켜짐
+let showTips = localStorage.getItem("settings-tips") !== "0";
 // 이동 후 팝업 유지. 기본 켜짐. 끄면 이동하고 닫는다
 let keepPopupShortcut = localStorage.getItem("shortcut-keep-open") !== "0";
 let keepPopupFav = localStorage.getItem("fav-keep-open") !== "0";
@@ -88,8 +90,11 @@ const shotScopeSelect = document.getElementById("shot-scope-select");
 const favoritesEl = document.getElementById("favorites");
 const favSpinEl = document.getElementById("fav-spin");
 const memoSpinEl = document.getElementById("memo-spin");
-const memoGroupEl = document.getElementById("memo-group");
-const memoHeadEl = document.getElementById("memo-head");
+const settingsGroupEl = document.getElementById("settings-group");
+const settingsHeadEl = document.getElementById("settings-head");
+const settingsOptBtn = document.getElementById("settings-opt-btn");
+const settingsOptDialog = document.getElementById("settings-opt-dialog");
+const tipsSwitch = document.getElementById("tips-switch");
 const shortcutGroupEl = document.getElementById("shortcut-group");
 const shortcutHeadEl = document.getElementById("shortcut-head");
 const shortcutsEl = document.getElementById("shortcuts");
@@ -415,29 +420,14 @@ function setupCollapse(el, head, key) {
   });
 }
 
-// memo 그룹은 HTML 의 것을 쓰고, 그 외 그룹은 섹션을 만들어 붙인다
-function groupRowsEl(group) {
-  if (group.id === "memo") return rowsEl;
-  const section = document.createElement("section");
-  section.className = "group";
-  section.id = group.id + "-group";
-  const head = document.createElement("h1");
-  head.className = "group-head";
-  const chev = document.createElement("span");
-  chev.className = "chev";
-  head.append(chev, group.title);
-  const rows = document.createElement("div");
-  rows.className = "rows";
-  section.append(head, rows);
-  groupsEl.append(section);
-  setupCollapse(section, head, group.id + "-collapsed");
-  return rows;
-}
-
-// 항목은 팝업이 열릴 때 바로 그리고, 값 수신 전까지 스위치를 비활성으로 둔다
+// 항목은 팝업이 열릴 때 바로 그리고, 값 수신 전까지 스위치를 비활성으로 둔다.
+// 그룹은 소제목으로 나뉘고 전부 "빠른 설정" 섹션 안에 들어간다
 function renderRows() {
   for (const group of SETTING_GROUPS) {
-    const container = groupRowsEl(group);
+    const caption = document.createElement("div");
+    caption.className = "caption";
+    caption.textContent = group.title;
+    rowsEl.append(caption);
     for (const f of group.fields) {
       const row = document.createElement("div");
       row.className = "row";
@@ -445,6 +435,15 @@ function renderRows() {
       const label = document.createElement("label");
       label.textContent = f.label;
       label.htmlFor = "sw-" + f.key;
+      if (f.tip) {
+        const info = document.createElement("span");
+        info.className = "info";
+        info.dataset.tip = f.tip;
+        info.innerHTML = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg>';
+        // 아이콘 클릭이 라벨의 스위치 토글로 번지지 않게
+        info.addEventListener("click", (e) => e.preventDefault());
+        label.append(info);
+      }
 
       const wrap = document.createElement("span");
       wrap.className = "switch";
@@ -460,7 +459,7 @@ function renderRows() {
 
       wrap.append(input, track);
       row.append(label, wrap);
-      container.append(row);
+      rowsEl.append(row);
     }
   }
 }
@@ -472,7 +471,7 @@ function renderShortcuts() {
     const items = group.items.filter(i => !hiddenShortcuts.has(i.key));
     if (!items.length) continue;
     const caption = document.createElement("div");
-    caption.className = "sc-caption";
+    caption.className = "caption";
     caption.textContent = group.caption;
     const grid = document.createElement("div");
     grid.className = "sc-grid";
@@ -777,7 +776,22 @@ async function init() {
     renderFavorites(cached.favorites);
   }
   setupCollapse(quickGroupEl, quickHeadEl, "quick-collapsed");
-  setupCollapse(memoGroupEl, memoHeadEl, "memo-collapsed");
+  setupCollapse(settingsGroupEl, settingsHeadEl, "settings-collapsed");
+  settingsGroupEl.classList.toggle("no-tips", !showTips);
+  settingsOptBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    settingsOptDialog.showModal();
+  });
+  settingsOptDialog.addEventListener("click", (e) => {
+    if (e.target === settingsOptDialog) settingsOptDialog.close();
+  });
+  tipsSwitch.checked = showTips;
+  tipsSwitch.nextElementSibling.addEventListener("click", () => tipsSwitch.click());
+  tipsSwitch.addEventListener("change", () => {
+    showTips = tipsSwitch.checked;
+    localStorage.setItem("settings-tips", showTips ? "1" : "0");
+    settingsGroupEl.classList.toggle("no-tips", !showTips);
+  });
   setupCollapse(shortcutGroupEl, shortcutHeadEl, "shortcut-collapsed");
   renderShortcuts();
   renderShortcutToggles();

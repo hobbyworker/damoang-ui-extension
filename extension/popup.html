@@ -128,7 +128,6 @@
     gap: 10px;
     padding: 9px 14px;
   }
-  .row + .row { border-top: 1px solid var(--divider); }
   .row label { flex: 1; cursor: pointer; }
 
   .switch { position: relative; display: inline-block; width: 34px; height: 20px; flex-shrink: 0; }
@@ -267,12 +266,7 @@
   .actions button:disabled { opacity: 0.4; cursor: default; }
   .actions button:not(:disabled):active { opacity: 0.75; }
 
-  #global-actions {
-    flex-shrink: 0;
-    margin: 0;
-    padding: 8px 14px;
-    border-top: 1px solid var(--divider);
-  }
+  #global-actions { margin-bottom: 12px; }
   /* 직접 그리는 툴팁. 팝업에서는 기본 title 툴팁이 안 뜨는 경우가 있고,
      스크롤 영역 안에 두면 잘리므로 body 에 고정 위치로 띄운다 */
   #tip {
@@ -298,6 +292,7 @@
     cursor: pointer;
   }
   .info svg { width: 13px; height: 13px; }
+  #settings-group.no-tips .info { display: none; }
   .info:hover { color: var(--fg); }
 
   /* 빠른 실행 행의 작은 버튼 쌍 */
@@ -324,13 +319,13 @@
     border-top: 1px solid var(--divider);
   }
 
-  /* 바로가기. 즐겨찾기 목록 아래 고정, 접으면 즐겨찾기가 그만큼 넓어진다 */
+  /* 그룹 안의 소제목 (바로가기의 활동내역/설정, 빠른 설정의 메모 설정/프로필 표시) */
   #shortcut-group {
     flex-shrink: 0;
     padding-bottom: 6px;
     border-top: 1px solid var(--divider);
   }
-  .sc-caption {
+  .caption {
     font-size: 11px;
     color: var(--muted);
     margin: 8px 14px 2px;
@@ -553,14 +548,14 @@
               </div>
             </div>
           </section>
-          <section class="group" id="memo-group">
-            <h1 class="group-head" id="memo-head"><span class="chev"></span>메모 설정<span id="memo-spin" class="spinner"></span></h1>
+          <section class="group" id="settings-group">
+            <h1 class="group-head" id="settings-head"><span class="chev"></span>빠른 설정<span id="memo-spin" class="spinner"></span><button id="settings-opt-btn" class="head-btn" title="빠른 설정 옵션"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
             <div id="rows" class="rows"></div>
+            <div class="actions" id="global-actions">
+              <button id="apply" disabled>적용</button>
+              <button id="refresh" disabled>새로고침</button>
+            </div>
           </section>
-        </div>
-        <div class="actions" id="global-actions">
-          <button id="apply" disabled>적용</button>
-          <button id="refresh" disabled>새로고침</button>
         </div>
       </section>
     </div>
@@ -614,6 +609,16 @@
       <label for="fav-keep-switch">이동 후 팝업 유지</label>
       <span class="switch">
         <input type="checkbox" id="fav-keep-switch">
+        <span class="track"></span>
+      </span>
+    </div>
+  </dialog>
+  <dialog id="settings-opt-dialog">
+    <h2>빠른 설정 옵션</h2>
+    <div class="opt-row">
+      <label for="tips-switch">기능 설명 보기</label>
+      <span class="switch">
+        <input type="checkbox" id="tips-switch">
         <span class="track"></span>
       </span>
     </div>
