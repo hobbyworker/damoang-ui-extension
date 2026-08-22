@@ -57,8 +57,9 @@ function loadHiddenShortcuts() {
   }
 }
 let hiddenShortcuts = loadHiddenShortcuts();
-// 이동 후 팝업 유지. 기본 켜짐. 끄면 즐겨찾기처럼 이동하고 닫는다
-let keepPopup = localStorage.getItem("shortcut-keep-open") !== "0";
+// 이동 후 팝업 유지. 기본 켜짐. 끄면 이동하고 닫는다
+let keepPopupShortcut = localStorage.getItem("shortcut-keep-open") !== "0";
+let keepPopupFav = localStorage.getItem("fav-keep-open") !== "0";
 
 const rowsEl = document.getElementById("rows");
 const statusEl = document.getElementById("status");
@@ -78,6 +79,9 @@ const shortcutTogglesEl = document.getElementById("shortcut-toggles");
 const shortcutSettingsBtn = document.getElementById("shortcut-settings-btn");
 const shortcutDialog = document.getElementById("shortcut-dialog");
 const keepSwitch = document.getElementById("shortcut-keep-switch");
+const favSettingsBtn = document.getElementById("fav-settings-btn");
+const favDialog = document.getElementById("fav-dialog");
+const favKeepSwitch = document.getElementById("fav-keep-switch");
 const gateEl = document.getElementById("gate");
 const gateMsgEl = document.getElementById("gate-msg");
 const gateBtn = document.getElementById("gate-btn");
@@ -242,6 +246,23 @@ function hangInPage() {
 
 // ---- 팝업 로직 ----
 
+// 다모앙 탭을 url 로 이동. keep 이면 팝업을 열어 둔다: 현재 탭일 때는 라우터를 통한
+// 클라이언트 이동으로 포커스를 건드리지 않고, 다른 탭이면 전환이 불가피해 크롬이 팝업을 닫는다
+async function goToDamoang(url, keep) {
+  if (!damoangTab) return;
+  if (!keep) {
+    chrome.tabs.update(damoangTab.id, { url, active: true });
+    window.close();
+    return;
+  }
+  const [current] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (current && current.id === damoangTab.id) {
+    runInTab(navigateInPage, [url]);
+  } else {
+    chrome.tabs.update(damoangTab.id, { url, active: true });
+  }
+}
+
 async function findDamoangTab() {
   const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (active && active.url && active.url.startsWith("https://damoang.net")) return active;
@@ -336,8 +357,8 @@ function renderFavorites(favorites) {
     row.textContent = fav.title;
     row.title = SITE + "/" + fav.boardId;
     row.addEventListener("click", () => {
-      chrome.tabs.update(damoangTab.id, { url: SITE + "/" + fav.boardId, active: true });
-      window.close();
+      goToDamoang(SITE + "/" + fav.boardId, keepPopupFav);
+      setStatus(fav.title + " 게시판으로 이동함");
     });
     favoritesEl.append(row);
   }
@@ -387,21 +408,8 @@ function renderShortcuts() {
       el.className = "sc";
       el.textContent = item.label;
       el.title = SITE + item.path;
-      // 팝업은 열어 둔다. 현재 탭이면 페이지 주도로 이동시켜 포커스를 건드리지 않는다.
-      // 다른 탭이면 탭 전환이 불가피하고 그때는 크롬이 팝업을 닫는다
-      el.addEventListener("click", async () => {
-        if (!damoangTab) return;
-        if (!keepPopup) {
-          chrome.tabs.update(damoangTab.id, { url: SITE + item.path, active: true });
-          window.close();
-          return;
-        }
-        const [current] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (current && current.id === damoangTab.id) {
-          runInTab(navigateInPage, [SITE + item.path]);
-        } else {
-          chrome.tabs.update(damoangTab.id, { url: SITE + item.path, active: true });
-        }
+      el.addEventListener("click", () => {
+        goToDamoang(SITE + item.path, keepPopupShortcut);
         setStatus(item.label + " 페이지로 이동함");
       });
       grid.append(el);
@@ -706,11 +714,22 @@ async function init() {
   shortcutDialog.addEventListener("click", (e) => {
     if (e.target === shortcutDialog) shortcutDialog.close();
   });
-  keepSwitch.checked = keepPopup;
+  keepSwitch.checked = keepPopupShortcut;
   keepSwitch.nextElementSibling.addEventListener("click", () => keepSwitch.click());
   keepSwitch.addEventListener("change", () => {
-    keepPopup = keepSwitch.checked;
-    localStorage.setItem("shortcut-keep-open", keepPopup ? "1" : "0");
+    keepPopupShortcut = keepSwitch.checked;
+    localStorage.setItem("shortcut-keep-open", keepPopupShortcut ? "1" : "0");
+  });
+
+  favSettingsBtn.addEventListener("click", () => favDialog.showModal());
+  favDialog.addEventListener("click", (e) => {
+    if (e.target === favDialog) favDialog.close();
+  });
+  favKeepSwitch.checked = keepPopupFav;
+  favKeepSwitch.nextElementSibling.addEventListener("click", () => favKeepSwitch.click());
+  favKeepSwitch.addEventListener("change", () => {
+    keepPopupFav = favKeepSwitch.checked;
+    localStorage.setItem("fav-keep-open", keepPopupFav ? "1" : "0");
   });
 
   applyBtn.addEventListener("click", onApply);

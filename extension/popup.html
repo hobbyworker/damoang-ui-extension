@@ -64,6 +64,10 @@
     align-items: center;
     cursor: pointer;
   }
+  .head-row {
+    display: flex;
+    align-items: center;
+  }
   /* 그룹 제목 오른쪽 끝의 기능별 설정 버튼 */
   .head-btn {
     margin-left: auto;
@@ -484,7 +488,7 @@
   <div id="main">
     <div id="columns">
       <section class="panel" id="fav-panel">
-        <h1>즐겨찾기<span id="fav-spin" class="spinner"></span></h1>
+        <h1 class="head-row">즐겨찾기<span id="fav-spin" class="spinner"></span><button id="fav-settings-btn" class="head-btn" title="즐겨찾기 설정"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
         <div id="favorites"></div>
         <section class="group" id="shortcut-group">
           <h1 class="group-head" id="shortcut-head"><span class="chev"></span>바로가기<button id="shortcut-settings-btn" class="head-btn" title="바로가기 설정"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
@@ -552,6 +556,16 @@
       <label for="debug-switch">디버그</label>
       <span class="switch">
         <input type="checkbox" id="debug-switch">
+        <span class="track"></span>
+      </span>
+    </div>
+  </dialog>
+  <dialog id="fav-dialog">
+    <h2>즐겨찾기 설정</h2>
+    <div class="opt-row">
+      <label for="fav-keep-switch">이동 후 팝업 유지</label>
+      <span class="switch">
+        <input type="checkbox" id="fav-keep-switch">
         <span class="track"></span>
       </span>
     </div>
