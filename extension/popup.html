@@ -236,10 +236,23 @@
     overflow: hidden;
   }
   #groups {
+    display: flex;
+    flex-direction: column;
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    padding-bottom: 10px;
+  }
+  /* 빠른 설정은 남는 높이를 전부 차지하고, 설정 적용·새로고침은 칼럼 바닥에 붙는다 */
+  #settings-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+  #rows {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
   }
 
   .actions {
@@ -266,7 +279,11 @@
   .actions button:disabled { opacity: 0.4; cursor: default; }
   .actions button:not(:disabled):active { opacity: 0.75; }
 
-  #global-actions { margin-bottom: 12px; }
+  #global-actions {
+    margin: auto 0 0;
+    padding: 8px 14px 10px;
+    border-top: 1px solid var(--divider);
+  }
   /* 직접 그리는 툴팁. 팝업에서는 기본 title 툴팁이 안 뜨는 경우가 있고,
      스크롤 영역 안에 두면 잘리므로 body 에 고정 위치로 띄운다 */
   #tip {
