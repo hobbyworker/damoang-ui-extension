@@ -24,12 +24,20 @@ function applyTheme(mode) {
 }
 applyTheme(themeMode);
 
-const FIELDS = [
-  { key: "hideMemo",         label: "메모 배지 가리기" },
-  { key: "hideMemoInList",   label: "목록 메모 배지 가리기" },
-  { key: "blurMemo",         label: "메모 내용 흐리게" },
-  { key: "expandMemoInList", label: "목록 메모 배지 넓게 표시" }
+// 설정 그룹. key 는 다모앙 ui-settings 의 필드명. memo 그룹은 일괄 버튼이 있어 HTML 에 두고
+// 나머지 그룹은 renderRows 가 만든다. 적용/새로고침은 모든 그룹에 걸린다
+const SETTING_GROUPS = [
+  { id: "memo", title: "메모 설정", fields: [
+    { key: "hideMemo",         label: "메모 배지 가리기" },
+    { key: "hideMemoInList",   label: "목록 메모 배지 가리기" },
+    { key: "blurMemo",         label: "메모 내용 흐리게" },
+    { key: "expandMemoInList", label: "목록 메모 배지 넓게 표시" }
+  ] },
+  { id: "profile", title: "프로필 표시", fields: [
+    { key: "hideMyProfile", label: "내 프로필 가리기" }
+  ] }
 ];
+const FIELDS = SETTING_GROUPS.flatMap(g => g.fields);
 
 // 다모앙 내 페이지 바로가기. 개별 표시 여부는 설정 다이얼로그에서 고른다
 const SHORTCUTS = [
@@ -62,6 +70,7 @@ let keepPopupShortcut = localStorage.getItem("shortcut-keep-open") !== "0";
 let keepPopupFav = localStorage.getItem("fav-keep-open") !== "0";
 
 const rowsEl = document.getElementById("rows");
+const groupsEl = document.getElementById("groups");
 const statusEl = document.getElementById("status");
 const applyBtn = document.getElementById("apply");
 const refreshBtn = document.getElementById("refresh");
@@ -364,31 +373,61 @@ function renderFavorites(favorites) {
   }
 }
 
+// 접힘 상태는 팝업을 닫아도 유지
+function setupCollapse(el, head, key) {
+  if (localStorage.getItem(key) === "1") el.classList.add("collapsed");
+  head.addEventListener("click", () => {
+    localStorage.setItem(key, el.classList.toggle("collapsed") ? "1" : "0");
+  });
+}
+
+// memo 그룹은 HTML 의 것을 쓰고, 그 외 그룹은 섹션을 만들어 붙인다
+function groupRowsEl(group) {
+  if (group.id === "memo") return rowsEl;
+  const section = document.createElement("section");
+  section.className = "group";
+  section.id = group.id + "-group";
+  const head = document.createElement("h1");
+  head.className = "group-head";
+  const chev = document.createElement("span");
+  chev.className = "chev";
+  head.append(chev, group.title);
+  const rows = document.createElement("div");
+  rows.className = "rows";
+  section.append(head, rows);
+  groupsEl.append(section);
+  setupCollapse(section, head, group.id + "-collapsed");
+  return rows;
+}
+
 // 항목은 팝업이 열릴 때 바로 그리고, 값 수신 전까지 스위치를 비활성으로 둔다
 function renderRows() {
-  for (const f of FIELDS) {
-    const row = document.createElement("div");
-    row.className = "row";
+  for (const group of SETTING_GROUPS) {
+    const container = groupRowsEl(group);
+    for (const f of group.fields) {
+      const row = document.createElement("div");
+      row.className = "row";
 
-    const label = document.createElement("label");
-    label.textContent = f.label;
-    label.htmlFor = "sw-" + f.key;
+      const label = document.createElement("label");
+      label.textContent = f.label;
+      label.htmlFor = "sw-" + f.key;
 
-    const wrap = document.createElement("span");
-    wrap.className = "switch";
-    const input = document.createElement("input");
-    input.type = "checkbox";
-    input.id = "sw-" + f.key;
-    input.disabled = true;
-    const track = document.createElement("span");
-    track.className = "track";
-    track.addEventListener("click", () => input.click());
+      const wrap = document.createElement("span");
+      wrap.className = "switch";
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.id = "sw-" + f.key;
+      input.disabled = true;
+      const track = document.createElement("span");
+      track.className = "track";
+      track.addEventListener("click", () => input.click());
 
-    input.addEventListener("change", onLocalChange);
+      input.addEventListener("change", onLocalChange);
 
-    wrap.append(input, track);
-    row.append(label, wrap);
-    rowsEl.append(row);
+      wrap.append(input, track);
+      row.append(label, wrap);
+      container.append(row);
+    }
   }
 }
 
@@ -474,7 +513,7 @@ function fillRows(settings) {
 }
 
 function setAllDisabled(disabled) {
-  rowsEl.querySelectorAll("input").forEach(i => (i.disabled = disabled));
+  groupsEl.querySelectorAll("input").forEach(i => (i.disabled = disabled));
 }
 
 function setBusy(busy) {
@@ -695,13 +734,6 @@ async function init() {
   if (Array.isArray(cached.favorites) && cached.favorites.length) {
     renderFavorites(cached.favorites);
   }
-  // 접힘 상태는 팝업을 닫아도 유지
-  const setupCollapse = (el, head, key) => {
-    if (localStorage.getItem(key) === "1") el.classList.add("collapsed");
-    head.addEventListener("click", () => {
-      localStorage.setItem(key, el.classList.toggle("collapsed") ? "1" : "0");
-    });
-  };
   setupCollapse(memoGroupEl, memoHeadEl, "memo-collapsed");
   setupCollapse(shortcutGroupEl, shortcutHeadEl, "shortcut-collapsed");
   renderShortcuts();
