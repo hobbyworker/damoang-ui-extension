@@ -57,6 +57,8 @@ function loadHiddenShortcuts() {
   }
 }
 let hiddenShortcuts = loadHiddenShortcuts();
+// 이동 후 팝업 유지. 기본 켜짐. 끄면 즐겨찾기처럼 이동하고 닫는다
+let keepPopup = localStorage.getItem("shortcut-keep-open") !== "0";
 
 const rowsEl = document.getElementById("rows");
 const statusEl = document.getElementById("status");
@@ -75,6 +77,7 @@ const shortcutsEl = document.getElementById("shortcuts");
 const shortcutTogglesEl = document.getElementById("shortcut-toggles");
 const shortcutSettingsBtn = document.getElementById("shortcut-settings-btn");
 const shortcutDialog = document.getElementById("shortcut-dialog");
+const keepSwitch = document.getElementById("shortcut-keep-switch");
 const gateEl = document.getElementById("gate");
 const gateMsgEl = document.getElementById("gate-msg");
 const gateBtn = document.getElementById("gate-btn");
@@ -218,6 +221,18 @@ async function applySettingsInPage(apiUrl, values, debug) {
   } catch (e) {
     return { ok: false, error: e && e.name === "TimeoutError" ? "응답 시간 초과" : String(e) };
   }
+}
+
+// 다모앙(SvelteKit) 라우터가 가로채도록 링크 클릭으로 이동시킨다. 문서를 갈아끼우는 이동은
+// 크롬이 새 문서에 포커스를 되돌리며 팝업을 닫지만, 클라이언트 이동은 그 경로를 타지 않는다.
+// 라우터가 가로채지 않으면 일반 이동으로 떨어진다
+function navigateInPage(url) {
+  const a = document.createElement("a");
+  a.href = url;
+  a.style.display = "none";
+  document.body.append(a);
+  a.click();
+  a.remove();
 }
 
 // 타임아웃 시뮬레이션용. 영원히 끝나지 않아 runInTab 시간 제한에 걸린다
@@ -372,9 +387,21 @@ function renderShortcuts() {
       el.className = "sc";
       el.textContent = item.label;
       el.title = SITE + item.path;
-      el.addEventListener("click", () => {
+      // 팝업은 열어 둔다. 현재 탭이면 페이지 주도로 이동시켜 포커스를 건드리지 않는다.
+      // 다른 탭이면 탭 전환이 불가피하고 그때는 크롬이 팝업을 닫는다
+      el.addEventListener("click", async () => {
         if (!damoangTab) return;
-        chrome.tabs.update(damoangTab.id, { url: SITE + item.path, active: true });
+        if (!keepPopup) {
+          chrome.tabs.update(damoangTab.id, { url: SITE + item.path, active: true });
+          window.close();
+          return;
+        }
+        const [current] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (current && current.id === damoangTab.id) {
+          runInTab(navigateInPage, [SITE + item.path]);
+        } else {
+          chrome.tabs.update(damoangTab.id, { url: SITE + item.path, active: true });
+        }
         setStatus(item.label + " 페이지로 이동함");
       });
       grid.append(el);
@@ -678,6 +705,12 @@ async function init() {
   });
   shortcutDialog.addEventListener("click", (e) => {
     if (e.target === shortcutDialog) shortcutDialog.close();
+  });
+  keepSwitch.checked = keepPopup;
+  keepSwitch.nextElementSibling.addEventListener("click", () => keepSwitch.click());
+  keepSwitch.addEventListener("change", () => {
+    keepPopup = keepSwitch.checked;
+    localStorage.setItem("shortcut-keep-open", keepPopup ? "1" : "0");
   });
 
   applyBtn.addEventListener("click", onApply);

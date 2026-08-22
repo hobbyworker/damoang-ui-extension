@@ -441,7 +441,12 @@
     font: inherit;
   }
   /* 바로가기 설정: 섹션 제목 + 2열 스위치. 섹션 사이는 구분선 */
-  #shortcut-toggles { min-width: 300px; }
+  #shortcut-toggles {
+    min-width: 300px;
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--divider);
+  }
   .opt-caption {
     font-size: 11px;
     font-weight: 600;
@@ -553,6 +558,13 @@
   </dialog>
   <dialog id="shortcut-dialog">
     <h2>바로가기 설정</h2>
+    <div class="opt-row">
+      <label for="shortcut-keep-switch">이동 후 팝업 유지</label>
+      <span class="switch">
+        <input type="checkbox" id="shortcut-keep-switch">
+        <span class="track"></span>
+      </span>
+    </div>
     <div id="shortcut-toggles"></div>
   </dialog>
   <script src="popup.js"></script>
