@@ -13,6 +13,7 @@
     --thumb: #ffffff;
     --divider: rgba(0, 0, 0, 0.06);
     --overlay: rgba(255, 255, 255, 0.45);
+    --selected: rgba(0, 0, 0, 0.05);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -22,6 +23,7 @@
       --track-off: #3a3a3e;
       --divider: rgba(255, 255, 255, 0.08);
       --overlay: rgba(30, 30, 32, 0.5);
+      --selected: rgba(255, 255, 255, 0.07);
     }
   }
   /* 수동 다크. 위 블록과 값이 같아야 한다 */
@@ -33,6 +35,7 @@
     --track-off: #3a3a3e;
     --divider: rgba(255, 255, 255, 0.08);
     --overlay: rgba(30, 30, 32, 0.5);
+    --selected: rgba(255, 255, 255, 0.07);
   }
   :root[data-theme="light"] { color-scheme: light; }
   /* 로딩 전후 팝업 크기가 출렁이지 않도록 고정. 내용이 넘치면 패널 안에서 스크롤 */
@@ -92,7 +95,8 @@
     transition: transform 0.15s ease;
   }
   .collapsed .chev { transform: rotate(-90deg); }
-  .group.collapsed .rows { display: none; }
+  .group.collapsed .rows,
+  .subgroup.collapsed .rows { display: none; }
   /* 팝업 상단부. 차단막은 이 영역까지만 덮고 하단 정보 줄은 남긴다 */
   #main {
     position: relative;
@@ -102,7 +106,7 @@
     min-height: 0;
   }
 
-  /* 좌우 패널. .panel을 추가하면 칼럼이 늘어난다 */
+  /* 좌우 칼럼. 왼쪽은 이동(즐겨찾기·마이페이지·후원), 오른쪽은 탭으로 나뉜다 */
   #columns {
     display: flex;
     align-items: stretch;
@@ -112,9 +116,55 @@
   .panel {
     flex: 1 1 0;
     min-width: 0;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
   .panel + .panel { border-left: 1px solid var(--divider); }
+
+  /* 오른쪽 칼럼: 빠른 실행은 탭과 무관하게 항상 위에 */
+  #quick-group {
+    flex-shrink: 0;
+    padding-bottom: 4px;
+  }
+  /* 탭. 영역이 늘어나면 탭을 추가한다 */
+  #tabs {
+    display: flex;
+    flex-shrink: 0;
+    margin: 6px 14px 4px;
+    border-top: 1px solid var(--divider);
+    border-bottom: 1px solid var(--divider);
+  }
+  .tab {
+    flex: 1;
+    padding: 7px 0;
+    margin-bottom: -1px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .tab:hover { color: var(--fg); }
+  .tab.active {
+    color: var(--fg);
+    border-bottom-color: var(--track-on);
+  }
+  #pages {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+  .page {
+    display: none;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .page.active { display: flex; }
 
   .empty {
     padding: 7px 14px;
@@ -172,10 +222,16 @@
   }
   @keyframes rotate { to { transform: rotate(360deg); } }
 
-  /* 다모앙 즐겨찾기처럼 2열 배치. 1 2 / 3 4 … 행 우선 순서 */
+  /* 왼쪽 칼럼: 즐겨찾기 목록은 남는 높이를 차지하고, 마이페이지와 후원 링크는 아래 고정 */
   #favorites {
     display: grid;
     grid-template-columns: 1fr 1fr;
+    grid-auto-rows: max-content; /* 공간이 모자라도 행을 누르지 말고 스크롤 */
+    align-content: start;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
   }
   .fav {
     padding: 9px 14px;
@@ -187,25 +243,26 @@
   .fav:hover { background: var(--divider); }
   .fav:active { opacity: 0.7; }
   .empty { grid-column: 1 / -1; }
-
-  /* 즐겨찾기 칼럼. 목록은 스크롤, 다모앙 후원 링크는 하단 고정 */
-  #fav-panel {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+  /* 칼럼 스크롤 영역(즐겨찾기·빠른 설정·추가 기능)은 같은 스크롤바.
+     ::-webkit-scrollbar를 지정하면 오버레이 대신 항상 보이는 스크롤바가 된다.
+     Firefox 는 scrollbar-width 만 보는데, Chrome 에서 이를 지정하면 ::-webkit-scrollbar 가 무시되므로 Firefox 에만 준다 */
+  @supports not selector(::-webkit-scrollbar) {
+    #favorites,
+    #rows,
+    #extra-rows {
+      scrollbar-width: thin;
+      scrollbar-color: var(--track-off) transparent;
+    }
   }
-  #favorites {
-    flex: 1;
-    min-height: 0;
-    overflow-y: auto;
-    scrollbar-gutter: stable;
-    grid-auto-rows: max-content; /* 공간이 모자라도 행을 누르지 말고 스크롤 */
-    align-content: start;
-  }
-  /* ::-webkit-scrollbar를 지정하면 오버레이 대신 항상 보이는 스크롤바가 된다 */
-  #favorites::-webkit-scrollbar { width: 10px; }
-  #favorites::-webkit-scrollbar-track { background: transparent; }
-  #favorites::-webkit-scrollbar-thumb {
+  #favorites::-webkit-scrollbar,
+  #rows::-webkit-scrollbar,
+  #extra-rows::-webkit-scrollbar { width: 10px; }
+  #favorites::-webkit-scrollbar-track,
+  #rows::-webkit-scrollbar-track,
+  #extra-rows::-webkit-scrollbar-track { background: transparent; }
+  #favorites::-webkit-scrollbar-thumb,
+  #rows::-webkit-scrollbar-thumb,
+  #extra-rows::-webkit-scrollbar-thumb {
     background: var(--track-off);
     border-radius: 5px;
     border: 2px solid transparent;
@@ -229,12 +286,7 @@
   .support-link:hover { background: var(--divider); }
   .support-link .arrow { margin-left: auto; color: var(--muted); }
 
-  /* 설정 칼럼. 그룹들은 스크롤, 전역 버튼(적용·새로고침)은 하단 고정 */
-  #settings {
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
+  /* 설정 탭. 그룹들은 스크롤, 새로고침은 바닥 고정 */
   #groups {
     display: flex;
     flex-direction: column;
@@ -242,17 +294,20 @@
     min-height: 0;
     overflow-y: auto;
   }
-  /* 빠른 설정은 남는 높이를 전부 차지하고, 설정 적용·새로고침은 칼럼 바닥에 붙는다 */
-  #settings-group {
+  /* 빠른 설정·추가 기능은 남는 높이를 전부 차지한다 */
+  #settings-group,
+  #extra-group {
     display: flex;
     flex-direction: column;
     flex: 1;
     min-height: 0;
   }
-  #rows {
+  #rows,
+  #extra-rows {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
+    scrollbar-gutter: stable;
   }
 
   .actions {
@@ -271,23 +326,25 @@
     font-weight: 600;
     cursor: pointer;
   }
-  #apply {
-    background: var(--track-on);
-    border-color: transparent;
-    color: #fff;
-  }
   .actions button:disabled { opacity: 0.4; cursor: default; }
   .actions button:not(:disabled):active { opacity: 0.75; }
 
+  /* 새로고침은 탭과 무관하게 오른쪽 칼럼 맨 아래 */
   #global-actions {
+    flex-shrink: 0;
     margin: auto 0 0;
     padding: 8px 14px 10px;
     border-top: 1px solid var(--divider);
   }
   /* 직접 그리는 툴팁. 팝업에서는 기본 title 툴팁이 안 뜨는 경우가 있고,
-     스크롤 영역 안에 두면 잘리므로 body 에 고정 위치로 띄운다 */
+     스크롤 영역 안에 두면 잘리므로 body 에 고정 위치로 띄운다.
+     popover 로 두어 모달 다이얼로그 위에도 보인다 */
   #tip {
     position: fixed;
+    inset: auto;
+    margin: 0;
+    border: 0;
+    overflow: visible;
     z-index: 20;
     max-width: 240px;
     padding: 8px 10px;
@@ -487,7 +544,8 @@
     min-width: 220px;
   }
   .opt-row + .opt-row { margin-top: 10px; }
-  .opt-row select {
+  .opt-row select,
+  .opt-row input[type="number"] {
     padding: 4px 8px;
     border-radius: 7px;
     border: 1px solid var(--divider);
@@ -495,6 +553,8 @@
     color: var(--fg);
     font: inherit;
   }
+  .opt-row input[type="number"] { width: 56px; text-align: right; }
+  .opt-unit { margin-left: 4px; color: var(--muted); }
   /* 바로가기 설정: 섹션 제목 + 2열 스위치. 섹션 사이는 구분선 */
   #shortcut-toggles {
     min-width: 300px;
@@ -508,7 +568,8 @@
     color: var(--muted);
     margin: 0 0 8px;
   }
-  .opt-grid + .opt-caption {
+  .opt-grid + .opt-caption,
+  .opt-row + .opt-caption {
     margin-top: 14px;
     padding-top: 12px;
     border-top: 1px solid var(--divider);
@@ -521,6 +582,365 @@
   .opt-grid .opt-row {
     min-width: 0;
     gap: 12px;
+    margin-top: 0;
+  }
+
+  /* 키워드 칩 편집기 (뮤트·제목 강조 공용) */
+  #mute-dialog { width: 320px; }
+  /* 제목 강조 다이얼로그. 왼쪽 그룹 목록, 오른쪽 선택한 그룹 편집 */
+  #hl-dialog {
+    width: 480px;
+    height: 470px;
+    box-sizing: border-box;
+    padding: 0;
+    display: flex;
+  }
+  #hl-dialog:not([open]) { display: none; }
+  #hl-dialog h2 { margin: 0; }
+  #hl-side {
+    display: flex;
+    flex-direction: column;
+    width: 170px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--divider);
+  }
+  #hl-side-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 12px 6px;
+  }
+  #hl-side-head button { padding: 3px 9px; }
+  #hl-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 6px;
+  }
+  .hl-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 6px;
+    border-radius: 7px;
+    cursor: pointer;
+  }
+  .hl-item:hover { background: var(--divider); }
+  .hl-item.on { background: var(--selected); }
+  .hl-item .name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  .hl-item .count { margin: 0; }
+  /* 그룹별 일치 옵션. 스위치 두 개를 한 줄에 */
+  .hl-opts {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .hl-opts label { cursor: pointer; }
+  .hl-opts label + .switch { margin-right: 10px; }
+  #hl-editor {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    padding: 12px 14px;
+  }
+  #hl-empty {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+  }
+  #hl-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+  .hl-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .hl-field > label {
+    width: 56px;
+    flex-shrink: 0;
+    color: var(--muted);
+  }
+  #hl-name {
+    width: 150px;
+    padding: 4px 8px;
+    border-radius: 7px;
+    border: 1px solid var(--divider);
+    background: var(--bg);
+    color: var(--fg);
+    font: inherit;
+  }
+  #hl-on-row { margin-bottom: 10px; }
+  #hl-form.off .hl-preview,
+  #hl-form.off .hl-opts,
+  #hl-form.off .hl-field:not(:first-of-type) { opacity: 0.45; }
+  #hl-dialog .chips {
+    flex: 1;
+    min-height: 0;
+    max-height: none;
+    align-content: flex-start;
+  }
+  .dialog-foot {
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+    margin-top: 10px;
+  }
+  .dialog-foot .danger { margin-right: auto; }
+  .danger { color: #d33; }
+  /* 팔로우 강조 다이얼로그. 왼쪽 기본·그룹 목록, 오른쪽 선택한 항목 편집(스크롤) */
+  #follow-dialog {
+    width: 480px;
+    height: 500px;
+    box-sizing: border-box;
+    padding: 0;
+    display: flex;
+  }
+  #follow-dialog:not([open]) { display: none; }
+  #follow-dialog h2 { margin: 0; }
+  #follow-side {
+    display: flex;
+    flex-direction: column;
+    width: 160px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--divider);
+  }
+  #follow-side-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 12px 6px;
+  }
+  #follow-side-head button { padding: 3px 9px; }
+  #follow-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 6px;
+  }
+  #follow-side-foot {
+    flex-shrink: 0;
+    padding: 8px 12px 10px;
+    border-top: 1px solid var(--divider);
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .follow-foot-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+  }
+  .follow-foot-row + .follow-foot-row { margin-top: 6px; }
+  .follow-foot-row button { padding: 2px 8px; font-size: 11px; }
+  #follow-editor {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+    padding: 12px 14px;
+  }
+  #follow-form {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  #follow-on-row { margin-bottom: 10px; }
+  #follow-form.off .follow-preview,
+  #follow-form.off .follow-sec { opacity: 0.45; }
+  .hl-item.off .name { color: var(--muted); }
+  #follow-default-note {
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  #follow-members { margin-bottom: 10px; }
+  #follow-members .chips { margin-top: 8px; max-height: 90px; }
+  #follow-members .chips-foot { margin-top: 6px; }
+  .follow-sec {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--divider);
+  }
+  .follow-sec-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .follow-sec-head label { cursor: pointer; }
+  .follow-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .follow-field > label {
+    width: 56px;
+    flex-shrink: 0;
+    color: var(--muted);
+  }
+  .follow-field select,
+  .follow-field input[type="text"] {
+    padding: 4px 8px;
+    border-radius: 7px;
+    border: 1px solid var(--divider);
+    background: var(--bg);
+    color: var(--fg);
+    font: inherit;
+    min-width: 0;
+  }
+  #follow-name { width: 150px; }
+  #follow-mark-text { width: 80px; }
+  .follow-sec.off .follow-field { opacity: 0.45; pointer-events: none; }
+  /* 미리보기. 목록 행처럼 그린다 */
+  .follow-preview {
+    display: flex;
+    gap: 6px;
+  }
+  .follow-preview > span {
+    flex: 1;
+    padding: 6px 8px;
+    border-radius: 7px;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .follow-preview .light { background: #fff; color: #1c1c1e; border: 1px solid rgba(0,0,0,.08); }
+  .follow-preview .dark { background: #1e1e20; color: #f2f2f4; }
+  .follow-preview .m {
+    display: inline-block;
+    margin-right: 4px;
+    padding: 0 4px;
+    border-radius: 4px;
+    font-size: 10px;
+    line-height: 1.5;
+    vertical-align: 1px;
+  }
+  /* 형광펜 색상 선택 */
+  .swatches {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .swatch {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 50%;
+    cursor: pointer;
+  }
+  .swatch.on { border-color: var(--fg); }
+  .swatches input[type="color"] {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid var(--divider);
+    border-radius: 6px;
+    background: none;
+    cursor: pointer;
+  }
+  .hl-preview {
+    display: flex;
+    gap: 6px;
+    margin: 2px 0 10px;
+  }
+  .hl-preview span {
+    flex: 1;
+    padding: 5px 8px;
+    border-radius: 7px;
+    font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .hl-preview .light { background: #fff; color: #1c1c1e; border: 1px solid rgba(0,0,0,.08); }
+  .hl-preview .dark { background: #1e1e20; color: #f2f2f4; }
+  .hl-preview mark { color: inherit; }
+  .add-row {
+    display: flex;
+    gap: 6px;
+  }
+  .add-row input {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 8px;
+    border-radius: 7px;
+    border: 1px solid var(--divider);
+    background: var(--bg);
+    color: var(--fg);
+    font: inherit;
+  }
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+    max-height: 220px;
+    overflow-y: auto;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px 5px 3px 9px;
+    border-radius: 999px;
+    background: var(--divider);
+    font-size: 12px;
+  }
+  .chip button {
+    padding: 0 3px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    line-height: 1;
+    cursor: pointer;
+  }
+  .chip button:hover { color: var(--fg); }
+  .chips-foot {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  /* 그룹 목록의 색 점. 반원씩 주간·다크 */
+  .dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-right: 6px;
+  }
+  .dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 1px solid rgba(127, 127, 127, 0.4);
+  }
+  .count {
+    color: var(--muted);
+    font-size: 12px;
+    margin-right: 4px;
   }
 
   #status {
@@ -551,28 +971,60 @@
           <a class="support-link" href="https://damoang.net/brickang" target="_blank" rel="noopener">♡ 월별 후원 현황<span class="arrow">→</span></a>
         </div>
       </section>
-      <section class="panel" id="settings">
+      <section class="panel" id="right-panel">
+        <section class="group" id="quick-group">
+          <h1 class="group-head" id="quick-head"><span class="chev"></span>빠른 실행<button id="quick-settings-btn" class="head-btn" title="빠른 실행 설정"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
+          <div class="rows">
+            <div class="row">
+              <label>스크린샷 모드<span class="info" data-tip="다모앙 규칙상 스크린샷에 회원 메모가 보이면 안 됩니다. 켜면 메모를 전부 가리고, 설정에 따라 내 프로필도 가립니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
+              <span class="quick-btns">
+                <button id="shot-on" disabled>켜기</button>
+                <button id="shot-off" disabled>끄기</button>
+              </span>
+            </div>
+          </div>
+        </section>
+        <nav id="tabs">
+          <button class="tab" data-tab="settings">빠른 설정</button>
+          <button class="tab" data-tab="extra">추가 기능</button>
+        </nav>
+        <div id="pages">
+      <section class="page" id="page-settings">
         <div id="groups">
-          <section class="group" id="quick-group">
-            <h1 class="group-head" id="quick-head"><span class="chev"></span>빠른 실행<button id="quick-settings-btn" class="head-btn" title="빠른 실행 설정"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
-            <div class="rows">
-              <div class="row">
-                <label>스크린샷 모드<span class="info" data-tip="다모앙 규칙상 스크린샷에 회원 메모가 보이면 안 됩니다. 켜면 메모를 전부 가리고, 설정에 따라 내 프로필도 가립니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
-                <span class="quick-btns">
-                  <button id="shot-on" disabled>켜기</button>
-                  <button id="shot-off" disabled>끄기</button>
-                </span>
-              </div>
-            </div>
-          </section>
           <section class="group" id="settings-group">
-            <h1 class="group-head" id="settings-head"><span class="chev"></span>빠른 설정<span id="memo-spin" class="spinner"></span><button id="settings-opt-btn" class="head-btn" title="빠른 설정 옵션"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
+            <h1 class="head-row" id="settings-head">빠른 설정<span id="memo-spin" class="spinner"></span><button id="settings-opt-btn" class="head-btn" title="빠른 설정 옵션"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
             <div id="rows" class="rows"></div>
-            <div class="actions" id="global-actions">
-              <button id="apply" disabled>설정 적용</button>
-              <button id="refresh" disabled>새로고침</button>
-            </div>
           </section>
+        </div>
+      </section>
+      <section class="page" id="page-extra">
+        <section class="group" id="extra-group">
+          <h1 class="head-row">추가 기능<button id="extra-opt-btn" class="head-btn" title="추가 기능 옵션"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
+          <div id="extra-rows" class="rows">
+            <section class="subgroup" id="sg-hl">
+              <div class="caption group-head" id="hl-head"><span class="chev"></span>제목 강조</div>
+              <div class="rows">
+                <div class="row">
+                  <label>강조 그룹<span class="info" data-tip="게시판 목록에서 등록한 단어가 들어간 제목을 형광펜처럼 표시합니다. 그룹마다 다른 색을 쓸 수 있고, 이 브라우저에만 저장됩니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
+                  <span class="quick-btns"><span class="count" id="hl-group-count"></span><button id="hl-manage-btn">관리</button></span>
+                </div>
+              </div>
+            </section>
+            <section class="subgroup" id="sg-follow">
+              <div class="caption group-head" id="follow-head"><span class="chev"></span>사용자 강조</div>
+              <div class="rows">
+                <div class="row">
+                  <label>강조 그룹<span class="info" data-tip="특정 회원의 글을 게시판 목록에서 선, 배경색, 마크로 표시합니다. 닉네임으로 그룹을 만들고, 팔로우한 회원 전체에는 고정 항목의 스타일이 적용됩니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
+                  <span class="quick-btns"><span class="count" id="follow-summary"></span><button id="follow-manage-btn">관리</button></span>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+      </section>
+        </div>
+        <div class="actions" id="global-actions">
+          <button id="refresh" disabled>새로고침</button>
         </div>
       </section>
     </div>
@@ -594,7 +1046,7 @@
       <span id="dev-badge" title="클릭: 테스트 항목" hidden>DEV</span>
     </span>
   </div>
-  <div id="tip" hidden></div>
+  <div id="tip" popover="manual"></div>
   <dialog id="dev-dialog">
     <h2>테스트 항목</h2>
     <button data-sim="logout">비로그인</button>
@@ -611,6 +1063,10 @@
         <option value="light">주간 모드</option>
         <option value="dark">다크 모드</option>
       </select>
+    </div>
+    <div class="opt-row">
+      <label for="autosave-input">자동 저장 간격</label>
+      <span><input type="number" id="autosave-input" min="0.5" max="5" step="0.1"><span class="opt-unit">초</span></span>
     </div>
     <div class="opt-row">
       <label for="debug-switch">디버그</label>
@@ -639,6 +1095,8 @@
         <span class="track"></span>
       </span>
     </div>
+    <div class="opt-caption">표시할 항목</div>
+    <div class="opt-grid" id="subgroup-toggles"></div>
   </dialog>
   <dialog id="quick-dialog">
     <h2>빠른 실행 설정</h2>
@@ -656,6 +1114,156 @@
         <span class="track"></span>
       </span>
     </div>
+  </dialog>
+  <dialog id="mute-dialog">
+    <h2>제목 필터링 (뮤트)</h2>
+    <div class="add-row">
+      <input type="text" id="mute-input" placeholder="숨길 키워드 입력">
+      <button id="mute-add-btn">추가</button>
+    </div>
+    <div id="mute-chips" class="chips"></div>
+    <div class="chips-foot"><span id="mute-msg"></span><span id="mute-count"></span></div>
+  </dialog>
+  <dialog id="hl-dialog">
+    <div id="hl-side">
+      <div id="hl-side-head">
+        <h2>강조 그룹 <span id="hl-dlg-count"></span></h2>
+        <button id="hl-add-group-btn">추가</button>
+      </div>
+      <div id="hl-list"></div>
+    </div>
+    <div id="hl-editor">
+      <div id="hl-empty">왼쪽에서 그룹을 추가하세요</div>
+      <div id="hl-form" hidden>
+        <div class="follow-sec-head" id="hl-on-row">
+          <label for="hl-on">강조 사용</label>
+          <span class="switch"><input type="checkbox" id="hl-on"><span class="track"></span></span>
+        </div>
+        <div class="hl-field">
+          <label for="hl-name">이름</label>
+          <input type="text" id="hl-name" maxlength="12">
+        </div>
+        <div class="hl-field">
+          <label>주간 모드</label>
+          <span class="swatches" id="hl-light-swatches"></span>
+        </div>
+        <div class="hl-field">
+          <label>다크 모드</label>
+          <span class="swatches" id="hl-dark-swatches"></span>
+        </div>
+        <div class="hl-preview">
+          <span class="light">다모앙 <mark id="hl-prev-light">키워드</mark> 강조 예시</span>
+          <span class="dark">다모앙 <mark id="hl-prev-dark">키워드</mark> 강조 예시</span>
+        </div>
+        <div class="hl-opts">
+          <label for="hl-partial">부분 일치<span class="info" data-tip="끄면 앞뒤에 글자나 숫자가 붙지 않은 경우만 강조합니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
+          <span class="switch"><input type="checkbox" id="hl-partial"><span class="track"></span></span>
+          <label for="hl-icase">대소문자 무시</label>
+          <span class="switch"><input type="checkbox" id="hl-icase"><span class="track"></span></span>
+        </div>
+        <div class="add-row">
+          <input type="text" id="hl-input" placeholder="강조할 키워드 입력">
+          <button id="hl-add-btn">추가</button>
+        </div>
+        <div id="hl-chips" class="chips"></div>
+        <div class="chips-foot"><span id="hl-msg"></span><span id="hl-count"></span></div>
+      </div>
+      <div class="dialog-foot">
+        <button id="hl-delete-btn" class="danger">그룹 삭제</button>
+        <button id="hl-close-btn">닫기</button>
+      </div>
+    </div>
+  </dialog>
+  <dialog id="follow-dialog">
+    <div id="follow-side">
+      <div id="follow-side-head">
+        <h2>강조 그룹 <span id="follow-dlg-count"></span></h2>
+        <button id="follow-add-group-btn">추가</button>
+      </div>
+      <div id="follow-list"></div>
+      <div id="follow-side-foot">
+        <div class="follow-foot-row"><span id="follow-total"></span><button id="follow-reload-btn" title="다모앙에서 팔로우 목록을 다시 받습니다">새로고침</button></div>
+      </div>
+    </div>
+    <div id="follow-editor">
+      <div id="follow-form">
+        <div class="follow-sec-head" id="follow-on-row">
+          <label for="follow-on">강조 사용</label>
+          <span class="switch"><input type="checkbox" id="follow-on"><span class="track"></span></span>
+        </div>
+        <div class="follow-field" id="follow-name-row">
+          <label for="follow-name">이름</label>
+          <input type="text" id="follow-name" maxlength="12">
+        </div>
+        <div id="follow-default-note">팔로우한 회원 전체에 적용됩니다. 그룹에 넣은 회원은 그룹 스타일이 먼저입니다. (<b id="follow-default-count"></b>명)</div>
+        <div id="follow-members">
+          <div class="add-row">
+            <input type="text" id="follow-member-input" list="follow-nicks" placeholder="닉네임 입력">
+            <datalist id="follow-nicks"></datalist>
+            <button id="follow-member-add-btn">추가</button>
+          </div>
+          <div id="follow-chips" class="chips"></div>
+          <div class="chips-foot"><span id="follow-msg"></span><span id="follow-member-count"></span></div>
+        </div>
+        <div class="follow-preview">
+          <span class="light" id="follow-prev-light"><span class="t">팔로우한 회원의 글 제목</span></span>
+          <span class="dark" id="follow-prev-dark"><span class="t">팔로우한 회원의 글 제목</span></span>
+        </div>
+        <div class="follow-sec">
+          <div class="follow-sec-head">
+            <label for="follow-line-on">강조 선</label>
+            <span class="switch"><input type="checkbox" id="follow-line-on"><span class="track"></span></span>
+          </div>
+          <div class="follow-field">
+            <label for="follow-line-type">종류</label>
+            <select id="follow-line-type">
+              <option value="left">왼쪽 세로선</option>
+              <option value="box">테두리</option>
+            </select>
+          </div>
+          <div class="follow-field"><label>주간</label><span class="swatches" id="follow-line-light"></span></div>
+          <div class="follow-field"><label>다크</label><span class="swatches" id="follow-line-dark"></span></div>
+        </div>
+        <div class="follow-sec">
+          <div class="follow-sec-head">
+            <label for="follow-bg-on">배경색</label>
+            <span class="switch"><input type="checkbox" id="follow-bg-on"><span class="track"></span></span>
+          </div>
+          <div class="follow-field"><label>주간</label><span class="swatches" id="follow-bg-light"></span></div>
+          <div class="follow-field"><label>다크</label><span class="swatches" id="follow-bg-dark"></span></div>
+        </div>
+        <div class="follow-sec">
+          <div class="follow-sec-head">
+            <label for="follow-mark-on">마크</label>
+            <span class="switch"><input type="checkbox" id="follow-mark-on"><span class="track"></span></span>
+          </div>
+          <div class="follow-field">
+            <label for="follow-mark-text">문자</label>
+            <input type="text" id="follow-mark-text" maxlength="6" placeholder="★">
+          </div>
+          <div class="follow-field"><label>주간 배경</label><span class="swatches" id="follow-mark-light-bg"></span></div>
+          <div class="follow-field"><label>주간 글자</label><span class="swatches" id="follow-mark-light-fg"></span></div>
+          <div class="follow-field"><label>다크 배경</label><span class="swatches" id="follow-mark-dark-bg"></span></div>
+          <div class="follow-field"><label>다크 글자</label><span class="swatches" id="follow-mark-dark-fg"></span></div>
+        </div>
+      </div>
+      <div class="dialog-foot">
+        <button id="follow-delete-btn" class="danger">그룹 삭제</button>
+        <button id="follow-close-btn">닫기</button>
+      </div>
+    </div>
+  </dialog>
+  <dialog id="extra-opt-dialog">
+    <h2>추가 기능 옵션</h2>
+    <div class="opt-row">
+      <label for="extra-tips-switch">기능 설명 보기</label>
+      <span class="switch">
+        <input type="checkbox" id="extra-tips-switch">
+        <span class="track"></span>
+      </span>
+    </div>
+    <div class="opt-caption">표시할 항목</div>
+    <div class="opt-grid" id="extra-toggles"></div>
   </dialog>
   <dialog id="shortcut-dialog">
     <h2>마이페이지 바로가기 설정</h2>

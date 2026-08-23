@@ -1,7 +1,7 @@
 # 다모앙 UI 확장
 
 다모앙(damoang.net)의 메모 설정과 즐겨찾기를 툴바 팝업에서 바로 다루는 브라우저 확장입니다.
-Chrome과 Microsoft Edge에서 동작합니다.
+Chrome, Microsoft Edge, Firefox에서 동작합니다.
 
 다모앙 운영사와 관련이 없는 비공식 애플리케이션입니다.
 
@@ -19,6 +19,10 @@ Chrome과 Microsoft Edge에서 동작합니다.
 - 스크린샷 모드 켜기 / 끄기: 메모 배지 가리기와 목록 메모 배지 가리기를 함께 전환하고 새로고침까지 한 번에. 내 프로필 가리기 포함 여부는 옵션
 - 즐겨찾기 게시판 바로 이동
 - 마이페이지 바로가기 (포인트, 경험치, 스크랩, 팔로잉, 차단목록, 회원메모, 신고내역, 계정설정, UI 설정). 항목별 표시 선택 가능
+- 제목 필터링(뮤트) 키워드 관리. 다모앙 설정과 같은 목록
+- 제목 강조: 등록한 키워드가 들어간 게시판 목록 제목을 형광펜으로 표시. 그룹(최대 8개)마다 주간/다크 색상 지정
+- 사용자 강조: 등록한 닉네임의 글을 목록에서 선, 배경색, 마크로 표시. 그룹(최대 8개)마다 다른 스타일, 팔로우한 회원 전체에는 별도 스타일. 주간/다크 색상 지정
+- 설정 변경은 입력이 멈춘 뒤 자동 저장 (간격 조정 가능)
 - 화면모드 설정 (시스템 따르기 / 주간 모드 / 다크 모드)
 
 다모앙에 로그인된 탭이 열려 있어야 동작합니다.
@@ -27,12 +31,15 @@ Chrome과 Microsoft Edge에서 동작합니다.
 
 - Chrome Web Store: https://chromewebstore.google.com/detail/amlnkdgoebgibpcnlalgmllophgkgbgc
 - Microsoft Edge Add-ons: https://microsoftedge.microsoft.com/addons/detail/cgoaiibgggnpgibehddbpbloipcdbjka
+- Firefox Add-ons: 준비 중
 
 직접 로드하려면:
 
 1. 이 저장소를 내려받습니다.
 2. `chrome://extensions` (Edge는 `edge://extensions`)에서 개발자 모드를 켭니다.
 3. "압축해제된 확장 프로그램을 로드합니다"로 `extension/` 폴더를 선택합니다.
+
+Firefox는 `about:debugging#/runtime/this-firefox`의 "임시 부가 기능 로드"에서 `extension/manifest.json`을 선택합니다. Firefox는 사이트 접근 권한을 따로 묻기 때문에, 팝업의 "다모앙 접근 허용" 버튼으로 한 번 허용해야 합니다.
 
 ## 동작 방식
 
@@ -47,6 +54,7 @@ Chrome과 Microsoft Edge에서 동작합니다.
 | `https://damoang.net/*` | 다모앙 탭에서만 동작 |
 | `scripting` | 설정 읽기/저장 요청을 다모앙 탭에서 실행 |
 | `tabs` | 다모앙 탭 찾기, 게시판 이동, 새로고침 |
+| `storage` | 제목 강조, 사용자 강조 설정을 이 브라우저에 저장 (팝업과 content script 가 공유) |
 
 ## 개발
 
@@ -57,6 +65,7 @@ extension/
   manifest.json
   popup.html
   popup.js
+  content.js                  다모앙 페이지에서 제목 강조(CSS Custom Highlight API)와 사용자 강조
   icons/
   _locales/ko/messages.json   이름과 설명. manifest 가 __MSG_ 키로 참조
 ```

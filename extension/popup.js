@@ -1,5 +1,8 @@
 const API = "https://damoang.net/api/my/ui-settings";
 const FAV_API = "https://damoang.net/api/v1/my/favorites";
+// Firefox MV3 는 host_permissions 를 선택 권한으로 다루므로 시작할 때 확인한다. Chrome 은 항상 true
+const HOST_PERMISSION = { origins: ["https://damoang.net/*"] };
+let gateMode = "open";
 const SITE = "https://damoang.net";
 
 // 디버그는 설정 다이얼로그의 스위치로 켜는 정식 기능. 팝업을 닫아도 유지
@@ -39,6 +42,81 @@ const SETTING_GROUPS = [
 ];
 const FIELDS = SETTING_GROUPS.flatMap(g => g.fields);
 
+// 제목 필터링(뮤트) 키워드. ui-settings 의 muteKeywords 배열 그대로. 서버 상한 200개(2026-08-23 확인)
+const MUTE_MAX = 200;
+
+// 빠른 설정 소그룹. 각각 접을 수 있고, 옵션에서 표시 여부를 고른다
+const SUBGROUPS = SETTING_GROUPS.map(g => ({ id: g.id, title: g.title }))
+  .concat({ id: "mute", title: "제목 필터링 (뮤트)" });
+
+// 제목 강조. chrome.storage.local 의 "highlight" 에 저장하고 content.js 가 읽는다. 기기별 설정.
+// 그룹마다 색·키워드·일치 옵션을 갖는다. 키워드는 그룹을 통틀어 중복 불가
+const HL_KEY = "highlight";
+const HL_GROUP_MAX = 8;
+const HL_WORD_MAX = 50;
+const HL_PRESETS = {
+  light: ["#fff176", "#c5e1a5", "#81d4fa", "#f8bbd0", "#ffcc80"],
+  dark:  ["#9e6a03", "#238636", "#1f6feb", "#bf4b8a", "#bd561d"]
+};
+let hl = { groups: [] };
+let hlCurrent = -1;
+
+// 추가 기능 탭의 소그룹. 빠른 설정과 같은 방식으로 접기·표시 선택
+const EXTRA_SUBGROUPS = [{ id: "hl", title: "제목 강조" }, { id: "follow", title: "사용자 강조" }];
+
+// 사용자 강조. chrome.storage.local 의 "member". 행의 글쓴이 닉네임으로 대조한다.
+// 고정 첫 항목 "팔로우 회원" 은 서버 팔로우 목록 전체, 그 아래 그룹은 닉네임을 직접 등록.
+// 그룹에 있는 닉네임은 그룹 스타일이 먼저, 나머지 팔로우 회원은 팔로우 스타일
+const FOLLOW_KEY = "member";
+const FOLLOW_MEMBER_MAX = 50;
+const FOLLOW_API = "https://damoang.net/api/my/following";
+const FOLLOW_GROUP_MAX = 8;
+const FOLLOW_PRESETS = {
+  lineLight: ["#1a73e8", "#1e8e3e", "#e8710a", "#d93025", "#8430ce"],
+  lineDark:  ["#8ab4f8", "#81c995", "#fcad70", "#f28b82", "#c58af9"],
+  bgLight:   ["#e8f0fe", "#e6f4ea", "#fef7e0", "#fce8e6", "#f3e8fd"],
+  bgDark:    ["#1c2a3f", "#1b2e22", "#3a2f12", "#3b1f1c", "#2c1f3b"],
+  fgLight:   ["#ffffff", "#1c1c1e"],
+  fgDark:    ["#0d1117", "#f2f2f4"]
+};
+// 선·배경·마크는 기본 켜짐. 항목 전체 스위치(on)는 normalizeFollowStyle 이 정한다
+const FOLLOW_STYLE = {
+  on: true,
+  line: { on: true, type: "left", lightColor: "#1a73e8", darkColor: "#8ab4f8" },
+  bg:   { on: true, lightColor: "#e8f0fe", darkColor: "#1c2a3f" },
+  mark: { on: true, text: "★", lightBg: "#1a73e8", lightFg: "#ffffff", darkBg: "#8ab4f8", darkFg: "#0d1117" }
+};
+let follow = normalizeFollow(null);
+let following = [];
+let followingLoaded = false;
+let followCurrent = -1;
+const followSwatches = {};
+let showExtraTips = localStorage.getItem("extra-tips") !== "0";
+
+function loadHiddenSet(key) {
+  try {
+    const arr = JSON.parse(localStorage.getItem(key));
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch (_) {
+    return new Set();
+  }
+}
+let hiddenExtra = loadHiddenSet("extra-hidden");
+
+function loadHiddenSubgroups() {
+  try {
+    const arr = JSON.parse(localStorage.getItem("settings-hidden"));
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch (_) {
+    return new Set();
+  }
+}
+let hiddenSubgroups = loadHiddenSubgroups();
+let muteKeywords = [];
+let muteBaseline = [];
+let muteLoaded = false;
+const sameList = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
 // 다모앙 내 페이지 바로가기. 개별 표시 여부는 설정 다이얼로그에서 고른다
 const SHORTCUTS = [
   { caption: "활동내역", items: [
@@ -75,12 +153,84 @@ let showQuickTips = localStorage.getItem("quick-tips") !== "0";
 // 이동 후 팝업 유지. 기본 켜짐. 끄면 이동하고 닫는다
 let keepPopupShortcut = localStorage.getItem("shortcut-keep-open") !== "0";
 let keepPopupFav = localStorage.getItem("fav-keep-open") !== "0";
+// 자동 저장 간격(ms). 변경이 멈춘 뒤 이 시간이 지나면 저장. 설정에서 0.5~5초
+const AUTOSAVE_MIN = 500;
+const AUTOSAVE_MAX = 5000;
+let autosaveDelay = Math.min(AUTOSAVE_MAX, Math.max(AUTOSAVE_MIN, Number(localStorage.getItem("autosave-delay")) || 800));
 
 const rowsEl = document.getElementById("rows");
 const groupsEl = document.getElementById("groups");
 const statusEl = document.getElementById("status");
-const applyBtn = document.getElementById("apply");
 const refreshBtn = document.getElementById("refresh");
+const autosaveInput = document.getElementById("autosave-input");
+const muteDialog = document.getElementById("mute-dialog");
+const muteInput = document.getElementById("mute-input");
+const muteAddBtn = document.getElementById("mute-add-btn");
+const muteChipsEl = document.getElementById("mute-chips");
+const muteMsgEl = document.getElementById("mute-msg");
+const muteCountEl = document.getElementById("mute-count");
+let muteManageBtn = null;
+let muteRowCountEl = null;
+const hlManageBtn = document.getElementById("hl-manage-btn");
+const hlGroupCount = document.getElementById("hl-group-count");
+const hlDialog = document.getElementById("hl-dialog");
+const hlDlgCount = document.getElementById("hl-dlg-count");
+const hlAddGroupBtn = document.getElementById("hl-add-group-btn");
+const hlList = document.getElementById("hl-list");
+const hlPartial = document.getElementById("hl-partial");
+const hlIcase = document.getElementById("hl-icase");
+const hlEmpty = document.getElementById("hl-empty");
+const hlForm = document.getElementById("hl-form");
+const hlOn = document.getElementById("hl-on");
+const hlName = document.getElementById("hl-name");
+const hlSwatches = { light: document.getElementById("hl-light-swatches"), dark: document.getElementById("hl-dark-swatches") };
+const hlSwatchCtl = {};
+const hlPreview = { light: document.getElementById("hl-prev-light"), dark: document.getElementById("hl-prev-dark") };
+const hlInput = document.getElementById("hl-input");
+const hlAddBtn = document.getElementById("hl-add-btn");
+const hlChips = document.getElementById("hl-chips");
+const hlMsg = document.getElementById("hl-msg");
+const hlCount = document.getElementById("hl-count");
+const hlDeleteBtn = document.getElementById("hl-delete-btn");
+const hlCloseBtn = document.getElementById("hl-close-btn");
+const hlGroupEl = document.getElementById("sg-hl");
+const hlHeadEl = document.getElementById("hl-head");
+const followGroupEl = document.getElementById("sg-follow");
+const followHeadEl = document.getElementById("follow-head");
+const followSummary = document.getElementById("follow-summary");
+const followManageBtn = document.getElementById("follow-manage-btn");
+const followDialog = document.getElementById("follow-dialog");
+const followPrev = { light: document.getElementById("follow-prev-light"), dark: document.getElementById("follow-prev-dark") };
+const followDlgCount = document.getElementById("follow-dlg-count");
+const followAddGroupBtn = document.getElementById("follow-add-group-btn");
+const followList = document.getElementById("follow-list");
+const followTotal = document.getElementById("follow-total");
+const followReloadBtn = document.getElementById("follow-reload-btn");
+const followForm = document.getElementById("follow-form");
+const followNameRow = document.getElementById("follow-name-row");
+const followName = document.getElementById("follow-name");
+const followDefaultNote = document.getElementById("follow-default-note");
+const followDefaultCount = document.getElementById("follow-default-count");
+const followMembers = document.getElementById("follow-members");
+const followMemberInput = document.getElementById("follow-member-input");
+const followNicks = document.getElementById("follow-nicks");
+const followMemberAddBtn = document.getElementById("follow-member-add-btn");
+const followChips = document.getElementById("follow-chips");
+const followMsg = document.getElementById("follow-msg");
+const followMemberCount = document.getElementById("follow-member-count");
+const followDeleteBtn = document.getElementById("follow-delete-btn");
+const followCloseBtn = document.getElementById("follow-close-btn");
+const followOn = document.getElementById("follow-on");
+const followLineOn = document.getElementById("follow-line-on");
+const followLineType = document.getElementById("follow-line-type");
+const followBgOn = document.getElementById("follow-bg-on");
+const followMarkOn = document.getElementById("follow-mark-on");
+const followMarkText = document.getElementById("follow-mark-text");
+const extraGroupEl = document.getElementById("extra-group");
+const extraOptBtn = document.getElementById("extra-opt-btn");
+const extraOptDialog = document.getElementById("extra-opt-dialog");
+const extraTipsSwitch = document.getElementById("extra-tips-switch");
+const extraTogglesEl = document.getElementById("extra-toggles");
 const shotOnBtn = document.getElementById("shot-on");
 const shotOffBtn = document.getElementById("shot-off");
 const quickGroupEl = document.getElementById("quick-group");
@@ -93,7 +243,7 @@ const favoritesEl = document.getElementById("favorites");
 const favSpinEl = document.getElementById("fav-spin");
 const memoSpinEl = document.getElementById("memo-spin");
 const settingsGroupEl = document.getElementById("settings-group");
-const settingsHeadEl = document.getElementById("settings-head");
+const subgroupTogglesEl = document.getElementById("subgroup-toggles");
 const settingsOptBtn = document.getElementById("settings-opt-btn");
 const settingsOptDialog = document.getElementById("settings-opt-dialog");
 const tipsSwitch = document.getElementById("tips-switch");
@@ -178,6 +328,26 @@ async function readSettingsInPage(apiUrl, debug) {
   }
 }
 
+async function readFollowingInPage(apiUrl, debug) {
+  const log = (...a) => { if (debug) console.log("[다모앙UI]", ...a); };
+  try {
+    const res = await fetch(apiUrl, { credentials: "include", signal: AbortSignal.timeout(10000) });
+    log("following GET", res.status);
+    if (!res.ok) return { ok: false, error: "HTTP " + res.status };
+    const data = await res.json();
+    const list = Array.isArray(data && data.data) ? data.data : [];
+    return {
+      ok: true,
+      following: list
+        .map(m => ({ id: String(m.mb_id || ""), nick: String(m.mb_nick || "").trim() }))
+        .filter(m => m.id && m.nick)
+    };
+  } catch (e) {
+    log("following GET 실패", String(e));
+    return { ok: false, error: String(e) };
+  }
+}
+
 async function readFavoritesInPage(apiUrl, debug) {
   const log = (...a) => { if (debug) console.log("[다모앙UI]", ...a); };
   // 숫자 키가 표시 순서
@@ -219,7 +389,8 @@ async function applySettingsInPage(apiUrl, values, debug) {
     const getRes = await fetch(apiUrl, { credentials: "include", signal: AbortSignal.timeout(10000) });
     log("apply GET", getRes.status);
     if (!getRes.ok) return { ok: false, error: "GET " + getRes.status };
-    const data = await getRes.json();
+    // Firefox 에서 res.json() 은 페이지 쪽 객체(Xray)라 확장 쪽 배열을 붙일 수 없다. 텍스트로 받아 여기서 파싱
+    const data = JSON.parse(await getRes.text());
     const settings = data && data.settings ? data.settings : data;
     if (!settings || typeof settings !== "object") {
       return { ok: false, error: "설정 형식을 인식하지 못함" };
@@ -322,15 +493,77 @@ function currentUIValues() {
   return out;
 }
 
-function isDirty() {
-  const ui = currentUIValues();
-  return FIELDS.some(f => !!baseline[f.key] !== ui[f.key]);
+function isMuteDirty() {
+  return muteLoaded && !sameList(muteKeywords, muteBaseline);
 }
 
+function isDirty() {
+  const ui = currentUIValues();
+  return FIELDS.some(f => !!baseline[f.key] !== ui[f.key]) || isMuteDirty();
+}
+
+let autosaveTimer = null;
+let saving = false;
+
 function onLocalChange() {
-  const dirty = isDirty();
-  applyBtn.disabled = !dirty;
-  setStatus(dirty ? "저장되지 않은 변경사항이 있습니다." : "");
+  scheduleAutosave();
+}
+
+// 변경이 멈춘 뒤 autosaveDelay 가 지나면 저장한다
+function scheduleAutosave() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = null;
+  if (!isDirty()) {
+    if (!saving) setStatus("");
+    return;
+  }
+  setStatus("잠시 후 저장됩니다…");
+  autosaveTimer = setTimeout(autosave, autosaveDelay);
+}
+
+// 변경된 키만 병합 저장. 실패하면 그 키들의 스위치를 서버 값으로 되돌린다.
+// 저장 중에 또 바뀐 것은 끝난 뒤 이어서 저장한다
+async function autosave() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = null;
+  if (saving) return;
+  const ui = currentUIValues();
+  const values = {};
+  for (const f of FIELDS) {
+    if (!!baseline[f.key] !== ui[f.key]) values[f.key] = ui[f.key];
+  }
+  const keys = Object.keys(values);
+  const muteSent = isMuteDirty() ? muteKeywords.slice() : null;
+  if (muteSent) values.muteKeywords = muteSent;
+  if (!keys.length && !muteSent) {
+    setStatus("");
+    return;
+  }
+  saving = true;
+  setStatus("저장 중…");
+  dbg("autosave", values);
+  const r = await runInTab(applySettingsInPage, [API, values, debugMode], 25000);
+  dbg("autosave result", r);
+  saving = false;
+  if (r && r.ok) {
+    for (const key of keys) baseline[key] = !!r.settings[key];
+    if (muteSent) {
+      muteBaseline = Array.isArray(r.settings.muteKeywords) ? r.settings.muteKeywords.map(String) : muteSent;
+      // 저장 중에 더 바꾸지 않았으면 서버 값으로 맞춘다
+      if (sameList(muteKeywords, muteSent)) muteKeywords = muteBaseline.slice();
+      renderMute();
+    }
+    saveCache({ settings: fieldValues(r.settings), mute: muteBaseline });
+    setStatus("저장됨 · 새로고침하면 화면에 반영됩니다.");
+  } else {
+    for (const key of keys) document.getElementById("sw-" + key).checked = !!baseline[key];
+    if (muteSent) {
+      muteKeywords = muteBaseline.slice();
+      renderMute();
+    }
+    setStatus("저장 실패: " + ((r && r.error) || "알 수 없는 오류"), true);
+  }
+  if (isDirty()) scheduleAutosave();
 }
 
 // 비로그인, 탭 없음 차단막. 오버레이가 클릭을 막지만 키보드 포커스 대비로 컨트롤도 잠근다
@@ -342,7 +575,6 @@ function showGate(msg) {
   memoSpinEl.hidden = true;
   setStatus("");
   setBusy(true);
-  applyBtn.disabled = true;
 }
 
 // 로딩 실패 차단막. 오버레이가 클릭을 막지만 키보드 포커스 대비로 컨트롤도 잠근다
@@ -351,7 +583,6 @@ function showFail(msg) {
   failEl.hidden = false;
   setStatus("");
   setBusy(true);
-  applyBtn.disabled = true;
 }
 
 function hideFail() {
@@ -393,15 +624,22 @@ function renderFavorites(favorites) {
 function setupTooltips() {
   const tip = document.getElementById("tip");
   let current = null;
+  const hide = () => {
+    if (tip.matches(":popover-open")) tip.hidePopover();
+    current = null;
+  };
+  // Esc 로 다이얼로그를 닫으면 클릭이 없으므로 따로 닫는다
+  for (const d of document.querySelectorAll("dialog")) d.addEventListener("close", hide);
   document.addEventListener("click", (e) => {
     const el = e.target.closest("[data-tip]");
+    // 라벨 안의 아이콘이면 스위치 토글로 번지지 않게
+    if (el) e.preventDefault();
     if (!el || el === current) {
-      tip.hidden = true;
-      current = null;
+      hide();
       return;
     }
     tip.textContent = el.dataset.tip;
-    tip.hidden = false;
+    tip.showPopover();
     const r = el.getBoundingClientRect();
     const w = tip.offsetWidth;
     const h = tip.offsetHeight;
@@ -414,6 +652,20 @@ function setupTooltips() {
   });
 }
 
+// 상단 탭. 마지막 탭을 기억한다
+function setupTabs() {
+  const tabs = document.querySelectorAll("#tabs .tab");
+  const pages = document.querySelectorAll(".page");
+  const activate = (name) => {
+    tabs.forEach(t => t.classList.toggle("active", t.dataset.tab === name));
+    pages.forEach(p => p.classList.toggle("active", p.id === "page-" + name));
+    localStorage.setItem("tab", name);
+  };
+  tabs.forEach(t => t.addEventListener("click", () => activate(t.dataset.tab)));
+  const saved = localStorage.getItem("tab");
+  activate(saved === "extra" ? "extra" : "settings");
+}
+
 // 접힘 상태는 팝업을 닫아도 유지
 function setupCollapse(el, head, key) {
   if (localStorage.getItem(key) === "1") el.classList.add("collapsed");
@@ -422,14 +674,65 @@ function setupCollapse(el, head, key) {
   });
 }
 
+// 빠른 설정 안의 소그룹 한 칸. 제목(접기) + 행 컨테이너
+function makeSubgroup(id, title) {
+  const section = document.createElement("section");
+  section.className = "subgroup";
+  section.id = "sg-" + id;
+  const head = document.createElement("div");
+  head.className = "caption group-head";
+  const chev = document.createElement("span");
+  chev.className = "chev";
+  head.append(chev, title);
+  const rows = document.createElement("div");
+  rows.className = "rows";
+  section.append(head, rows);
+  setupCollapse(section, head, "sg-" + id + "-collapsed");
+  rowsEl.append(section);
+  return rows;
+}
+
+function applySubgroupVisibility() {
+  for (const g of SUBGROUPS) {
+    const el = document.getElementById("sg-" + g.id);
+    if (el) el.hidden = hiddenSubgroups.has(g.id);
+  }
+}
+
+// 옵션 다이얼로그의 표시할 항목 스위치들
+function renderSubgroupToggles() {
+  for (const g of SUBGROUPS) {
+    const row = document.createElement("div");
+    row.className = "opt-row";
+    const label = document.createElement("label");
+    label.textContent = g.title;
+    label.htmlFor = "sg-toggle-" + g.id;
+    const wrap = document.createElement("span");
+    wrap.className = "switch";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.id = "sg-toggle-" + g.id;
+    input.checked = !hiddenSubgroups.has(g.id);
+    const track = document.createElement("span");
+    track.className = "track";
+    track.addEventListener("click", () => input.click());
+    input.addEventListener("change", () => {
+      if (input.checked) hiddenSubgroups.delete(g.id);
+      else hiddenSubgroups.add(g.id);
+      localStorage.setItem("settings-hidden", JSON.stringify([...hiddenSubgroups]));
+      applySubgroupVisibility();
+    });
+    wrap.append(input, track);
+    row.append(label, wrap);
+    subgroupTogglesEl.append(row);
+  }
+}
+
 // 항목은 팝업이 열릴 때 바로 그리고, 값 수신 전까지 스위치를 비활성으로 둔다.
-// 그룹은 소제목으로 나뉘고 전부 "빠른 설정" 섹션 안에 들어간다
+// 소그룹마다 접을 수 있고 전부 "빠른 설정" 섹션 안에 들어간다
 function renderRows() {
   for (const group of SETTING_GROUPS) {
-    const caption = document.createElement("div");
-    caption.className = "caption";
-    caption.textContent = group.title;
-    rowsEl.append(caption);
+    const container = makeSubgroup(group.id, group.title);
     for (const f of group.fields) {
       const row = document.createElement("div");
       row.className = "row";
@@ -442,8 +745,6 @@ function renderRows() {
         info.className = "info";
         info.dataset.tip = f.tip;
         info.innerHTML = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg>';
-        // 아이콘 클릭이 라벨의 스위치 토글로 번지지 않게
-        info.addEventListener("click", (e) => e.preventDefault());
         label.append(info);
       }
 
@@ -461,9 +762,96 @@ function renderRows() {
 
       wrap.append(input, track);
       row.append(label, wrap);
-      rowsEl.append(row);
+      container.append(row);
     }
   }
+  renderMuteRow();
+  applySubgroupVisibility();
+}
+
+// 뮤트 소그룹. 개수와 관리 버튼만 두고 편집은 다이얼로그에서
+function renderMuteRow() {
+  const container = makeSubgroup("mute", "제목 필터링 (뮤트)");
+  const row = document.createElement("div");
+  row.className = "row";
+  const label = document.createElement("label");
+  label.textContent = "뮤트 키워드";
+  const info = document.createElement("span");
+  info.className = "info";
+  info.dataset.tip = "특정 단어가 포함된 게시글을 목록에서 숨깁니다.";
+  info.innerHTML = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg>';
+  label.append(info);
+  const right = document.createElement("span");
+  right.className = "quick-btns";
+  muteRowCountEl = document.createElement("span");
+  muteRowCountEl.className = "count";
+  muteManageBtn = document.createElement("button");
+  muteManageBtn.textContent = "관리";
+  muteManageBtn.disabled = true;
+  muteManageBtn.addEventListener("click", () => {
+    muteMsgEl.textContent = "";
+    muteInput.value = "";
+    muteDialog.showModal();
+    muteInput.focus();
+  });
+  right.append(muteRowCountEl, muteManageBtn);
+  row.append(label, right);
+  container.append(row);
+  renderMute();
+}
+
+function renderMute() {
+  muteRowCountEl.textContent = muteLoaded ? muteKeywords.length + "개" : "";
+  muteCountEl.textContent = muteKeywords.length + " / " + MUTE_MAX;
+  muteChipsEl.textContent = "";
+  for (const word of muteKeywords) {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.append(word);
+    const x = document.createElement("button");
+    x.textContent = "×";
+    x.title = "삭제";
+    x.addEventListener("click", () => {
+      muteKeywords = muteKeywords.filter(w => w !== word);
+      muteMsgEl.textContent = "";
+      renderMute();
+      scheduleAutosave();
+    });
+    chip.append(x);
+    muteChipsEl.append(chip);
+  }
+  const full = muteKeywords.length >= MUTE_MAX;
+  muteInput.disabled = full;
+  muteAddBtn.disabled = full;
+}
+
+function addMuteKeyword() {
+  const word = muteInput.value.trim();
+  if (!word) return;
+  if (muteKeywords.includes(word)) {
+    muteMsgEl.textContent = "이미 있는 키워드입니다";
+    return;
+  }
+  if (muteKeywords.length >= MUTE_MAX) {
+    muteMsgEl.textContent = "최대 " + MUTE_MAX + "개까지 등록할 수 있습니다";
+    return;
+  }
+  muteKeywords = muteKeywords.concat(word);
+  muteInput.value = "";
+  muteMsgEl.textContent = "";
+  renderMute();
+  scheduleAutosave();
+}
+
+// 서버(또는 캐시) 값 반영. 새 값이 오기 전에 사용자가 편집한 목록은 유지한다
+function fillMute(settings) {
+  const server = Array.isArray(settings.muteKeywords) ? settings.muteKeywords.map(String) : [];
+  const touched = isMuteDirty();
+  muteBaseline = server;
+  if (!touched) muteKeywords = server.slice();
+  muteLoaded = true;
+  muteManageBtn.disabled = false;
+  renderMute();
 }
 
 function renderShortcuts() {
@@ -547,51 +935,676 @@ function fillRows(settings) {
   }
 }
 
+// 프리셋 원 + 직접 지정. 한 번만 만들고 선택 표시만 mark() 로 갱신한다
+// (매번 다시 만들면 열려 있는 색상 선택기가 닫힌다)
+function makeSwatches(box, presets, onPick) {
+  const btns = [];
+  for (const c of presets) {
+    const b = document.createElement("button");
+    b.className = "swatch";
+    b.dataset.color = c;
+    b.style.background = c;
+    b.title = c;
+    b.addEventListener("click", () => onPick(c));
+    box.append(b);
+    btns.push(b);
+  }
+  const custom = document.createElement("input");
+  custom.type = "color";
+  custom.title = "직접 지정";
+  custom.addEventListener("input", () => onPick(custom.value));
+  box.append(custom);
+  return {
+    mark(color) {
+      for (const b of btns) b.classList.toggle("on", b.dataset.color.toLowerCase() === color.toLowerCase());
+      if (custom.value.toLowerCase() !== color.toLowerCase()) custom.value = color;
+    }
+  };
+}
+
+// ---- 사용자 강조 ----
+
+// 팔로우 회원 항목은 기본 꺼짐, 그룹은 만들 때 켜짐
+function normalizeFollowStyle(raw, onDefault) {
+  const out = JSON.parse(JSON.stringify(FOLLOW_STYLE));
+  out.on = onDefault;
+  if (!raw || typeof raw !== "object") return out;
+  if (typeof raw.on === "boolean") out.on = raw.on;
+  for (const sec of ["line", "bg", "mark"]) {
+    const src = raw[sec];
+    if (!src || typeof src !== "object") continue;
+    for (const k of Object.keys(out[sec])) {
+      if (typeof src[k] === typeof out[sec][k]) out[sec][k] = src[k];
+    }
+  }
+  if (out.line.type !== "box") out.line.type = "left";
+  out.mark.text = String(out.mark.text).trim().slice(0, 6) || "★";
+  return out;
+}
+
+function normalizeFollow(raw) {
+  const r = raw && typeof raw === "object" ? raw : {};
+  const out = { follow: normalizeFollowStyle(r.follow, false), groups: [] };
+  const src = Array.isArray(r.groups) ? r.groups : [];
+  out.groups = src.slice(0, FOLLOW_GROUP_MAX).map((g, i) => ({
+    name: String(g.name || "그룹 " + (i + 1)).slice(0, 12),
+    style: normalizeFollowStyle(g.style, true),
+    members: (Array.isArray(g.members) ? g.members : []).map(m => String(m).trim()).filter(Boolean).slice(0, FOLLOW_MEMBER_MAX)
+  }));
+  return out;
+}
+
+function saveFollow() {
+  chrome.storage.local.set({ [FOLLOW_KEY]: follow });
+}
+
+function styleOn(s) {
+  return s.on && (s.line.on || s.bg.on || s.mark.on);
+}
+
+function followItem() {
+  return followCurrent < 0 ? { name: "팔로우 회원", style: follow.follow } : follow.groups[followCurrent];
+}
+
+function findMember(nick) {
+  return follow.groups.findIndex(g => g.members.includes(nick));
+}
+
+// 그룹에 없는 팔로우 회원 수
+function followRestCount() {
+  const all = new Set();
+  for (const g of follow.groups) for (const m of g.members) all.add(m);
+  return following.filter(m => !all.has(m.nick)).length;
+}
+
+function fillFollowing(list) {
+  following = list;
+  followingLoaded = true;
+  followNicks.textContent = "";
+  for (const m of following) {
+    const o = document.createElement("option");
+    o.value = m.nick;
+    followNicks.append(o);
+  }
+  if (followDialog.open) renderFollowDialog();
+}
+
+function renderFollowRow() {
+  const parts = [];
+  if (styleOn(follow.follow)) parts.push("팔로우");
+  const gn = follow.groups.filter(g => styleOn(g.style) && g.members.length).length;
+  if (gn) parts.push("그룹 " + gn);
+  followSummary.textContent = parts.length ? parts.join(", ") : "꺼짐";
+}
+
+// 미리보기 한 칸. content.js 가 행에 그리는 것과 같은 규칙
+function paintFollowPreview(el, s, dark) {
+  const lineColor = dark ? s.line.darkColor : s.line.lightColor;
+  el.style.boxShadow = s.line.on
+    ? (s.line.type === "box" ? "inset 0 0 0 2px " + lineColor : "inset 3px 0 0 " + lineColor)
+    : "";
+  el.style.background = s.bg.on ? (dark ? s.bg.darkColor : s.bg.lightColor) : "";
+  let m = el.querySelector(".m");
+  if (s.mark.on) {
+    if (!m) {
+      m = document.createElement("span");
+      m.className = "m";
+      el.prepend(m);
+    }
+    m.textContent = s.mark.text;
+    m.style.background = dark ? s.mark.darkBg : s.mark.lightBg;
+    m.style.color = dark ? s.mark.darkFg : s.mark.lightFg;
+  } else if (m) {
+    m.remove();
+  }
+}
+
+function paintFollowPreviews() {
+  const s = followItem().style;
+  paintFollowPreview(followPrev.light, s, false);
+  paintFollowPreview(followPrev.dark, s, true);
+}
+
+// 왼쪽 목록. 맨 위는 고정 항목 "팔로우 회원"
+function renderFollowList() {
+  followDlgCount.textContent = follow.groups.length + " / " + FOLLOW_GROUP_MAX;
+  followAddGroupBtn.disabled = follow.groups.length >= FOLLOW_GROUP_MAX;
+  followList.textContent = "";
+  const items = [{ name: "팔로우 회원", count: followingLoaded ? followRestCount() : "", idx: -1 }]
+    .concat(follow.groups.map((g, i) => ({ name: g.name, count: g.members.length, idx: i })));
+  for (const it of items) {
+    const item = document.createElement("div");
+    const enabled = it.idx < 0 ? follow.follow.on : follow.groups[it.idx].style.on;
+    item.className = "hl-item" + (it.idx === followCurrent ? " on" : "") + (enabled ? "" : " off");
+    const name = document.createElement("span");
+    name.className = "name";
+    name.textContent = it.name;
+    const count = document.createElement("span");
+    count.className = "count";
+    count.textContent = it.count;
+    item.append(name, count);
+    item.addEventListener("click", () => selectFollowItem(it.idx));
+    followList.append(item);
+  }
+  followTotal.textContent = followingLoaded ? "팔로우 " + following.length + "명" : "팔로우 목록 없음";
+}
+
+// 오른쪽 편집. 그룹이면 이름·회원, 고정 항목이면 안내문
+function renderFollowEditor() {
+  const isGroup = followCurrent >= 0;
+  const it = followItem();
+  const s = it.style;
+  followNameRow.hidden = !isGroup;
+  followMembers.hidden = !isGroup;
+  followDefaultNote.hidden = isGroup;
+  followDeleteBtn.hidden = !isGroup;
+  if (isGroup) {
+    if (followName.value !== it.name) followName.value = it.name;
+    const followed = new Set(following.map(m => m.nick));
+    followChips.textContent = "";
+    for (const nick of it.members) {
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      if (followingLoaded && followed.has(nick)) chip.title = "팔로우 중";
+      chip.append(nick);
+      const x = document.createElement("button");
+      x.textContent = "×";
+      x.title = "삭제";
+      x.addEventListener("click", () => {
+        it.members = it.members.filter(o => o !== nick);
+        followMsg.textContent = "";
+        saveFollow();
+        renderFollowDialog();
+      });
+      chip.append(x);
+      followChips.append(chip);
+    }
+    followMemberCount.textContent = it.members.length + " / " + FOLLOW_MEMBER_MAX;
+    const full = it.members.length >= FOLLOW_MEMBER_MAX;
+    followMemberInput.disabled = full;
+    followMemberAddBtn.disabled = full;
+  } else {
+    followDefaultCount.textContent = followingLoaded ? String(followRestCount()) : "?";
+  }
+  followOn.checked = s.on;
+  followForm.classList.toggle("off", !s.on);
+  followLineOn.checked = s.line.on;
+  followLineType.value = s.line.type;
+  followBgOn.checked = s.bg.on;
+  followMarkOn.checked = s.mark.on;
+  if (followMarkText.value !== s.mark.text) followMarkText.value = s.mark.text;
+  followLineOn.closest(".follow-sec").classList.toggle("off", !s.line.on);
+  followBgOn.closest(".follow-sec").classList.toggle("off", !s.bg.on);
+  followMarkOn.closest(".follow-sec").classList.toggle("off", !s.mark.on);
+  followSwatches.lineLight.mark(s.line.lightColor);
+  followSwatches.lineDark.mark(s.line.darkColor);
+  followSwatches.bgLight.mark(s.bg.lightColor);
+  followSwatches.bgDark.mark(s.bg.darkColor);
+  followSwatches.markLightBg.mark(s.mark.lightBg);
+  followSwatches.markLightFg.mark(s.mark.lightFg);
+  followSwatches.markDarkBg.mark(s.mark.darkBg);
+  followSwatches.markDarkFg.mark(s.mark.darkFg);
+  paintFollowPreviews();
+}
+
+function renderFollowDialog() {
+  renderFollowList();
+  renderFollowEditor();
+  renderFollowRow();
+}
+
+function selectFollowItem(i) {
+  followCurrent = i;
+  followMsg.textContent = "";
+  followMemberInput.value = "";
+  followDeleteBtn.textContent = "그룹 삭제";
+  followForm.scrollTop = 0;
+  renderFollowDialog();
+}
+
+function addFollowGroup() {
+  if (follow.groups.length >= FOLLOW_GROUP_MAX) return;
+  const used = new Set(follow.groups.map(g => g.name));
+  let n = 1;
+  while (used.has("그룹 " + n)) n++;
+  follow.groups.push({ name: "그룹 " + n, style: normalizeFollowStyle(null, true), members: [] });
+  saveFollow();
+  selectFollowItem(follow.groups.length - 1);
+  followName.focus();
+  followName.select();
+}
+
+function addFollowMember() {
+  const g = follow.groups[followCurrent];
+  const nick = followMemberInput.value.trim();
+  if (!g || !nick) return;
+  const at = findMember(nick);
+  if (at >= 0) {
+    followMsg.textContent = at === followCurrent ? "이미 있는 닉네임입니다" : "'" + follow.groups[at].name + "'에 이미 있는 닉네임입니다";
+    return;
+  }
+  if (g.members.length >= FOLLOW_MEMBER_MAX) {
+    followMsg.textContent = "그룹당 " + FOLLOW_MEMBER_MAX + "명까지 등록할 수 있습니다";
+    return;
+  }
+  g.members = g.members.concat(nick);
+  followMemberInput.value = "";
+  followMsg.textContent = "";
+  saveFollow();
+  renderFollowDialog();
+}
+
+async function reloadFollowing() {
+  followReloadBtn.disabled = true;
+  followTotal.textContent = "받는 중…";
+  const r = await runInTab(readFollowingInPage, [FOLLOW_API, debugMode]);
+  followReloadBtn.disabled = false;
+  if (r && r.ok) {
+    fillFollowing(r.following);
+    saveCache({ following: r.following });
+  } else {
+    followTotal.textContent = "받지 못함";
+    setStatus("팔로우 목록을 받지 못했습니다: " + ((r && r.error) || "알 수 없는 오류"));
+  }
+}
+
+function setupFollow() {
+  const color = (id, presets, sec, key) => {
+    const box = document.getElementById("follow-" + id.replace(/([A-Z])/g, "-$1").toLowerCase());
+    followSwatches[id] = makeSwatches(box, presets, (c) => {
+      followItem().style[sec][key] = c;
+      saveFollow();
+      renderFollowEditor();
+    });
+  };
+  color("lineLight", FOLLOW_PRESETS.lineLight, "line", "lightColor");
+  color("lineDark", FOLLOW_PRESETS.lineDark, "line", "darkColor");
+  color("bgLight", FOLLOW_PRESETS.bgLight, "bg", "lightColor");
+  color("bgDark", FOLLOW_PRESETS.bgDark, "bg", "darkColor");
+  color("markLightBg", FOLLOW_PRESETS.lineLight, "mark", "lightBg");
+  color("markLightFg", FOLLOW_PRESETS.fgLight, "mark", "lightFg");
+  color("markDarkBg", FOLLOW_PRESETS.lineDark, "mark", "darkBg");
+  color("markDarkFg", FOLLOW_PRESETS.fgDark, "mark", "darkFg");
+  renderFollowRow();
+  chrome.storage.local.get(FOLLOW_KEY, (res) => {
+    follow = normalizeFollow(res[FOLLOW_KEY]);
+    renderFollowRow();
+  });
+  followManageBtn.addEventListener("click", () => {
+    selectFollowItem(-1);
+    followDialog.showModal();
+  });
+  followDialog.addEventListener("click", (e) => {
+    if (e.target === followDialog) followDialog.close();
+  });
+  followCloseBtn.addEventListener("click", () => followDialog.close());
+  followAddGroupBtn.addEventListener("click", addFollowGroup);
+  followReloadBtn.addEventListener("click", reloadFollowing);
+  followName.addEventListener("input", () => {
+    const g = follow.groups[followCurrent];
+    if (!g) return;
+    g.name = followName.value.trim() || g.name;
+    renderFollowList();
+  });
+  followName.addEventListener("change", () => {
+    const g = follow.groups[followCurrent];
+    if (!g) return;
+    followName.value = g.name;
+    saveFollow();
+  });
+  followMemberAddBtn.addEventListener("click", addFollowMember);
+  followMemberInput.addEventListener("keydown", (e) => {
+    // 한글 조합 중 Enter 는 조합 확정용으로 한 번 더 오므로 건너뛴다
+    if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) {
+      e.preventDefault();
+      addFollowMember();
+    }
+  });
+  // 삭제는 두 번 눌러 확정. 다른 항목을 고르면 초기화
+  followDeleteBtn.addEventListener("click", () => {
+    if (followCurrent < 0) return;
+    if (followDeleteBtn.textContent !== "정말 삭제") {
+      followDeleteBtn.textContent = "정말 삭제";
+      return;
+    }
+    follow.groups.splice(followCurrent, 1);
+    saveFollow();
+    selectFollowItem(Math.min(followCurrent, follow.groups.length - 1));
+  });
+  for (const track of document.querySelectorAll("#follow-dialog .track")) {
+    track.addEventListener("click", () => track.previousElementSibling.click());
+  }
+  const bind = (input, fn) => input.addEventListener("change", () => {
+    fn(followItem().style);
+    saveFollow();
+    renderFollowDialog();
+  });
+  bind(followOn, (s) => { s.on = followOn.checked; });
+  bind(followLineOn, (s) => { s.line.on = followLineOn.checked; });
+  bind(followLineType, (s) => { s.line.type = followLineType.value; });
+  bind(followBgOn, (s) => { s.bg.on = followBgOn.checked; });
+  bind(followMarkOn, (s) => { s.mark.on = followMarkOn.checked; });
+  bind(followMarkText, (s) => { s.mark.text = followMarkText.value.trim().slice(0, 6) || "★"; });
+  followMarkText.addEventListener("input", () => {
+    followItem().style.mark.text = followMarkText.value.trim().slice(0, 6) || "★";
+    paintFollowPreviews();
+  });
+}
+
+// ---- 제목 강조 ----
+
+function saveHl() {
+  chrome.storage.local.set({ [HL_KEY]: hl });
+}
+
+// 저장된 값을 현재 형식으로. 그룹 도입 전 형식(키워드 목록 하나)은 그룹 1로,
+// 전역이던 일치 옵션은 각 그룹으로 옮긴다
+function normalizeHl(raw) {
+  const out = { groups: [] };
+  if (!raw || typeof raw !== "object") return out;
+  const bool = (v, d) => (typeof v === "boolean" ? v : d);
+  const src = Array.isArray(raw.groups) ? raw.groups
+    : Array.isArray(raw.keywords) && raw.keywords.length ? [raw] : [];
+  out.groups = src.slice(0, HL_GROUP_MAX).map((g, i) => ({
+    name: String(g.name || "그룹 " + (i + 1)).slice(0, 12),
+    on: bool(g.on, true),
+    lightColor: g.lightColor || HL_PRESETS.light[i % HL_PRESETS.light.length],
+    darkColor: g.darkColor || HL_PRESETS.dark[i % HL_PRESETS.dark.length],
+    partial: bool(g.partial, bool(raw.partial, true)),
+    ignoreCase: bool(g.ignoreCase, bool(raw.ignoreCase, true)),
+    keywords: Array.isArray(g.keywords) ? g.keywords.map(String).slice(0, HL_WORD_MAX) : []
+  }));
+  return out;
+}
+
+function hlGroup() {
+  return hl.groups[hlCurrent];
+}
+
+// 소그룹 요약 행
+function renderHlRow() {
+  hlGroupCount.textContent = hl.groups.length + "개";
+}
+
+// 원 하나를 반으로 나눠 왼쪽은 주간, 오른쪽은 다크 색
+function makeDots(g) {
+  const dots = document.createElement("span");
+  dots.className = "dots";
+  const d = document.createElement("span");
+  d.className = "dot";
+  d.style.background = "linear-gradient(90deg, " + g.lightColor + " 50%, " + g.darkColor + " 50%)";
+  d.title = "주간 " + g.lightColor + " / 다크 " + g.darkColor;
+  dots.append(d);
+  return dots;
+}
+
+// 다이얼로그 왼쪽 그룹 목록
+function renderHlList() {
+  hlDlgCount.textContent = hl.groups.length + " / " + HL_GROUP_MAX;
+  hlAddGroupBtn.disabled = hl.groups.length >= HL_GROUP_MAX;
+  hlList.textContent = "";
+  hl.groups.forEach((g, i) => {
+    const item = document.createElement("div");
+    item.className = "hl-item" + (i === hlCurrent ? " on" : "") + (g.on ? "" : " off");
+    const name = document.createElement("span");
+    name.className = "name";
+    name.textContent = g.name;
+    const count = document.createElement("span");
+    count.className = "count";
+    count.textContent = g.keywords.length;
+    item.append(makeDots(g), name, count);
+    item.addEventListener("click", () => selectHlGroup(i));
+    hlList.append(item);
+  });
+  renderHlRow();
+}
+
+function buildSwatches(mode) {
+  const key = mode + "Color";
+  hlSwatchCtl[mode] = makeSwatches(hlSwatches[mode], HL_PRESETS[mode], (c) => {
+    const g = hlGroup();
+    if (!g) return;
+    g[key] = c;
+    saveHl();
+    renderHlEditor();
+    renderHlList();
+  });
+}
+
+// 다이얼로그 오른쪽, 선택한 그룹 편집
+function renderHlEditor() {
+  const g = hlGroup();
+  hlEmpty.hidden = !!g;
+  hlForm.hidden = !g;
+  hlDeleteBtn.disabled = !g;
+  if (!g) return;
+  if (hlName.value !== g.name) hlName.value = g.name;
+  hlOn.checked = g.on;
+  hlForm.classList.toggle("off", !g.on);
+  hlPartial.checked = g.partial;
+  hlIcase.checked = g.ignoreCase;
+  hlCount.textContent = g.keywords.length + " / " + HL_WORD_MAX;
+  hlChips.textContent = "";
+  for (const word of g.keywords) {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    chip.append(word);
+    const x = document.createElement("button");
+    x.textContent = "×";
+    x.title = "삭제";
+    x.addEventListener("click", () => {
+      g.keywords = g.keywords.filter(w => w !== word);
+      hlMsg.textContent = "";
+      saveHl();
+      renderHlEditor();
+      renderHlList();
+    });
+    chip.append(x);
+    hlChips.append(chip);
+  }
+  const full = g.keywords.length >= HL_WORD_MAX;
+  hlInput.disabled = full;
+  hlAddBtn.disabled = full;
+  for (const mode of ["light", "dark"]) {
+    hlSwatchCtl[mode].mark(g[mode + "Color"]);
+    hlPreview[mode].style.background = g[mode + "Color"];
+  }
+}
+
+function selectHlGroup(i) {
+  hlCurrent = i;
+  hlMsg.textContent = "";
+  hlInput.value = "";
+  hlDeleteBtn.textContent = "그룹 삭제";
+  renderHlList();
+  renderHlEditor();
+}
+
+function addHlGroup() {
+  if (hl.groups.length >= HL_GROUP_MAX) return;
+  const used = new Set(hl.groups.map(g => g.name));
+  let n = 1;
+  while (used.has("그룹 " + n)) n++;
+  const i = hl.groups.length;
+  hl.groups.push({
+    name: "그룹 " + n,
+    on: true,
+    lightColor: HL_PRESETS.light[i % HL_PRESETS.light.length],
+    darkColor: HL_PRESETS.dark[i % HL_PRESETS.dark.length],
+    partial: true,
+    ignoreCase: true,
+    keywords: []
+  });
+  saveHl();
+  selectHlGroup(i);
+  hlName.focus();
+  hlName.select();
+}
+
+function addHlKeyword() {
+  const g = hlGroup();
+  const word = hlInput.value.trim();
+  if (!g || !word) return;
+  const at = hl.groups.findIndex(x => x.keywords.includes(word));
+  if (at >= 0) {
+    hlMsg.textContent = at === hlCurrent ? "이미 있는 키워드입니다" : "'" + hl.groups[at].name + "'에 이미 있는 키워드입니다";
+    return;
+  }
+  if (g.keywords.length >= HL_WORD_MAX) {
+    hlMsg.textContent = "그룹당 " + HL_WORD_MAX + "개까지 등록할 수 있습니다";
+    return;
+  }
+  g.keywords = g.keywords.concat(word);
+  hlInput.value = "";
+  hlMsg.textContent = "";
+  saveHl();
+  renderHlEditor();
+  renderHlList();
+}
+
+function setupHighlight() {
+  buildSwatches("light");
+  buildSwatches("dark");
+  renderHlRow();
+  chrome.storage.local.get(HL_KEY, (res) => {
+    hl = normalizeHl(res[HL_KEY]);
+    renderHlRow();
+  });
+  hlManageBtn.addEventListener("click", () => {
+    selectHlGroup(hl.groups.length ? 0 : -1);
+    hlDialog.showModal();
+    if (hlGroup()) hlInput.focus();
+  });
+  hlDialog.addEventListener("click", (e) => {
+    if (e.target === hlDialog) hlDialog.close();
+  });
+  hlCloseBtn.addEventListener("click", () => hlDialog.close());
+  hlAddGroupBtn.addEventListener("click", addHlGroup);
+  hlName.addEventListener("input", () => {
+    const g = hlGroup();
+    if (!g) return;
+    g.name = hlName.value.trim() || g.name;
+    renderHlList();
+  });
+  hlName.addEventListener("change", () => {
+    const g = hlGroup();
+    if (!g) return;
+    hlName.value = g.name;
+    saveHl();
+  });
+  // 삭제는 두 번 눌러 확정. 다른 그룹을 고르거나 닫으면 초기화
+  hlDeleteBtn.addEventListener("click", () => {
+    if (hlDeleteBtn.textContent !== "정말 삭제") {
+      hlDeleteBtn.textContent = "정말 삭제";
+      return;
+    }
+    hl.groups.splice(hlCurrent, 1);
+    saveHl();
+    selectHlGroup(Math.min(hlCurrent, hl.groups.length - 1));
+  });
+  hlAddBtn.addEventListener("click", addHlKeyword);
+  hlInput.addEventListener("keydown", (e) => {
+    // 한글 조합 중 Enter 는 조합 확정용으로 한 번 더 오므로 건너뛴다
+    if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) {
+      e.preventDefault();
+      addHlKeyword();
+    }
+  });
+  for (const track of document.querySelectorAll("#hl-dialog .track, #extra-opt-dialog .track")) {
+    track.addEventListener("click", () => track.previousElementSibling.click());
+  }
+  hlOn.addEventListener("change", () => {
+    const g = hlGroup();
+    if (!g) return;
+    g.on = hlOn.checked;
+    saveHl();
+    renderHlEditor();
+    renderHlList();
+  });
+  hlPartial.addEventListener("change", () => {
+    const g = hlGroup();
+    if (!g) return;
+    g.partial = hlPartial.checked;
+    saveHl();
+  });
+  hlIcase.addEventListener("change", () => {
+    const g = hlGroup();
+    if (!g) return;
+    g.ignoreCase = hlIcase.checked;
+    saveHl();
+  });
+}
+
+function applyExtraVisibility() {
+  for (const g of EXTRA_SUBGROUPS) {
+    const el = document.getElementById("sg-" + g.id);
+    if (el) el.hidden = hiddenExtra.has(g.id);
+  }
+}
+
+function setupExtra() {
+  setupCollapse(hlGroupEl, hlHeadEl, "sg-hl-collapsed");
+  setupCollapse(followGroupEl, followHeadEl, "sg-follow-collapsed");
+  extraGroupEl.classList.toggle("no-tips", !showExtraTips);
+  applyExtraVisibility();
+  for (const g of EXTRA_SUBGROUPS) {
+    const row = document.createElement("div");
+    row.className = "opt-row";
+    const label = document.createElement("label");
+    label.textContent = g.title;
+    label.htmlFor = "extra-toggle-" + g.id;
+    const wrap = document.createElement("span");
+    wrap.className = "switch";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.id = "extra-toggle-" + g.id;
+    input.checked = !hiddenExtra.has(g.id);
+    const track = document.createElement("span");
+    track.className = "track";
+    track.addEventListener("click", () => input.click());
+    input.addEventListener("change", () => {
+      if (input.checked) hiddenExtra.delete(g.id);
+      else hiddenExtra.add(g.id);
+      localStorage.setItem("extra-hidden", JSON.stringify([...hiddenExtra]));
+      applyExtraVisibility();
+    });
+    wrap.append(input, track);
+    row.append(label, wrap);
+    extraTogglesEl.append(row);
+  }
+  extraOptBtn.addEventListener("click", () => extraOptDialog.showModal());
+  extraOptDialog.addEventListener("click", (e) => {
+    if (e.target === extraOptDialog) extraOptDialog.close();
+  });
+  extraTipsSwitch.checked = showExtraTips;
+  extraTipsSwitch.addEventListener("change", () => {
+    showExtraTips = extraTipsSwitch.checked;
+    localStorage.setItem("extra-tips", showExtraTips ? "1" : "0");
+    extraGroupEl.classList.toggle("no-tips", !showExtraTips);
+  });
+}
+
 function setAllDisabled(disabled) {
   groupsEl.querySelectorAll("input").forEach(i => (i.disabled = disabled));
 }
 
 function setBusy(busy) {
   setAllDisabled(busy);
+  if (muteManageBtn) muteManageBtn.disabled = busy || !muteLoaded;
   refreshBtn.disabled = busy;
   shotOnBtn.disabled = busy;
   shotOffBtn.disabled = busy;
 }
 
-async function onApply() {
-  setBusy(true);
-  applyBtn.disabled = true;
-  setStatus("저장 중…");
-  const values = currentUIValues();
-  dbg("apply", values);
-  const r = await runInTab(applySettingsInPage, [API, values, debugMode], 25000);
-  dbg("apply result", r);
-  setBusy(false);
-  if (r && r.ok) {
-    // 서버 응답으로 동기화
-    for (const f of FIELDS) {
-      baseline[f.key] = !!r.settings[f.key];
-      document.getElementById("sw-" + f.key).checked = !!r.settings[f.key];
-    }
-    saveCache({ settings: fieldValues(r.settings) });
-    applyBtn.disabled = true;
-    setStatus("적용됨 · 새로고침하면 화면에 반영됩니다.");
-  } else {
-    // 스위치 상태는 유지해서 바로 재시도할 수 있게 둔다
-    applyBtn.disabled = !isDirty();
-    setStatus("저장 실패: " + ((r && r.error) || "알 수 없는 오류"), true);
-  }
-}
-
-function onRefresh() {
+async function onRefresh() {
+  if (autosaveTimer) await autosave();
   chrome.tabs.reload(damoangTab.id);
-  setStatus(isDirty() ? "새로고침함 · 저장되지 않은 변경사항이 있습니다." : "새로고침함");
+  if (!statusEl.classList.contains("error")) setStatus("새로고침함");
 }
 
 // 스크린샷 모드. 스위치 상태와 무관하게 키들을 덮어쓰고 저장 성공 시 바로 새로고침
 async function onShot(on) {
   setBusy(true);
-  applyBtn.disabled = true;
   setStatus("저장 중…");
   const values = {};
   for (const key of SHOT_KEYS) values[key] = on;
@@ -605,15 +1618,13 @@ async function onShot(on) {
       baseline[key] = !!r.settings[key];
       document.getElementById("sw-" + key).checked = !!r.settings[key];
     }
-    saveCache({ settings: fieldValues(r.settings) });
-    applyBtn.disabled = !isDirty();
+    saveCache({ settings: fieldValues(r.settings), mute: muteBaseline });
     chrome.tabs.reload(damoangTab.id);
-    const done = "스크린샷 모드 " + (on ? "켬" : "끔") + " · 새로고침함";
-    setStatus(isDirty() ? done + " · 저장되지 않은 변경사항이 있습니다." : done);
+    setStatus("스크린샷 모드 " + (on ? "켬" : "끔") + " · 새로고침함");
   } else {
-    applyBtn.disabled = !isDirty();
     setStatus("저장 실패: " + ((r && r.error) || "알 수 없는 오류"), true);
   }
+  if (isDirty()) scheduleAutosave();
 }
 
 async function loadData() {
@@ -623,11 +1634,12 @@ async function loadData() {
   const tick = setInterval(() => {
     setStatus("불러오는 중… " + Math.floor((Date.now() - started) / 1000) + "초 / 최대 15초");
   }, 500);
-  let fav, r;
+  let fav, r, fol;
   try {
-    [fav, r] = await Promise.all([
+    [fav, r, fol] = await Promise.all([
       runInTab(readFavoritesInPage, [FAV_API, debugMode]),
-      runInTab(simMode === "timeout" ? hangInPage : readSettingsInPage, [API, debugMode])
+      runInTab(simMode === "timeout" ? hangInPage : readSettingsInPage, [API, debugMode]),
+      runInTab(readFollowingInPage, [FOLLOW_API, debugMode])
     ]);
   } catch (e) {
     r = { ok: false, error: String(e) };
@@ -648,13 +1660,19 @@ async function loadData() {
     renderFavorites(fav.favorites);
     saveCache({ favorites: fav.favorites });
   }
+  dbg("following", fol);
+  if (fol && fol.ok) {
+    fillFollowing(fol.following);
+    saveCache({ following: fol.following });
+  }
   if (r && r.ok) {
     hideFail();
     fillRows(r.settings);
-    saveCache({ settings: fieldValues(r.settings) });
+    fillMute(r.settings);
+    saveCache({ settings: fieldValues(r.settings), mute: muteBaseline });
     shotOnBtn.disabled = false;
     shotOffBtn.disabled = false;
-    onLocalChange();
+    scheduleAutosave();
     return true;
   }
   showFail("설정을 불러오지 못했습니다.\n" + ((r && r.error) || "알 수 없는 오류"));
@@ -721,10 +1739,20 @@ async function init() {
   // 버전 페이지의 해당 버전 앵커로 (versions.md의 {#v0-1-0} 규칙과 짝)
   versionEl.href = "https://damoang-ui-extension.hobbyworker.me/versions/#v" + version.split(".").join("-");
 
+  setupTabs();
   settingsBtn.addEventListener("click", () => {
     themeSelect.value = themeMode;
+    autosaveInput.value = String(autosaveDelay / 1000);
     debugSwitch.checked = debugMode;
     settingsDialog.showModal();
+  });
+  autosaveInput.addEventListener("change", () => {
+    let sec = Number(autosaveInput.value);
+    if (!Number.isFinite(sec)) sec = 0.8;
+    sec = Math.min(AUTOSAVE_MAX / 1000, Math.max(AUTOSAVE_MIN / 1000, sec));
+    autosaveInput.value = String(sec);
+    autosaveDelay = Math.round(sec * 1000);
+    localStorage.setItem("autosave-delay", String(autosaveDelay));
   });
   settingsDialog.addEventListener("click", (e) => {
     if (e.target === settingsDialog) settingsDialog.close();
@@ -771,19 +1799,21 @@ async function init() {
   });
   renderRows();
   setupTooltips();
+  setupHighlight();
+  setupFollow();
+  setupExtra();
   const cached = loadCache();
   dbg("cache", cached);
   if (cached.settings) fillRows(cached.settings);
+  if (Array.isArray(cached.mute)) fillMute({ muteKeywords: cached.mute });
   if (Array.isArray(cached.favorites) && cached.favorites.length) {
     renderFavorites(cached.favorites);
   }
+  if (Array.isArray(cached.following)) fillFollowing(cached.following);
   setupCollapse(quickGroupEl, quickHeadEl, "quick-collapsed");
-  setupCollapse(settingsGroupEl, settingsHeadEl, "settings-collapsed");
   settingsGroupEl.classList.toggle("no-tips", !showTips);
-  settingsOptBtn.addEventListener("click", (e) => {
-    e.stopPropagation();
-    settingsOptDialog.showModal();
-  });
+  renderSubgroupToggles();
+  settingsOptBtn.addEventListener("click", () => settingsOptDialog.showModal());
   settingsOptDialog.addEventListener("click", (e) => {
     if (e.target === settingsOptDialog) settingsOptDialog.close();
   });
@@ -823,8 +1853,18 @@ async function init() {
     localStorage.setItem("fav-keep-open", keepPopupFav ? "1" : "0");
   });
 
-  applyBtn.addEventListener("click", onApply);
   refreshBtn.addEventListener("click", onRefresh);
+  muteAddBtn.addEventListener("click", addMuteKeyword);
+  muteInput.addEventListener("keydown", (e) => {
+    // 한글 조합 중 Enter 는 조합 확정용으로 한 번 더 오므로 건너뛴다
+    if (e.key === "Enter" && !e.isComposing && e.keyCode !== 229) {
+      e.preventDefault();
+      addMuteKeyword();
+    }
+  });
+  muteDialog.addEventListener("click", (e) => {
+    if (e.target === muteDialog) muteDialog.close();
+  });
   shotOnBtn.addEventListener("click", () => onShot(true));
   shotOffBtn.addEventListener("click", () => onShot(false));
   quickSettingsBtn.addEventListener("click", (e) => {
@@ -848,7 +1888,20 @@ async function init() {
     quickGroupEl.classList.toggle("no-tips", !showQuickTips);
   });
   failBtn.addEventListener("click", onFailRetry);
-  gateBtn.addEventListener("click", () => {
+  gateBtn.addEventListener("click", async () => {
+    if (gateMode === "permission") {
+      let ok = false;
+      try {
+        ok = await chrome.permissions.request(HOST_PERMISSION);
+      } catch (e) {
+        dbg("permissions.request", String(e));
+      }
+      if (ok) {
+        hideGate();
+        await start();
+      }
+      return;
+    }
     if (damoangTab) {
       chrome.tabs.update(damoangTab.id, { url: SITE, active: true });
     } else {
@@ -857,6 +1910,26 @@ async function init() {
     window.close();
   });
 
+  if (!(await hasHostPermission())) {
+    gateMode = "permission";
+    gateBtn.textContent = "다모앙 접근 허용";
+    showGate("다모앙(damoang.net)에 접근할 권한이 필요합니다.");
+    return;
+  }
+  await start();
+}
+
+async function hasHostPermission() {
+  try {
+    return await chrome.permissions.contains(HOST_PERMISSION);
+  } catch (_) {
+    return true;
+  }
+}
+
+async function start() {
+  gateMode = "open";
+  gateBtn.textContent = "다모앙 열기";
   damoangTab = await findDamoangTab();
   dbg("tab", damoangTab && damoangTab.id, damoangTab && damoangTab.url);
   if (!damoangTab) {

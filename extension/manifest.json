@@ -3,13 +3,34 @@
   "name": "__MSG_appName__",
   "description": "__MSG_appDesc__",
   "default_locale": "ko",
-  "version": "0.2.0",
+  "version": "0.3.0",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "damoang-ui-extension@hobbyworker.me",
+      "strict_min_version": "128.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
+    }
+  },
   "permissions": [
     "scripting",
-    "tabs"
+    "tabs",
+    "storage"
   ],
   "host_permissions": [
     "https://damoang.net/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://damoang.net/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
   ],
   "icons": {
     "16": "icons/icon-16.png",
