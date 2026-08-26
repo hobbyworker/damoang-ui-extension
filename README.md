@@ -34,7 +34,7 @@ Chrome, Microsoft Edge, Firefox에서 동작합니다.
 
 - Chrome Web Store: https://chromewebstore.google.com/detail/amlnkdgoebgibpcnlalgmllophgkgbgc
 - Microsoft Edge Add-ons: https://microsoftedge.microsoft.com/addons/detail/cgoaiibgggnpgibehddbpbloipcdbjka
-- Firefox Add-ons: 준비 중
+- Firefox Add-ons: https://addons.mozilla.org/ko/firefox/addon/damoang-ui-extension/
 
 직접 로드하려면:
 
