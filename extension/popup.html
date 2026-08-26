@@ -372,6 +372,7 @@
   /* 빠른 실행 행의 작은 버튼 쌍 */
   .quick-btns {
     display: flex;
+    align-items: center;
     gap: 6px;
     flex-shrink: 0;
   }
@@ -441,7 +442,8 @@
 
   /* 게이트·로딩 실패 차단막. #main 안에서만 덮고 뒤 내용은 블러로 비쳐 보이게 */
   #gate,
-  #fail {
+  #fail,
+  #reset-confirm {
     position: absolute;
     inset: 0;
     display: flex;
@@ -453,6 +455,25 @@
     background: var(--overlay);
     backdrop-filter: blur(6px);
   }
+  #reset-confirm p { white-space: pre-line; }
+  #reset-confirm button {
+    min-width: 220px;
+    margin-top: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    border: 1px solid var(--divider);
+    background: var(--bg);
+    color: var(--fg);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  #reset-confirm #reset-hold-btn {
+    background: #d33;
+    border-color: #d33;
+    color: #fff;
+  }
+  #reset-confirm #reset-hold-btn:active { opacity: 0.85; }
   #fail p {
     white-space: pre-wrap;
     word-break: break-all;
@@ -555,12 +576,9 @@
   }
   .opt-row input[type="number"] { width: 56px; text-align: right; }
   .opt-unit { margin-left: 4px; color: var(--muted); }
-  /* 바로가기 설정: 섹션 제목 + 2열 스위치. 섹션 사이는 구분선 */
+  /* 바로가기 옵션: 섹션 제목 + 2열 스위치. 섹션 사이는 구분선 */
   #shortcut-toggles {
     min-width: 300px;
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 1px solid var(--divider);
   }
   .opt-caption {
     font-size: 11px;
@@ -574,6 +592,24 @@
     padding-top: 12px;
     border-top: 1px solid var(--divider);
   }
+  /* 여러 다이얼로그에서 함께 쓰는 옵션(팝업 유지, 기능 설명 보기)은 구분선 아래 하단에 둔다 */
+  .opt-divider {
+    margin: 12px 0;
+    border-top: 1px solid var(--divider);
+  }
+  .opt-btns {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .opt-btns button { flex: 1; }
+  .opt-note {
+    margin-top: 8px;
+    max-width: 240px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .opt-note.err { color: #d33; }
   .opt-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -590,7 +626,7 @@
   /* 제목 강조 다이얼로그. 왼쪽 그룹 목록, 오른쪽 선택한 그룹 편집 */
   #hl-dialog {
     width: 480px;
-    height: 470px;
+    height: 500px;
     box-sizing: border-box;
     padding: 0;
     display: flex;
@@ -637,13 +673,19 @@
   .hl-item .count { margin: 0; }
   /* 그룹별 일치 옵션. 스위치 두 개를 한 줄에 */
   .hl-opts {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 20px;
     margin-bottom: 10px;
   }
+  .hl-opts .pair {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+  }
   .hl-opts label { cursor: pointer; }
-  .hl-opts label + .switch { margin-right: 10px; }
   #hl-editor {
     display: flex;
     flex-direction: column;
@@ -659,22 +701,18 @@
     color: var(--muted);
   }
   #hl-form {
-    display: flex;
-    flex-direction: column;
     flex: 1;
     min-height: 0;
+    overflow-y: auto;
+    padding-right: 4px;
   }
-  .hl-field {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 8px;
-  }
-  .hl-field > label {
-    width: 56px;
-    flex-shrink: 0;
-    color: var(--muted);
-  }
+  #hl-form.off .follow-preview,
+  #hl-form.off .hl-opts,
+  #hl-form.off .add-row,
+  #hl-form.off .chips,
+  #hl-form.off .follow-sec { opacity: 0.45; }
+  #hl-form .follow-preview { margin-top: 10px; }
+  #hl-form mark { color: inherit; background: transparent; border-radius: 3px; padding: 0 1px; }
   #hl-name {
     width: 150px;
     padding: 4px 8px;
@@ -685,15 +723,7 @@
     font: inherit;
   }
   #hl-on-row { margin-bottom: 10px; }
-  #hl-form.off .hl-preview,
-  #hl-form.off .hl-opts,
-  #hl-form.off .hl-field:not(:first-of-type) { opacity: 0.45; }
-  #hl-dialog .chips {
-    flex: 1;
-    min-height: 0;
-    max-height: none;
-    align-content: flex-start;
-  }
+  #hl-dialog .chips { max-height: 90px; }
   .dialog-foot {
     display: flex;
     justify-content: flex-end;
@@ -858,23 +888,6 @@
     background: none;
     cursor: pointer;
   }
-  .hl-preview {
-    display: flex;
-    gap: 6px;
-    margin: 2px 0 10px;
-  }
-  .hl-preview span {
-    flex: 1;
-    padding: 5px 8px;
-    border-radius: 7px;
-    font-size: 12px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .hl-preview .light { background: #fff; color: #1c1c1e; border: 1px solid rgba(0,0,0,.08); }
-  .hl-preview .dark { background: #1e1e20; color: #f2f2f4; }
-  .hl-preview mark { color: inherit; }
   .add-row {
     display: flex;
     gap: 6px;
@@ -959,10 +972,10 @@
   <div id="main">
     <div id="columns">
       <section class="panel" id="fav-panel">
-        <h1 class="head-row">즐겨찾기<span id="fav-spin" class="spinner"></span><button id="fav-settings-btn" class="head-btn" title="즐겨찾기 설정"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
+        <h1 class="head-row">즐겨찾기<span id="fav-spin" class="spinner"></span><button id="fav-settings-btn" class="head-btn" title="즐겨찾기 옵션"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
         <div id="favorites"></div>
         <section class="group" id="shortcut-group">
-          <h1 class="group-head" id="shortcut-head"><span class="chev"></span>마이페이지 바로가기<button id="shortcut-settings-btn" class="head-btn" title="마이페이지 바로가기 설정"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
+          <h1 class="group-head" id="shortcut-head"><span class="chev"></span>마이페이지 바로가기<button id="shortcut-settings-btn" class="head-btn" title="마이페이지 바로가기 옵션"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
           <div id="shortcuts" class="rows"></div>
         </section>
         <div id="support">
@@ -973,7 +986,7 @@
       </section>
       <section class="panel" id="right-panel">
         <section class="group" id="quick-group">
-          <h1 class="group-head" id="quick-head"><span class="chev"></span>빠른 실행<button id="quick-settings-btn" class="head-btn" title="빠른 실행 설정"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
+          <h1 class="group-head" id="quick-head"><span class="chev"></span>빠른 실행<button id="quick-settings-btn" class="head-btn" title="빠른 실행 옵션"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
           <div class="rows">
             <div class="row">
               <label>스크린샷 모드<span class="info" data-tip="다모앙 규칙상 스크린샷에 회원 메모가 보이면 안 됩니다. 켜면 메모를 전부 가리고, 설정에 따라 내 프로필도 가립니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
@@ -1001,21 +1014,34 @@
         <section class="group" id="extra-group">
           <h1 class="head-row">추가 기능<button id="extra-opt-btn" class="head-btn" title="추가 기능 옵션"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
           <div id="extra-rows" class="rows">
-            <section class="subgroup" id="sg-hl">
-              <div class="caption group-head" id="hl-head"><span class="chev"></span>제목 강조</div>
+            <section class="subgroup" id="sg-em">
+              <div class="caption group-head" id="em-head"><span class="chev"></span>강조</div>
               <div class="rows">
                 <div class="row">
-                  <label>강조 그룹<span class="info" data-tip="게시판 목록에서 등록한 단어가 들어간 제목을 형광펜처럼 표시합니다. 그룹마다 다른 색을 쓸 수 있고, 이 브라우저에만 저장됩니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
+                  <label>제목 강조 그룹<span class="info" data-tip="게시판 목록에서 등록한 단어가 들어간 제목을 형광펜처럼 표시합니다. 그룹마다 다른 색을 쓸 수 있습니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
                   <span class="quick-btns"><span class="count" id="hl-group-count"></span><button id="hl-manage-btn">관리</button></span>
+                </div>
+                <div class="row">
+                  <label>사용자 강조 그룹<span class="info" data-tip="특정 회원의 글을 게시판 목록에서 선, 배경색, 마크로 표시합니다. 닉네임으로 그룹을 만들고, 팔로우한 회원 전체에는 고정 항목의 스타일이 적용됩니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
+                  <span class="quick-btns"><span class="count" id="follow-summary"></span><button id="follow-manage-btn">관리</button></span>
                 </div>
               </div>
             </section>
-            <section class="subgroup" id="sg-follow">
-              <div class="caption group-head" id="follow-head"><span class="chev"></span>사용자 강조</div>
+            <section class="subgroup" id="sg-view">
+              <div class="caption group-head" id="view-head"><span class="chev"></span>표시</div>
               <div class="rows">
                 <div class="row">
-                  <label>강조 그룹<span class="info" data-tip="특정 회원의 글을 게시판 목록에서 선, 배경색, 마크로 표시합니다. 닉네임으로 그룹을 만들고, 팔로우한 회원 전체에는 고정 항목의 스타일이 적용됩니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
-                  <span class="quick-btns"><span class="count" id="follow-summary"></span><button id="follow-manage-btn">관리</button></span>
+                  <label for="view-widenick-switch">목록 닉네임 넓게 표시<span class="info" data-tip="게시판 목록의 닉네임 칸을 넓혀 긴 닉네임이 덜 잘리게 합니다. 제목 칸이 그만큼 줄어듭니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
+                  <span class="switch"><input type="checkbox" id="view-widenick-switch"><span class="track"></span></span>
+                </div>
+              </div>
+            </section>
+            <section class="subgroup" id="sg-menu">
+              <div class="caption group-head" id="menu-head"><span class="chev"></span>메뉴</div>
+              <div class="rows">
+                <div class="row">
+                  <label>프로필 메뉴<span class="info" data-tip="헤더와 사이드바의 프로필을 누르면 마이페이지로 이동하는 대신 포인트, 스크랩, 설정 같은 항목으로 바로 가는 메뉴를 엽니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
+                  <span class="quick-btns"><span class="count" id="pmenu-summary"></span><button id="pmenu-manage-btn">관리</button></span>
                 </div>
               </div>
             </section>
@@ -1035,6 +1061,13 @@
     <div id="fail" hidden>
       <p id="fail-msg"></p>
       <button id="fail-btn">새로고침</button>
+    </div>
+    <div id="reset-confirm" hidden>
+      <p>확장에 저장된 설정을 모두 지웁니다.
+메모 표시, 제목 필터링(뮤트) 등 다모앙 서버에
+저장된 설정은 지워지지 않습니다.</p>
+      <button id="reset-hold-btn">5초간 누르고 있으면 리셋</button>
+      <button id="reset-cancel-btn">취소</button>
     </div>
     <div id="status">불러오는 중…</div>
   </div>
@@ -1075,9 +1108,23 @@
         <span class="track"></span>
       </span>
     </div>
+    <div class="opt-caption">추가 기능 백업 및 복원</div>
+    <div class="opt-note" id="backup-note">추가 기능의 설정은 브라우저 계정으로 기기 간 동기화됩니다. 백업 파일에는 이 설정이 담기며, 다른 종류의 브라우저로 옮기거나 만약을 대비해 보관할 때 사용합니다.</div>
+    <div class="opt-btns">
+      <button id="export-btn">백업</button>
+      <button id="import-btn">복원</button>
+      <input type="file" id="import-file" accept=".json,application/json" hidden>
+    </div>
+    <div class="opt-note" id="io-msg" hidden></div>
+    <div class="opt-divider"></div>
+    <div class="opt-caption">설정 리셋</div>
+    <div class="opt-note">확장에 저장된 설정을 모두 지우고 처음 상태로 되돌립니다. 메모 표시, 제목 필터링(뮤트) 등 다모앙 서버에 저장된 설정은 영향을 받지 않습니다.</div>
+    <div class="opt-btns">
+      <button id="reset-btn" class="danger">설정 리셋</button>
+    </div>
   </dialog>
   <dialog id="fav-dialog">
-    <h2>즐겨찾기 설정</h2>
+    <h2>즐겨찾기 옵션</h2>
     <div class="opt-row">
       <label for="fav-keep-switch">이동 후 팝업 유지</label>
       <span class="switch">
@@ -1088,6 +1135,9 @@
   </dialog>
   <dialog id="settings-opt-dialog">
     <h2>빠른 설정 옵션</h2>
+    <div class="opt-caption">표시할 항목</div>
+    <div class="opt-grid" id="subgroup-toggles"></div>
+    <div class="opt-divider"></div>
     <div class="opt-row">
       <label for="tips-switch">기능 설명 보기</label>
       <span class="switch">
@@ -1095,11 +1145,9 @@
         <span class="track"></span>
       </span>
     </div>
-    <div class="opt-caption">표시할 항목</div>
-    <div class="opt-grid" id="subgroup-toggles"></div>
   </dialog>
   <dialog id="quick-dialog">
-    <h2>빠른 실행 설정</h2>
+    <h2>빠른 실행 옵션</h2>
     <div class="opt-row">
       <label for="shot-scope-select">스크린샷 모드</label>
       <select id="shot-scope-select">
@@ -1107,6 +1155,7 @@
         <option value="memo-profile">전체 메모 + 내 프로필 가리기</option>
       </select>
     </div>
+    <div class="opt-divider"></div>
     <div class="opt-row">
       <label for="quick-tips-switch">기능 설명 보기</label>
       <span class="switch">
@@ -1139,27 +1188,20 @@
           <label for="hl-on">강조 사용</label>
           <span class="switch"><input type="checkbox" id="hl-on"><span class="track"></span></span>
         </div>
-        <div class="hl-field">
+        <div class="opt-divider"></div>
+        <div class="hl-opts">
+          <div class="pair">
+            <label for="hl-partial">부분 일치<span class="info" data-tip="끄면 앞뒤에 글자나 숫자가 붙지 않은 경우만 강조합니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
+            <span class="switch"><input type="checkbox" id="hl-partial"><span class="track"></span></span>
+          </div>
+          <div class="pair">
+            <label for="hl-icase">대소문자 무시</label>
+            <span class="switch"><input type="checkbox" id="hl-icase"><span class="track"></span></span>
+          </div>
+        </div>
+        <div class="follow-field">
           <label for="hl-name">이름</label>
           <input type="text" id="hl-name" maxlength="12">
-        </div>
-        <div class="hl-field">
-          <label>주간 모드</label>
-          <span class="swatches" id="hl-light-swatches"></span>
-        </div>
-        <div class="hl-field">
-          <label>다크 모드</label>
-          <span class="swatches" id="hl-dark-swatches"></span>
-        </div>
-        <div class="hl-preview">
-          <span class="light">다모앙 <mark id="hl-prev-light">키워드</mark> 강조 예시</span>
-          <span class="dark">다모앙 <mark id="hl-prev-dark">키워드</mark> 강조 예시</span>
-        </div>
-        <div class="hl-opts">
-          <label for="hl-partial">부분 일치<span class="info" data-tip="끄면 앞뒤에 글자나 숫자가 붙지 않은 경우만 강조합니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
-          <span class="switch"><input type="checkbox" id="hl-partial"><span class="track"></span></span>
-          <label for="hl-icase">대소문자 무시</label>
-          <span class="switch"><input type="checkbox" id="hl-icase"><span class="track"></span></span>
         </div>
         <div class="add-row">
           <input type="text" id="hl-input" placeholder="강조할 키워드 입력">
@@ -1167,6 +1209,55 @@
         </div>
         <div id="hl-chips" class="chips"></div>
         <div class="chips-foot"><span id="hl-msg"></span><span id="hl-count"></span></div>
+        <div class="follow-preview">
+          <span class="light" id="hl-prev-light"><span class="t">다모앙 <mark id="hl-pen-prev-light">키워드</mark> 강조 예시</span></span>
+          <span class="dark" id="hl-prev-dark"><span class="t">다모앙 <mark id="hl-pen-prev-dark">키워드</mark> 강조 예시</span></span>
+        </div>
+        <div class="follow-sec">
+          <div class="follow-sec-head">
+            <label for="hl-pen-on">형광펜</label>
+            <span class="switch"><input type="checkbox" id="hl-pen-on"><span class="track"></span></span>
+          </div>
+          <div class="follow-field"><label>주간</label><span class="swatches" id="hl-light-swatches"></span></div>
+          <div class="follow-field"><label>다크</label><span class="swatches" id="hl-dark-swatches"></span></div>
+        </div>
+        <div class="follow-sec">
+          <div class="follow-sec-head">
+            <label for="hl-line-on">강조 선</label>
+            <span class="switch"><input type="checkbox" id="hl-line-on"><span class="track"></span></span>
+          </div>
+          <div class="follow-field">
+            <label for="hl-line-type">종류</label>
+            <select id="hl-line-type">
+              <option value="left">왼쪽 세로선</option>
+              <option value="box">테두리</option>
+            </select>
+          </div>
+          <div class="follow-field"><label>주간</label><span class="swatches" id="hl-line-light"></span></div>
+          <div class="follow-field"><label>다크</label><span class="swatches" id="hl-line-dark"></span></div>
+        </div>
+        <div class="follow-sec">
+          <div class="follow-sec-head">
+            <label for="hl-bg-on">배경색</label>
+            <span class="switch"><input type="checkbox" id="hl-bg-on"><span class="track"></span></span>
+          </div>
+          <div class="follow-field"><label>주간</label><span class="swatches" id="hl-bg-light"></span></div>
+          <div class="follow-field"><label>다크</label><span class="swatches" id="hl-bg-dark"></span></div>
+        </div>
+        <div class="follow-sec">
+          <div class="follow-sec-head">
+            <label for="hl-mark-on">마크</label>
+            <span class="switch"><input type="checkbox" id="hl-mark-on"><span class="track"></span></span>
+          </div>
+          <div class="follow-field">
+            <label for="hl-mark-text">문자</label>
+            <input type="text" id="hl-mark-text" maxlength="6" placeholder="★">
+          </div>
+          <div class="follow-field"><label>주간 배경</label><span class="swatches" id="hl-mark-light-bg"></span></div>
+          <div class="follow-field"><label>주간 글자</label><span class="swatches" id="hl-mark-light-fg"></span></div>
+          <div class="follow-field"><label>다크 배경</label><span class="swatches" id="hl-mark-dark-bg"></span></div>
+          <div class="follow-field"><label>다크 글자</label><span class="swatches" id="hl-mark-dark-fg"></span></div>
+        </div>
       </div>
       <div class="dialog-foot">
         <button id="hl-delete-btn" class="danger">그룹 삭제</button>
@@ -1190,6 +1281,17 @@
         <div class="follow-sec-head" id="follow-on-row">
           <label for="follow-on">강조 사용</label>
           <span class="switch"><input type="checkbox" id="follow-on"><span class="track"></span></span>
+        </div>
+        <div class="opt-divider"></div>
+        <div class="hl-opts">
+          <div class="pair">
+            <label for="follow-comments-on">댓글에도 적용</label>
+            <span class="switch"><input type="checkbox" id="follow-comments-on"><span class="track"></span></span>
+          </div>
+          <div class="pair">
+            <label for="follow-comments-bg">댓글 배경색<span class="info" data-tip="켜면 이 항목의 배경색을 댓글에도 입힙니다. 댓글은 본문이 있어 배경색이 있으면 읽기 불편할 수 있어 기본은 꺼져 있습니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
+            <span class="switch"><input type="checkbox" id="follow-comments-bg"><span class="track"></span></span>
+          </div>
         </div>
         <div class="follow-field" id="follow-name-row">
           <label for="follow-name">이름</label>
@@ -1253,8 +1355,28 @@
       </div>
     </div>
   </dialog>
+  <dialog id="pmenu-dialog">
+    <h2>프로필 메뉴</h2>
+    <div class="opt-row">
+      <label for="pmenu-on">프로필 메뉴 사용</label>
+      <span class="switch"><input type="checkbox" id="pmenu-on"><span class="track"></span></span>
+    </div>
+    <div class="opt-caption">표시할 항목</div>
+    <div class="opt-grid" id="pmenu-toggles"></div>
+    <div class="opt-note">마이페이지는 항상 표시됩니다.</div>
+  </dialog>
   <dialog id="extra-opt-dialog">
     <h2>추가 기능 옵션</h2>
+    <div class="opt-row">
+      <label for="em-prio-select">강조 우선순위<span class="info" data-tip="한 글이 제목 강조와 사용자 강조에 모두 해당할 때 선, 배경색, 마크를 어느 쪽으로 표시할지 정합니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
+      <select id="em-prio-select">
+        <option value="member">사용자 강조 우선</option>
+        <option value="title">제목 강조 우선</option>
+      </select>
+    </div>
+    <div class="opt-caption">표시할 항목</div>
+    <div class="opt-grid" id="extra-toggles"></div>
+    <div class="opt-divider"></div>
     <div class="opt-row">
       <label for="extra-tips-switch">기능 설명 보기</label>
       <span class="switch">
@@ -1262,11 +1384,11 @@
         <span class="track"></span>
       </span>
     </div>
-    <div class="opt-caption">표시할 항목</div>
-    <div class="opt-grid" id="extra-toggles"></div>
   </dialog>
   <dialog id="shortcut-dialog">
-    <h2>마이페이지 바로가기 설정</h2>
+    <h2>마이페이지 바로가기 옵션</h2>
+    <div id="shortcut-toggles"></div>
+    <div class="opt-divider"></div>
     <div class="opt-row">
       <label for="shortcut-keep-switch">이동 후 팝업 유지</label>
       <span class="switch">
@@ -1274,8 +1396,8 @@
         <span class="track"></span>
       </span>
     </div>
-    <div id="shortcut-toggles"></div>
   </dialog>
-  <script src="popup.js"></script>
+  <script src="common.js"></script>
+<script src="popup.js"></script>
 </body>
 </html>

@@ -62,7 +62,32 @@ let hl = { groups: [] };
 let hlCurrent = -1;
 
 // 추가 기능 탭의 소그룹. 빠른 설정과 같은 방식으로 접기·표시 선택
-const EXTRA_SUBGROUPS = [{ id: "hl", title: "제목 강조" }, { id: "follow", title: "사용자 강조" }];
+const EXTRA_SUBGROUPS = [{ id: "em", title: "강조" }, { id: "view", title: "표시" }, { id: "menu", title: "메뉴" }];
+
+// 표시 옵션. 목록 닉네임 칸 넓히기 등
+const VIEW_KEY = "view";
+let view = { wideNick: false };
+
+// 프로필 메뉴. 헤더·사이드바의 마이페이지 링크를 메뉴로 바꾼다 (content.js 가 처리).
+// 마이페이지 항목은 항상 표시라 목록에 없다
+const PMENU_KEY = "pmenu";
+// 기본 켬. 메뉴 첫 항목이 마이페이지라 원래 이동을 잃지 않는다
+const PMENU_ITEMS = [
+  { key: "points", label: "포인트" },
+  { key: "exp", label: "경험치" },
+  { key: "scraps", label: "스크랩" },
+  { key: "following", label: "팔로잉" },
+  { key: "blocked", label: "차단목록" },
+  { key: "memos", label: "회원메모" },
+  { key: "reports", label: "신고내역" },
+  { key: "settings", label: "계정설정" },
+  { key: "settingsUi", label: "UI 설정" }
+];
+let pmenu = { on: true, hidden: [] };
+
+// 강조 우선순위. 제목·사용자 강조가 한 행에 겹칠 때 어느 쪽 행 스타일을 쓸지
+const PRIO_KEY = "emprio";
+let emPrio = { first: "member" };
 
 // 사용자 강조. chrome.storage.local 의 "member". 행의 글쓴이 닉네임으로 대조한다.
 // 고정 첫 항목 "팔로우 회원" 은 서버 팔로우 목록 전체, 그 아래 그룹은 닉네임을 직접 등록.
@@ -82,6 +107,8 @@ const FOLLOW_PRESETS = {
 // 선·배경·마크는 기본 켜짐. 항목 전체 스위치(on)는 normalizeFollowStyle 이 정한다
 const FOLLOW_STYLE = {
   on: true,
+  comments: false,
+  commentsBg: false,
   line: { on: true, type: "left", lightColor: "#1a73e8", darkColor: "#8ab4f8" },
   bg:   { on: true, lightColor: "#e8f0fe", darkColor: "#1c2a3f" },
   mark: { on: true, text: "★", lightBg: "#1a73e8", lightFg: "#ffffff", darkBg: "#8ab4f8", darkFg: "#0d1117" }
@@ -144,9 +171,9 @@ function loadHiddenShortcuts() {
 }
 let hiddenShortcuts = loadHiddenShortcuts();
 
-// 스크린샷 모드가 함께 바꾸는 키. 범위("memo"|"memo-profile")는 빠른 실행 설정에서 고른다
+// 스크린샷 모드가 함께 바꾸는 키. 범위("memo"|"memo-profile")는 빠른 실행 옵션에서 고른다
 const SHOT_KEYS = ["hideMemo", "hideMemoInList"];
-let shotScope = localStorage.getItem("shot-scope") || "memo";
+let shotScope = localStorage.getItem("shot-scope") || "memo-profile";
 // 기능 설명 아이콘 표시. 섹션별로 따로 기억, 기본 켜짐
 let showTips = localStorage.getItem("settings-tips") !== "0";
 let showQuickTips = localStorage.getItem("quick-tips") !== "0";
@@ -185,7 +212,15 @@ const hlOn = document.getElementById("hl-on");
 const hlName = document.getElementById("hl-name");
 const hlSwatches = { light: document.getElementById("hl-light-swatches"), dark: document.getElementById("hl-dark-swatches") };
 const hlSwatchCtl = {};
-const hlPreview = { light: document.getElementById("hl-prev-light"), dark: document.getElementById("hl-prev-dark") };
+const hlPrev = { light: document.getElementById("hl-prev-light"), dark: document.getElementById("hl-prev-dark") };
+const hlPenPrev = { light: document.getElementById("hl-pen-prev-light"), dark: document.getElementById("hl-pen-prev-dark") };
+const hlPenOn = document.getElementById("hl-pen-on");
+const hlLineOn = document.getElementById("hl-line-on");
+const hlLineType = document.getElementById("hl-line-type");
+const hlBgOn = document.getElementById("hl-bg-on");
+const hlMarkOn = document.getElementById("hl-mark-on");
+const hlMarkText = document.getElementById("hl-mark-text");
+const hlSecCtl = {};
 const hlInput = document.getElementById("hl-input");
 const hlAddBtn = document.getElementById("hl-add-btn");
 const hlChips = document.getElementById("hl-chips");
@@ -193,10 +228,18 @@ const hlMsg = document.getElementById("hl-msg");
 const hlCount = document.getElementById("hl-count");
 const hlDeleteBtn = document.getElementById("hl-delete-btn");
 const hlCloseBtn = document.getElementById("hl-close-btn");
-const hlGroupEl = document.getElementById("sg-hl");
-const hlHeadEl = document.getElementById("hl-head");
-const followGroupEl = document.getElementById("sg-follow");
-const followHeadEl = document.getElementById("follow-head");
+const emGroupEl = document.getElementById("sg-em");
+const emHeadEl = document.getElementById("em-head");
+const viewGroupEl = document.getElementById("sg-view");
+const viewHeadEl = document.getElementById("view-head");
+const viewWideNickSwitch = document.getElementById("view-widenick-switch");
+const menuGroupEl = document.getElementById("sg-menu");
+const menuHeadEl = document.getElementById("menu-head");
+const pmenuSummary = document.getElementById("pmenu-summary");
+const pmenuManageBtn = document.getElementById("pmenu-manage-btn");
+const pmenuDialog = document.getElementById("pmenu-dialog");
+const pmenuOn = document.getElementById("pmenu-on");
+const pmenuTogglesEl = document.getElementById("pmenu-toggles");
 const followSummary = document.getElementById("follow-summary");
 const followManageBtn = document.getElementById("follow-manage-btn");
 const followDialog = document.getElementById("follow-dialog");
@@ -221,6 +264,8 @@ const followMemberCount = document.getElementById("follow-member-count");
 const followDeleteBtn = document.getElementById("follow-delete-btn");
 const followCloseBtn = document.getElementById("follow-close-btn");
 const followOn = document.getElementById("follow-on");
+const followCommentsOn = document.getElementById("follow-comments-on");
+const followCommentsBg = document.getElementById("follow-comments-bg");
 const followLineOn = document.getElementById("follow-line-on");
 const followLineType = document.getElementById("follow-line-type");
 const followBgOn = document.getElementById("follow-bg-on");
@@ -231,6 +276,7 @@ const extraOptBtn = document.getElementById("extra-opt-btn");
 const extraOptDialog = document.getElementById("extra-opt-dialog");
 const extraTipsSwitch = document.getElementById("extra-tips-switch");
 const extraTogglesEl = document.getElementById("extra-toggles");
+const emPrioSelect = document.getElementById("em-prio-select");
 const shotOnBtn = document.getElementById("shot-on");
 const shotOffBtn = document.getElementById("shot-off");
 const quickGroupEl = document.getElementById("quick-group");
@@ -270,6 +316,14 @@ const settingsBtn = document.getElementById("settings-btn");
 const settingsDialog = document.getElementById("settings-dialog");
 const themeSelect = document.getElementById("theme-select");
 const debugSwitch = document.getElementById("debug-switch");
+const exportBtn = document.getElementById("export-btn");
+const importBtn = document.getElementById("import-btn");
+const importFile = document.getElementById("import-file");
+const ioMsg = document.getElementById("io-msg");
+const resetBtn = document.getElementById("reset-btn");
+const resetConfirmEl = document.getElementById("reset-confirm");
+const resetHoldBtn = document.getElementById("reset-hold-btn");
+const resetCancelBtn = document.getElementById("reset-cancel-btn");
 let damoangTab = null;
 let baseline = {}; // 서버 기준값. 변경 여부 판정용
 
@@ -889,12 +943,13 @@ function renderShortcuts() {
 
 // 설정 다이얼로그의 바로가기 스위치들. 한 번만 만들고 상태는 change 로 반영
 function renderShortcutToggles() {
+  const caption = document.createElement("div");
+  caption.className = "opt-caption";
+  caption.textContent = "표시할 항목";
+  const grid = document.createElement("div");
+  grid.className = "opt-grid";
+  shortcutTogglesEl.append(caption, grid);
   for (const group of SHORTCUTS) {
-    const caption = document.createElement("div");
-    caption.className = "opt-caption";
-    caption.textContent = group.caption;
-    const grid = document.createElement("div");
-    grid.className = "opt-grid";
     for (const item of group.items) {
       const row = document.createElement("div");
       row.className = "opt-row";
@@ -920,7 +975,6 @@ function renderShortcutToggles() {
       row.append(label, wrap);
       grid.append(row);
     }
-    shortcutTogglesEl.append(caption, grid);
   }
 }
 
@@ -970,6 +1024,9 @@ function normalizeFollowStyle(raw, onDefault) {
   out.on = onDefault;
   if (!raw || typeof raw !== "object") return out;
   if (typeof raw.on === "boolean") out.on = raw.on;
+  if (typeof raw.comments === "boolean") out.comments = raw.comments;
+  if (typeof raw.commentsBg === "boolean") out.commentsBg = raw.commentsBg;
+  else if (typeof raw.commentsNoBg === "boolean") out.commentsBg = !raw.commentsNoBg;
   for (const sec of ["line", "bg", "mark"]) {
     const src = raw[sec];
     if (!src || typeof src !== "object") continue;
@@ -995,7 +1052,7 @@ function normalizeFollow(raw) {
 }
 
 function saveFollow() {
-  chrome.storage.local.set({ [FOLLOW_KEY]: follow });
+  duiWrite(FOLLOW_KEY, follow).catch(e => setStatus("강조 설정 저장 실패: " + (e && e.message ? e.message : e)));
 }
 
 function styleOn(s) {
@@ -1128,6 +1185,8 @@ function renderFollowEditor() {
   }
   followOn.checked = s.on;
   followForm.classList.toggle("off", !s.on);
+  followCommentsOn.checked = s.comments;
+  followCommentsBg.checked = s.commentsBg;
   followLineOn.checked = s.line.on;
   followLineType.value = s.line.type;
   followBgOn.checked = s.bg.on;
@@ -1208,6 +1267,90 @@ async function reloadFollowing() {
   }
 }
 
+function normalizeView(raw) {
+  const r = raw && typeof raw === "object" ? raw : {};
+  return { wideNick: !!r.wideNick };
+}
+
+function setupView() {
+  duiRead(VIEW_KEY).then(v => {
+    view = normalizeView(v);
+    viewWideNickSwitch.checked = view.wideNick;
+  });
+  viewWideNickSwitch.nextElementSibling.addEventListener("click", () => viewWideNickSwitch.click());
+  viewWideNickSwitch.addEventListener("change", () => {
+    view.wideNick = viewWideNickSwitch.checked;
+    duiWrite(VIEW_KEY, view).catch(e => setStatus("표시 설정 저장 실패: " + (e && e.message ? e.message : e)));
+  });
+}
+
+function normalizePmenu(raw) {
+  const r = raw && typeof raw === "object" ? raw : {};
+  const valid = new Set(PMENU_ITEMS.map(i => i.key));
+  return {
+    on: typeof r.on === "boolean" ? r.on : true,
+    hidden: Array.isArray(r.hidden) ? r.hidden.map(String).filter(k => valid.has(k)) : []
+  };
+}
+
+function normalizePrio(raw) {
+  return { first: raw && raw.first === "title" ? "title" : "member" };
+}
+
+function savePmenu() {
+  duiWrite(PMENU_KEY, pmenu).catch(e => setStatus("프로필 메뉴 저장 실패: " + (e && e.message ? e.message : e)));
+}
+
+function renderPmenu() {
+  pmenuSummary.textContent = pmenu.on ? "켜짐" : "꺼짐";
+  pmenuOn.checked = pmenu.on;
+  for (const item of PMENU_ITEMS) {
+    document.getElementById("pm-" + item.key).checked = !pmenu.hidden.includes(item.key);
+  }
+}
+
+function setupPmenu() {
+  for (const item of PMENU_ITEMS) {
+    const row = document.createElement("div");
+    row.className = "opt-row";
+    const label = document.createElement("label");
+    label.textContent = item.label;
+    label.htmlFor = "pm-" + item.key;
+    const wrap = document.createElement("span");
+    wrap.className = "switch";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.id = "pm-" + item.key;
+    const track = document.createElement("span");
+    track.className = "track";
+    track.addEventListener("click", () => input.click());
+    input.addEventListener("change", () => {
+      pmenu.hidden = PMENU_ITEMS.map(i => i.key).filter(k => !document.getElementById("pm-" + k).checked);
+      savePmenu();
+    });
+    wrap.append(input, track);
+    row.append(label, wrap);
+    pmenuTogglesEl.append(row);
+  }
+  duiRead(PMENU_KEY).then(v => {
+    pmenu = normalizePmenu(v);
+    renderPmenu();
+  });
+  pmenuManageBtn.addEventListener("click", () => {
+    renderPmenu();
+    pmenuDialog.showModal();
+  });
+  pmenuDialog.addEventListener("click", (e) => {
+    if (e.target === pmenuDialog) pmenuDialog.close();
+  });
+  pmenuOn.nextElementSibling.addEventListener("click", () => pmenuOn.click());
+  pmenuOn.addEventListener("change", () => {
+    pmenu.on = pmenuOn.checked;
+    savePmenu();
+    renderPmenu();
+  });
+}
+
 function setupFollow() {
   const color = (id, presets, sec, key) => {
     const box = document.getElementById("follow-" + id.replace(/([A-Z])/g, "-$1").toLowerCase());
@@ -1226,8 +1369,8 @@ function setupFollow() {
   color("markDarkBg", FOLLOW_PRESETS.lineDark, "mark", "darkBg");
   color("markDarkFg", FOLLOW_PRESETS.fgDark, "mark", "darkFg");
   renderFollowRow();
-  chrome.storage.local.get(FOLLOW_KEY, (res) => {
-    follow = normalizeFollow(res[FOLLOW_KEY]);
+  duiRead(FOLLOW_KEY).then(v => {
+    follow = normalizeFollow(v);
     renderFollowRow();
   });
   followManageBtn.addEventListener("click", () => {
@@ -1280,6 +1423,8 @@ function setupFollow() {
     renderFollowDialog();
   });
   bind(followOn, (s) => { s.on = followOn.checked; });
+  bind(followCommentsOn, (s) => { s.comments = followCommentsOn.checked; });
+  bind(followCommentsBg, (s) => { s.commentsBg = followCommentsBg.checked; });
   bind(followLineOn, (s) => { s.line.on = followLineOn.checked; });
   bind(followLineType, (s) => { s.line.type = followLineType.value; });
   bind(followBgOn, (s) => { s.bg.on = followBgOn.checked; });
@@ -1294,26 +1439,44 @@ function setupFollow() {
 // ---- 제목 강조 ----
 
 function saveHl() {
-  chrome.storage.local.set({ [HL_KEY]: hl });
+  duiWrite(HL_KEY, hl).catch(e => setStatus("강조 설정 저장 실패: " + (e && e.message ? e.message : e)));
 }
 
 // 저장된 값을 현재 형식으로. 그룹 도입 전 형식(키워드 목록 하나)은 그룹 1로,
 // 전역이던 일치 옵션은 각 그룹으로 옮긴다
+// 선·배경·마크 섹션 공통 normalize
+function normalizeSections(r, onDef) {
+  const bool = (v, d) => (typeof v === "boolean" ? v : d);
+  const line = r.line || {}, bg = r.bg || {}, mark = r.mark || {};
+  return {
+    line: { on: bool(line.on, onDef), type: line.type === "box" ? "box" : "left", lightColor: line.lightColor || FOLLOW_PRESETS.lineLight[0], darkColor: line.darkColor || FOLLOW_PRESETS.lineDark[0] },
+    bg: { on: bool(bg.on, onDef), lightColor: bg.lightColor || FOLLOW_PRESETS.bgLight[0], darkColor: bg.darkColor || FOLLOW_PRESETS.bgDark[0] },
+    mark: { on: bool(mark.on, onDef), text: String(mark.text || "★").trim().slice(0, 6) || "★", lightBg: mark.lightBg || FOLLOW_PRESETS.lineLight[0], lightFg: mark.lightFg || FOLLOW_PRESETS.fgLight[0], darkBg: mark.darkBg || FOLLOW_PRESETS.lineDark[0], darkFg: mark.darkFg || FOLLOW_PRESETS.fgDark[0] }
+  };
+}
+
+// 형광펜 색이 그룹 최상위이던 0.3.0 형식도 pen 으로 읽는다
 function normalizeHl(raw) {
   const out = { groups: [] };
   if (!raw || typeof raw !== "object") return out;
   const bool = (v, d) => (typeof v === "boolean" ? v : d);
   const src = Array.isArray(raw.groups) ? raw.groups
     : Array.isArray(raw.keywords) && raw.keywords.length ? [raw] : [];
-  out.groups = src.slice(0, HL_GROUP_MAX).map((g, i) => ({
-    name: String(g.name || "그룹 " + (i + 1)).slice(0, 12),
-    on: bool(g.on, true),
-    lightColor: g.lightColor || HL_PRESETS.light[i % HL_PRESETS.light.length],
-    darkColor: g.darkColor || HL_PRESETS.dark[i % HL_PRESETS.dark.length],
-    partial: bool(g.partial, bool(raw.partial, true)),
-    ignoreCase: bool(g.ignoreCase, bool(raw.ignoreCase, true)),
-    keywords: Array.isArray(g.keywords) ? g.keywords.map(String).slice(0, HL_WORD_MAX) : []
-  }));
+  out.groups = src.slice(0, HL_GROUP_MAX).map((g, i) => {
+    const pen = g.pen || {};
+    return Object.assign({
+      name: String(g.name || "그룹 " + (i + 1)).slice(0, 12),
+      on: bool(g.on, true),
+      partial: bool(g.partial, bool(raw.partial, true)),
+      ignoreCase: bool(g.ignoreCase, bool(raw.ignoreCase, true)),
+      keywords: Array.isArray(g.keywords) ? g.keywords.map(String).slice(0, HL_WORD_MAX) : [],
+      pen: {
+        on: bool(pen.on, true),
+        lightColor: pen.lightColor || g.lightColor || HL_PRESETS.light[i % HL_PRESETS.light.length],
+        darkColor: pen.darkColor || g.darkColor || HL_PRESETS.dark[i % HL_PRESETS.dark.length]
+      }
+    }, normalizeSections(g, false));
+  });
   return out;
 }
 
@@ -1332,8 +1495,10 @@ function makeDots(g) {
   dots.className = "dots";
   const d = document.createElement("span");
   d.className = "dot";
-  d.style.background = "linear-gradient(90deg, " + g.lightColor + " 50%, " + g.darkColor + " 50%)";
-  d.title = "주간 " + g.lightColor + " / 다크 " + g.darkColor;
+  const lc = g.pen ? g.pen.lightColor : g.lightColor;
+  const dc = g.pen ? g.pen.darkColor : g.darkColor;
+  d.style.background = "linear-gradient(90deg, " + lc + " 50%, " + dc + " 50%)";
+  d.title = "주간 " + lc + " / 다크 " + dc;
   dots.append(d);
   return dots;
 }
@@ -1364,11 +1529,32 @@ function buildSwatches(mode) {
   hlSwatchCtl[mode] = makeSwatches(hlSwatches[mode], HL_PRESETS[mode], (c) => {
     const g = hlGroup();
     if (!g) return;
-    g[key] = c;
+    g.pen[key] = c;
     saveHl();
     renderHlEditor();
     renderHlList();
   });
+}
+
+// 선·배경·마크 스와치. 사용자 강조와 같은 프리셋
+function buildHlSectionSwatches() {
+  const make = (id, presets, sec, key) => {
+    hlSecCtl[id] = makeSwatches(document.getElementById(id), presets, (c) => {
+      const g = hlGroup();
+      if (!g) return;
+      g[sec][key] = c;
+      saveHl();
+      renderHlEditor();
+    });
+  };
+  make("hl-line-light", FOLLOW_PRESETS.lineLight, "line", "lightColor");
+  make("hl-line-dark", FOLLOW_PRESETS.lineDark, "line", "darkColor");
+  make("hl-bg-light", FOLLOW_PRESETS.bgLight, "bg", "lightColor");
+  make("hl-bg-dark", FOLLOW_PRESETS.bgDark, "bg", "darkColor");
+  make("hl-mark-light-bg", FOLLOW_PRESETS.lineLight, "mark", "lightBg");
+  make("hl-mark-light-fg", FOLLOW_PRESETS.fgLight, "mark", "lightFg");
+  make("hl-mark-dark-bg", FOLLOW_PRESETS.lineDark, "mark", "darkBg");
+  make("hl-mark-dark-fg", FOLLOW_PRESETS.fgDark, "mark", "darkFg");
 }
 
 // 다이얼로그 오른쪽, 선택한 그룹 편집
@@ -1405,10 +1591,31 @@ function renderHlEditor() {
   const full = g.keywords.length >= HL_WORD_MAX;
   hlInput.disabled = full;
   hlAddBtn.disabled = full;
+  hlPenOn.checked = g.pen.on;
+  hlLineOn.checked = g.line.on;
+  hlLineType.value = g.line.type;
+  hlBgOn.checked = g.bg.on;
+  hlMarkOn.checked = g.mark.on;
+  if (hlMarkText.value !== g.mark.text) hlMarkText.value = g.mark.text;
+  hlPenOn.closest(".follow-sec").classList.toggle("off", !g.pen.on);
+  hlLineOn.closest(".follow-sec").classList.toggle("off", !g.line.on);
+  hlBgOn.closest(".follow-sec").classList.toggle("off", !g.bg.on);
+  hlMarkOn.closest(".follow-sec").classList.toggle("off", !g.mark.on);
   for (const mode of ["light", "dark"]) {
-    hlSwatchCtl[mode].mark(g[mode + "Color"]);
-    hlPreview[mode].style.background = g[mode + "Color"];
+    hlSwatchCtl[mode].mark(g.pen[mode + "Color"]);
   }
+  hlSecCtl["hl-line-light"].mark(g.line.lightColor);
+  hlSecCtl["hl-line-dark"].mark(g.line.darkColor);
+  hlSecCtl["hl-bg-light"].mark(g.bg.lightColor);
+  hlSecCtl["hl-bg-dark"].mark(g.bg.darkColor);
+  hlSecCtl["hl-mark-light-bg"].mark(g.mark.lightBg);
+  hlSecCtl["hl-mark-light-fg"].mark(g.mark.lightFg);
+  hlSecCtl["hl-mark-dark-bg"].mark(g.mark.darkBg);
+  hlSecCtl["hl-mark-dark-fg"].mark(g.mark.darkFg);
+  paintFollowPreview(hlPrev.light, g, false);
+  paintFollowPreview(hlPrev.dark, g, true);
+  hlPenPrev.light.style.background = g.pen.on ? g.pen.lightColor : "transparent";
+  hlPenPrev.dark.style.background = g.pen.on ? g.pen.darkColor : "transparent";
 }
 
 function selectHlGroup(i) {
@@ -1426,15 +1633,18 @@ function addHlGroup() {
   let n = 1;
   while (used.has("그룹 " + n)) n++;
   const i = hl.groups.length;
-  hl.groups.push({
+  hl.groups.push(Object.assign({
     name: "그룹 " + n,
     on: true,
-    lightColor: HL_PRESETS.light[i % HL_PRESETS.light.length],
-    darkColor: HL_PRESETS.dark[i % HL_PRESETS.dark.length],
     partial: true,
     ignoreCase: true,
-    keywords: []
-  });
+    keywords: [],
+    pen: {
+      on: true,
+      lightColor: HL_PRESETS.light[i % HL_PRESETS.light.length],
+      darkColor: HL_PRESETS.dark[i % HL_PRESETS.dark.length]
+    }
+  }, normalizeSections({}, true)));
   saveHl();
   selectHlGroup(i);
   hlName.focus();
@@ -1465,9 +1675,24 @@ function addHlKeyword() {
 function setupHighlight() {
   buildSwatches("light");
   buildSwatches("dark");
+  buildHlSectionSwatches();
+  const bindSec = (input, fn) => input.addEventListener("change", () => {
+    const g = hlGroup();
+    if (!g) return;
+    fn(g);
+    saveHl();
+    renderHlEditor();
+    renderHlList();
+  });
+  bindSec(hlPenOn, g => { g.pen.on = hlPenOn.checked; });
+  bindSec(hlLineOn, g => { g.line.on = hlLineOn.checked; });
+  bindSec(hlLineType, g => { g.line.type = hlLineType.value; });
+  bindSec(hlBgOn, g => { g.bg.on = hlBgOn.checked; });
+  bindSec(hlMarkOn, g => { g.mark.on = hlMarkOn.checked; });
+  bindSec(hlMarkText, g => { g.mark.text = hlMarkText.value.trim().slice(0, 6) || "★"; });
   renderHlRow();
-  chrome.storage.local.get(HL_KEY, (res) => {
-    hl = normalizeHl(res[HL_KEY]);
+  duiRead(HL_KEY).then(v => {
+    hl = normalizeHl(v);
     renderHlRow();
   });
   hlManageBtn.addEventListener("click", () => {
@@ -1543,8 +1768,17 @@ function applyExtraVisibility() {
 }
 
 function setupExtra() {
-  setupCollapse(hlGroupEl, hlHeadEl, "sg-hl-collapsed");
-  setupCollapse(followGroupEl, followHeadEl, "sg-follow-collapsed");
+  duiRead(PRIO_KEY).then(v => {
+    emPrio = normalizePrio(v);
+    emPrioSelect.value = emPrio.first;
+  });
+  emPrioSelect.addEventListener("change", () => {
+    emPrio.first = emPrioSelect.value === "title" ? "title" : "member";
+    duiWrite(PRIO_KEY, emPrio).catch(e => setStatus("우선순위 저장 실패: " + (e && e.message ? e.message : e)));
+  });
+  setupCollapse(emGroupEl, emHeadEl, "sg-em-collapsed");
+  setupCollapse(viewGroupEl, viewHeadEl, "sg-view-collapsed");
+  setupCollapse(menuGroupEl, menuHeadEl, "sg-menu-collapsed");
   extraGroupEl.classList.toggle("no-tips", !showExtraTips);
   applyExtraVisibility();
   for (const g of EXTRA_SUBGROUPS) {
@@ -1730,6 +1964,119 @@ function updateDevBadge() {
   devBadgeEl.classList.toggle("fail", !!simMode);
 }
 
+// 설정 리셋. 가림막에서 빨간 버튼을 5초간 누르고 있어야 실행된다
+function setupReset() {
+  const HOLD_LABEL = "5초간 누르고 있으면 리셋";
+  let timer = null;
+  let left = 5;
+  const stopHold = () => {
+    if (timer) clearInterval(timer);
+    timer = null;
+    resetHoldBtn.textContent = HOLD_LABEL;
+  };
+  const doReset = async () => {
+    stopHold();
+    resetHoldBtn.disabled = true;
+    resetCancelBtn.disabled = true;
+    resetHoldBtn.textContent = "지우는 중…";
+    try {
+      await chrome.storage.sync.clear();
+    } catch (_) {}
+    try {
+      await chrome.storage.local.clear();
+    } catch (_) {}
+    localStorage.clear();
+    location.reload();
+  };
+  resetBtn.addEventListener("click", () => {
+    settingsDialog.close();
+    resetConfirmEl.hidden = false;
+  });
+  resetCancelBtn.addEventListener("click", () => {
+    stopHold();
+    resetConfirmEl.hidden = true;
+  });
+  resetHoldBtn.addEventListener("pointerdown", (e) => {
+    e.preventDefault();
+    resetHoldBtn.setPointerCapture(e.pointerId);
+    left = 5;
+    resetHoldBtn.textContent = String(left);
+    timer = setInterval(() => {
+      left -= 1;
+      if (left <= 0) {
+        doReset();
+        return;
+      }
+      resetHoldBtn.textContent = String(left);
+    }, 1000);
+  });
+  for (const ev of ["pointerup", "pointercancel", "pointerleave"]) {
+    resetHoldBtn.addEventListener(ev, stopHold);
+  }
+}
+
+function setIoMsg(msg, err) {
+  ioMsg.hidden = !msg;
+  ioMsg.textContent = msg || "";
+  ioMsg.classList.toggle("err", !!err);
+}
+
+// 백업·복원 대상은 동기화되는 추가 기능 설정뿐
+function setupImportExport() {
+  // Edge 는 storage.sync 를 받지만 아직 계정으로 로밍하지 않으므로 동기화 언급을 뺀다
+  if (navigator.userAgent.includes("Edg/")) {
+    document.getElementById("backup-note").textContent =
+      "백업 파일에는 추가 기능의 설정이 담깁니다. 다른 기기나 브라우저로 옮기거나 만약을 대비해 보관할 때 사용합니다.";
+  }
+  exportBtn.addEventListener("click", () => {
+    const data = {
+      app: "damoang-ui-extension",
+      schema: 1,
+      exportedAt: new Date().toISOString(),
+      highlight: hl,
+      member: follow,
+      pmenu: pmenu,
+      emprio: emPrio,
+      view: view
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    const d = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    a.download = "damoang-ui-extension-backup-" + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + ".json";
+    document.body.append(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(a.href);
+    setIoMsg("백업 파일을 내려받았습니다.");
+  });
+  importBtn.addEventListener("click", () => importFile.click());
+  importFile.addEventListener("change", async () => {
+    const file = importFile.files[0];
+    importFile.value = "";
+    if (!file) return;
+    try {
+      const data = JSON.parse(await file.text());
+      if (!data || data.app !== "damoang-ui-extension") throw new Error("이 확장의 백업 파일이 아닙니다");
+      hl = normalizeHl(data.highlight);
+      follow = normalizeFollow(data.member);
+      pmenu = normalizePmenu(data.pmenu);
+      emPrio = normalizePrio(data.emprio);
+      view = normalizeView(data.view);
+      await duiWrite(VIEW_KEY, view);
+      await duiWrite(HL_KEY, hl);
+      await duiWrite(FOLLOW_KEY, follow);
+      await duiWrite(PMENU_KEY, pmenu);
+      await duiWrite(PRIO_KEY, emPrio);
+      setIoMsg("복원했습니다. 팝업을 다시 불러옵니다.");
+      setTimeout(() => location.reload(), 800);
+    } catch (e) {
+      setIoMsg("복원 실패: " + (e && e.message ? e.message : e), true);
+    }
+  });
+}
+
 async function init() {
   const manifest = chrome.runtime.getManifest();
   // 확장 이름은 manifest(로케일 해석 후)를 따른다
@@ -1744,6 +2091,7 @@ async function init() {
     themeSelect.value = themeMode;
     autosaveInput.value = String(autosaveDelay / 1000);
     debugSwitch.checked = debugMode;
+    setIoMsg("");
     settingsDialog.showModal();
   });
   autosaveInput.addEventListener("change", () => {
@@ -1762,7 +2110,11 @@ async function init() {
     localStorage.setItem("theme", themeMode);
     applyTheme(themeMode);
   });
-  document.querySelector("#settings-dialog .track").addEventListener("click", () => debugSwitch.click());
+  for (const track of document.querySelectorAll("#settings-dialog .track")) {
+    track.addEventListener("click", () => track.previousElementSibling.click());
+  }
+  setupImportExport();
+  setupReset();
   debugSwitch.addEventListener("change", () => {
     debugMode = debugSwitch.checked;
     localStorage.setItem("debug", debugMode ? "1" : "0");
@@ -1801,6 +2153,8 @@ async function init() {
   setupTooltips();
   setupHighlight();
   setupFollow();
+  setupPmenu();
+  setupView();
   setupExtra();
   const cached = loadCache();
   dbg("cache", cached);
