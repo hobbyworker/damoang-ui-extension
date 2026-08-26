@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>추가 기능 백업 및 복원</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #ffffff;
+    --fg: #1c1c1e;
+    --muted: #8e8e93;
+    --divider: rgba(0, 0, 0, 0.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #1e1e20;
+      --fg: #f2f2f4;
+      --muted: #98989e;
+      --divider: rgba(255, 255, 255, 0.08);
+    }
+  }
+  /* 수동 다크. popup.html 과 값이 같아야 한다 */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #1e1e20;
+    --fg: #f2f2f4;
+    --muted: #98989e;
+    --divider: rgba(255, 255, 255, 0.08);
+  }
+  :root[data-theme="light"] { color-scheme: light; }
+  body {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font: 14px/1.5 -apple-system, "Apple SD Gothic Neo", "Pretendard", system-ui, sans-serif;
+  }
+  main {
+    width: min(420px, 90vw);
+    padding: 28px;
+    border: 1px solid var(--divider);
+    border-radius: 14px;
+  }
+  h1 {
+    margin: 0 0 10px;
+    font-size: 18px;
+  }
+  p {
+    margin: 0 0 16px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  button {
+    width: 100%;
+    padding: 9px 0;
+    border-radius: 8px;
+    border: 1px solid var(--divider);
+    background: transparent;
+    color: var(--fg);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:not(:disabled):active { opacity: 0.75; }
+  button:disabled { opacity: 0.4; cursor: default; }
+  #msg {
+    margin: 14px 0 0;
+    font-size: 13px;
+  }
+  #msg.err { color: #d33; }
+  #msg.ok { color: #2e9e4f; }
+</style>
+</head>
+<body>
+  <main>
+    <h1>추가 기능 백업 및 복원</h1>
+    <p>추가 기능 설정을 파일로 백업하거나, 백업 파일을 선택해 복원합니다. 다모앙 서버에 저장된 설정은 영향을 받지 않습니다.</p>
+    <button id="export-btn">백업 파일 내려받기</button>
+    <button id="pick-btn" style="margin-top:8px">백업 파일 선택 (복원)</button>
+    <input type="file" id="file-input" accept=".json,application/json" hidden>
+    <div id="msg" hidden></div>
+  </main>
+  <script src="common.js"></script>
+  <script src="backup.js"></script>
+</body>
+</html>

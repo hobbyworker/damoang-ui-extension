@@ -69,6 +69,7 @@ extension/
   popup.html
   popup.js
   common.js                   저장 계층. 추가 기능 설정을 storage.sync 에 저장 (구버전 local 폴백)
+  backup.html, backup.js      백업·복원 페이지. Firefox 는 팝업에서 파일 창을 열면 팝업이 닫혀 따로 연다
   content.js                  다모앙 페이지에서 제목 강조(CSS Custom Highlight API)와 사용자 강조
   icons/
   _locales/ko/messages.json   이름과 설명. manifest 가 __MSG_ 키로 참조

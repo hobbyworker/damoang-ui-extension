@@ -2028,7 +2028,18 @@ function setupImportExport() {
     document.getElementById("backup-note").textContent =
       "백업 파일에는 추가 기능의 설정이 담깁니다. 다른 기기나 브라우저로 옮기거나 만약을 대비해 보관할 때 사용합니다.";
   }
+  // Firefox 는 팝업에서 파일 창을 열면 팝업이 닫힌다. 백업·복원 모두 전용 탭에서 (UI 통일)
+  const firefox = navigator.userAgent.includes("Firefox");
+  const openBackupPage = () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL("backup.html") });
+    window.close();
+  };
+  if (firefox) {
+    exportBtn.addEventListener("click", openBackupPage);
+    importBtn.addEventListener("click", openBackupPage);
+  }
   exportBtn.addEventListener("click", () => {
+    if (firefox) return;
     const data = {
       app: "damoang-ui-extension",
       schema: 1,
@@ -2051,7 +2062,10 @@ function setupImportExport() {
     URL.revokeObjectURL(a.href);
     setIoMsg("백업 파일을 내려받았습니다.");
   });
-  importBtn.addEventListener("click", () => importFile.click());
+  importBtn.addEventListener("click", () => {
+    if (firefox) return;
+    importFile.click();
+  });
   importFile.addEventListener("change", async () => {
     const file = importFile.files[0];
     importFile.value = "";
