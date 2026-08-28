@@ -501,7 +501,7 @@
           info.type = "button";
           info.id = "dui-pminfo";
           info.title = "이 메뉴는 무엇인가요?";
-          info.innerHTML = QPB_INFO;
+          info.append(svgEl(QPB_INFO));
           info.addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -700,6 +700,11 @@
   const QPB_EYE_OFF = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>';
   const QPB_INFO = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
 
+  // 아이콘은 고정 문자열이지만 innerHTML 대입은 스토어 검사가 경고하므로 파서로 만든다
+  function svgEl(markup) {
+    return new DOMParser().parseFromString(markup, "image/svg+xml").documentElement;
+  }
+
   function ensureQpbStyle() {
     if (document.getElementById("dui-qpbtn-style")) return;
     const style = document.createElement("style");
@@ -786,7 +791,7 @@
     b.type = "button";
     b.id = "dui-qpbtn";
     b.title = on ? "빠른 프로필 보기에서 제거" : "빠른 프로필 보기에 등록";
-    b.innerHTML = on ? QPB_EYE : QPB_EYE_OFF;
+    b.append(svgEl(on ? QPB_EYE : QPB_EYE_OFF));
     if (on) b.classList.add("on");
     b.addEventListener("click", (e) => {
       e.preventDefault();
@@ -799,7 +804,7 @@
       info.type = "button";
       info.id = "dui-qpinfo";
       info.title = "이 버튼은 무엇인가요?";
-      info.innerHTML = QPB_INFO;
+      info.append(svgEl(QPB_INFO));
       info.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();

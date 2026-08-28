@@ -2116,9 +2116,7 @@ function qpParseQuery(s) {
 }
 
 function decodeEntities(s) {
-  const ta = document.createElement("textarea");
-  ta.innerHTML = s;
-  return ta.value;
+  return new DOMParser().parseFromString(s, "text/html").documentElement.textContent;
 }
 
 function setQpMsg(s) {
