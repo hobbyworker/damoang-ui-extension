@@ -2,7 +2,7 @@
 // 팝업 대신 이 페이지를 새 탭으로 연다 (통일성을 위해 백업도 여기서). 복원은 파일의 원본 값을
 // 그대로 저장하고, 형식 보정은 팝업·content script 가 읽을 때 normalize 로 처리한다
 
-const RESTORE_KEYS = ["highlight", "member", "pmenu", "emprio", "view"];
+const RESTORE_KEYS = ["highlight", "member", "pmenu", "emprio", "view", "qprofile"];
 
 const exportBtn = document.getElementById("export-btn");
 const pickBtn = document.getElementById("pick-btn");

@@ -3,7 +3,7 @@
   "name": "__MSG_appName__",
   "description": "__MSG_appDesc__",
   "default_locale": "ko",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "browser_specific_settings": {
     "gecko": {
       "id": "damoang-ui-extension@hobbyworker.me",

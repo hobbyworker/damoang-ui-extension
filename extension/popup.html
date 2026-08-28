@@ -623,6 +623,33 @@
 
   /* 키워드 칩 편집기 (뮤트·제목 강조 공용) */
   #mute-dialog { width: 320px; }
+  /* 빠른 프로필 보기 */
+  #qp-dialog { width: 340px; }
+  #qp-dialog .opt-note { max-width: none; }
+  #qp-goto-qpb { color: light-dark(#1a73e8, #8ab4f8); text-decoration: underline; }
+  #qp-list { margin: 10px 0 0; padding: 0; list-style: none; max-height: 250px; overflow-y: auto; }
+  #qp-list li { display: flex; align-items: center; gap: 2px; }
+  #qp-list .qp-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    background: none;
+    border: 0;
+    padding: 5px 6px;
+    border-radius: 6px;
+    color: var(--fg);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  #qp-list .qp-name:hover { background: var(--selected); }
+  #qp-list .qp-btn { border: 0; background: none; color: var(--muted); font: inherit; font-size: 11px; padding: 4px 5px; cursor: pointer; border-radius: 5px; }
+  #qp-list .qp-btn:hover { background: var(--selected); color: var(--fg); }
+  #qp-list .qp-x.arm { color: #e0402f; }
+  #qp-list .qp-rename { flex: 1; min-width: 0; font: inherit; font-size: 13px; padding: 4px 6px; }
   /* 제목 강조 다이얼로그. 왼쪽 그룹 목록, 오른쪽 선택한 그룹 편집 */
   #hl-dialog {
     width: 480px;
@@ -988,12 +1015,16 @@
         <section class="group" id="quick-group">
           <h1 class="group-head" id="quick-head"><span class="chev"></span>빠른 실행<button id="quick-settings-btn" class="head-btn" title="빠른 실행 옵션"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14"/><circle cx="12" cy="5" r="2" style="fill:var(--bg)"/><circle cx="7" cy="10" r="2" style="fill:var(--bg)"/><circle cx="13" cy="15" r="2" style="fill:var(--bg)"/></svg></button></h1>
           <div class="rows">
-            <div class="row">
+            <div class="row" id="quick-row-shot">
               <label>스크린샷 모드<span class="info" data-tip="다모앙 규칙상 스크린샷에 회원 메모가 보이면 안 됩니다. 켜면 메모를 전부 가리고, 설정에 따라 내 프로필도 가립니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
               <span class="quick-btns">
                 <button id="shot-on" disabled>켜기</button>
                 <button id="shot-off" disabled>끄기</button>
               </span>
+            </div>
+            <div class="row" id="quick-row-qp">
+              <label>빠른 프로필 보기<span class="info" data-tip="등록한 회원의 프로필 페이지로 바로 이동합니다. 닉네임이나 아이디로 등록합니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
+              <span class="quick-btns"><span class="count" id="qp-count"></span><button id="qp-open-btn">열기</button></span>
             </div>
           </div>
         </section>
@@ -1033,6 +1064,23 @@
                 <div class="row">
                   <label for="view-widenick-switch">목록 닉네임 넓게 표시<span class="info" data-tip="게시판 목록의 닉네임 칸을 넓혀 긴 닉네임이 덜 잘리게 합니다. 제목 칸이 그만큼 줄어듭니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
                   <span class="switch"><input type="checkbox" id="view-widenick-switch"><span class="track"></span></span>
+                </div>
+                <div class="row">
+                  <label>빠른 프로필 등록 버튼<span class="info" data-tip="회원 프로필 화면에 눈 모양 버튼을 추가합니다. 누르면 그 회원을 빠른 프로필 보기에 등록하거나 제거합니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
+                  <span class="quick-btns"><span class="count" id="qpb-summary"></span><button id="qpb-manage-btn">관리</button></span>
+                </div>
+              </div>
+            </section>
+            <section class="subgroup" id="sg-ease">
+              <div class="caption group-head" id="ease-head"><span class="chev"></span>편의성</div>
+              <div class="rows">
+                <div class="row">
+                  <label for="view-membertab-switch">프로필 보던 탭 기억<span class="info" data-tip="회원 프로필에서 글을 보러 갔다가 뒤로가기로 돌아오면 보고 있던 탭과 스크롤 위치를 되살립니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
+                  <span class="switch"><input type="checkbox" id="view-membertab-switch"><span class="track"></span></span>
+                </div>
+                <div class="row">
+                  <label for="view-dlgscroll-switch">공감 목록 쉬운 메모<span class="info" data-tip="공감한 사람들 목록에서 메모를 작성하거나 삭제할 때 스크롤이 맨 위로 초기화되는 것을 막습니다."><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg></span></label>
+                  <span class="switch"><input type="checkbox" id="view-dlgscroll-switch"><span class="track"></span></span>
                 </div>
               </div>
             </section>
@@ -1156,6 +1204,24 @@
       </select>
     </div>
     <div class="opt-divider"></div>
+    <div class="opt-caption">표시할 항목</div>
+    <div class="opt-grid">
+      <div class="opt-row">
+        <label for="quick-show-shot">스크린샷 모드</label>
+        <span class="switch">
+          <input type="checkbox" id="quick-show-shot">
+          <span class="track"></span>
+        </span>
+      </div>
+      <div class="opt-row">
+        <label for="quick-show-qp">빠른 프로필 보기</label>
+        <span class="switch">
+          <input type="checkbox" id="quick-show-qp">
+          <span class="track"></span>
+        </span>
+      </div>
+    </div>
+    <div class="opt-divider"></div>
     <div class="opt-row">
       <label for="quick-tips-switch">기능 설명 보기</label>
       <span class="switch">
@@ -1172,6 +1238,30 @@
     </div>
     <div id="mute-chips" class="chips"></div>
     <div class="chips-foot"><span id="mute-msg"></span><span id="mute-count"></span></div>
+  </dialog>
+  <dialog id="qpb-dialog">
+    <h2>빠른 프로필 등록 버튼</h2>
+    <div class="opt-row">
+      <label for="qpb-on">빠른 프로필 등록 버튼 사용</label>
+      <span class="switch"><input type="checkbox" id="qpb-on"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">회원 프로필 화면의 팔로우, 쪽지 버튼 옆에 추가됩니다.</div>
+    <div class="opt-divider"></div>
+    <div class="opt-row">
+      <label for="qpb-info-on">기능 설명 버튼 표시</label>
+      <span class="switch"><input type="checkbox" id="qpb-info-on"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">기능 설명 버튼은 눈 모양 버튼 옆에 표시되고, 확장 기능임을 알려줍니다.</div>
+  </dialog>
+  <dialog id="qp-dialog">
+    <h2>빠른 프로필 보기</h2>
+    <div class="add-row">
+      <input type="text" id="qp-input" placeholder="닉네임 또는 아이디 입력">
+      <button id="qp-add-btn">추가</button>
+    </div>
+    <div class="chips-foot"><span id="qp-msg"></span><span id="qp-cnt"></span></div>
+    <ul id="qp-list"></ul>
+    <div class="opt-note">이름을 누르면 다모앙 탭이 그 회원의 프로필로 이동합니다. 프로필 화면의 <a href="#" id="qp-goto-qpb">눈 모양 버튼</a>으로도 등록할 수 있습니다.</div>
   </dialog>
   <dialog id="hl-dialog">
     <div id="hl-side">
@@ -1364,6 +1454,12 @@
     <div class="opt-caption">표시할 항목</div>
     <div class="opt-grid" id="pmenu-toggles"></div>
     <div class="opt-note">마이페이지는 항상 표시됩니다.</div>
+    <div class="opt-divider"></div>
+    <div class="opt-row">
+      <label for="pmenu-info-on">기능 설명 버튼 표시</label>
+      <span class="switch"><input type="checkbox" id="pmenu-info-on"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">기능 설명 버튼은 마이페이지 옆에 표시되고, 확장 기능임을 알려줍니다.</div>
   </dialog>
   <dialog id="extra-opt-dialog">
     <h2>추가 기능 옵션</h2>

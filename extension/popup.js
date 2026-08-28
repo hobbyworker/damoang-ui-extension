@@ -62,15 +62,20 @@ let hl = { groups: [] };
 let hlCurrent = -1;
 
 // 추가 기능 탭의 소그룹. 빠른 설정과 같은 방식으로 접기·표시 선택
-const EXTRA_SUBGROUPS = [{ id: "em", title: "강조" }, { id: "view", title: "표시" }, { id: "menu", title: "메뉴" }];
+const EXTRA_SUBGROUPS = [{ id: "em", title: "강조" }, { id: "view", title: "표시" }, { id: "ease", title: "편의성" }, { id: "menu", title: "메뉴" }];
 
 // 표시 옵션. 목록 닉네임 칸 넓히기 등
 const VIEW_KEY = "view";
-let view = { wideNick: false };
+let view = { wideNick: false, memberTab: true, dlgScroll: true };
 
 // 프로필 메뉴. 헤더·사이드바의 마이페이지 링크를 메뉴로 바꾼다 (content.js 가 처리).
 // 마이페이지 항목은 항상 표시라 목록에 없다
 const PMENU_KEY = "pmenu";
+
+// 빠른 프로필 보기. 프로필 URL 에서 뽑은 회원 아이디와 표시용 닉네임을 저장한다
+const QP_KEY = "qprofile";
+const QP_MAX = 30;
+let qp = { btn: true, info: true, list: [] };
 // 기본 켬. 메뉴 첫 항목이 마이페이지라 원래 이동을 잃지 않는다
 const PMENU_ITEMS = [
   { key: "points", label: "포인트" },
@@ -177,6 +182,12 @@ let shotScope = localStorage.getItem("shot-scope") || "memo-profile";
 // 기능 설명 아이콘 표시. 섹션별로 따로 기억, 기본 켜짐
 let showTips = localStorage.getItem("settings-tips") !== "0";
 let showQuickTips = localStorage.getItem("quick-tips") !== "0";
+// 빠른 실행에서 숨길 행. 팝업 전용 설정이라 localStorage
+let quickHidden = [];
+try {
+  const v = JSON.parse(localStorage.getItem("quick-hidden"));
+  if (Array.isArray(v)) quickHidden = v.filter(k => k === "shot" || k === "qp");
+} catch (_) {}
 // 이동 후 팝업 유지. 기본 켜짐. 끄면 이동하고 닫는다
 let keepPopupShortcut = localStorage.getItem("shortcut-keep-open") !== "0";
 let keepPopupFav = localStorage.getItem("fav-keep-open") !== "0";
@@ -233,13 +244,31 @@ const emHeadEl = document.getElementById("em-head");
 const viewGroupEl = document.getElementById("sg-view");
 const viewHeadEl = document.getElementById("view-head");
 const viewWideNickSwitch = document.getElementById("view-widenick-switch");
+const viewMemberTabSwitch = document.getElementById("view-membertab-switch");
+const viewDlgScrollSwitch = document.getElementById("view-dlgscroll-switch");
+const easeGroupEl = document.getElementById("sg-ease");
+const easeHeadEl = document.getElementById("ease-head");
 const menuGroupEl = document.getElementById("sg-menu");
 const menuHeadEl = document.getElementById("menu-head");
 const pmenuSummary = document.getElementById("pmenu-summary");
 const pmenuManageBtn = document.getElementById("pmenu-manage-btn");
 const pmenuDialog = document.getElementById("pmenu-dialog");
 const pmenuOn = document.getElementById("pmenu-on");
+const pmenuInfoOn = document.getElementById("pmenu-info-on");
 const pmenuTogglesEl = document.getElementById("pmenu-toggles");
+const qpCountEl = document.getElementById("qp-count");
+const qpOpenBtn = document.getElementById("qp-open-btn");
+const qpDialog = document.getElementById("qp-dialog");
+const qpInput = document.getElementById("qp-input");
+const qpAddBtn = document.getElementById("qp-add-btn");
+const qpMsgEl = document.getElementById("qp-msg");
+const qpCntEl = document.getElementById("qp-cnt");
+const qpListEl = document.getElementById("qp-list");
+const qpbSummary = document.getElementById("qpb-summary");
+const qpbManageBtn = document.getElementById("qpb-manage-btn");
+const qpbDialog = document.getElementById("qpb-dialog");
+const qpbOn = document.getElementById("qpb-on");
+const qpbInfoOn = document.getElementById("qpb-info-on");
 const followSummary = document.getElementById("follow-summary");
 const followManageBtn = document.getElementById("follow-manage-btn");
 const followDialog = document.getElementById("follow-dialog");
@@ -285,6 +314,10 @@ const quickSettingsBtn = document.getElementById("quick-settings-btn");
 const quickDialog = document.getElementById("quick-dialog");
 const shotScopeSelect = document.getElementById("shot-scope-select");
 const quickTipsSwitch = document.getElementById("quick-tips-switch");
+const quickRowShot = document.getElementById("quick-row-shot");
+const quickRowQp = document.getElementById("quick-row-qp");
+const quickShowShot = document.getElementById("quick-show-shot");
+const quickShowQp = document.getElementById("quick-show-qp");
 const favoritesEl = document.getElementById("favorites");
 const favSpinEl = document.getElementById("fav-spin");
 const memoSpinEl = document.getElementById("memo-spin");
@@ -492,6 +525,21 @@ function navigateInPage(url) {
 // 타임아웃 시뮬레이션용. 영원히 끝나지 않아 runInTab 시간 제한에 걸린다
 function hangInPage() {
   return new Promise(() => {});
+}
+
+// 프로필 페이지에서 닉네임(title "닉네임 프로필 | Angple")과 아이디(헤더의 회색 표기)를 뽑는다.
+// 닉네임 URL 도 서버 HTML 헤더까지는 정상이라 닉네임 입력을 아이디로 변환할 수 있다.
+// 화면 이동은 닉네임 URL 에 버그가 있어 항상 아이디로 한다
+function fetchMemberInPage(q) {
+  return fetch("/member/" + encodeURIComponent(q))
+    .then(async r => {
+      if (!r.ok) return { ok: false, error: "HTTP " + r.status };
+      const html = await r.text();
+      const name = html.match(/<title>(.*?) 프로필 \| Angple<\/title>/);
+      const id = html.match(/<h1[\s\S]{0,600}?<p[^>]*class="[^"]*text-muted-foreground[^"]*"[^>]*>\s*([A-Za-z0-9_.-]+)\s*<\/p>/);
+      return { ok: true, name: name ? name[1] : "", id: id ? id[1] : "" };
+    })
+    .catch(e => ({ ok: false, error: String(e) }));
 }
 
 // ---- 팝업 로직 ----
@@ -1269,18 +1317,31 @@ async function reloadFollowing() {
 
 function normalizeView(raw) {
   const r = raw && typeof raw === "object" ? raw : {};
-  return { wideNick: !!r.wideNick };
+  return { wideNick: !!r.wideNick, memberTab: typeof r.memberTab === "boolean" ? r.memberTab : true, dlgScroll: typeof r.dlgScroll === "boolean" ? r.dlgScroll : true };
 }
 
 function setupView() {
   duiRead(VIEW_KEY).then(v => {
     view = normalizeView(v);
     viewWideNickSwitch.checked = view.wideNick;
+    viewMemberTabSwitch.checked = view.memberTab;
+    viewDlgScrollSwitch.checked = view.dlgScroll;
   });
+  const saveView = () => duiWrite(VIEW_KEY, view).catch(e => setStatus("표시 설정 저장 실패: " + (e && e.message ? e.message : e)));
   viewWideNickSwitch.nextElementSibling.addEventListener("click", () => viewWideNickSwitch.click());
   viewWideNickSwitch.addEventListener("change", () => {
     view.wideNick = viewWideNickSwitch.checked;
-    duiWrite(VIEW_KEY, view).catch(e => setStatus("표시 설정 저장 실패: " + (e && e.message ? e.message : e)));
+    saveView();
+  });
+  viewMemberTabSwitch.nextElementSibling.addEventListener("click", () => viewMemberTabSwitch.click());
+  viewMemberTabSwitch.addEventListener("change", () => {
+    view.memberTab = viewMemberTabSwitch.checked;
+    saveView();
+  });
+  viewDlgScrollSwitch.nextElementSibling.addEventListener("click", () => viewDlgScrollSwitch.click());
+  viewDlgScrollSwitch.addEventListener("change", () => {
+    view.dlgScroll = viewDlgScrollSwitch.checked;
+    saveView();
   });
 }
 
@@ -1289,6 +1350,7 @@ function normalizePmenu(raw) {
   const valid = new Set(PMENU_ITEMS.map(i => i.key));
   return {
     on: typeof r.on === "boolean" ? r.on : true,
+    info: typeof r.info === "boolean" ? r.info : true,
     hidden: Array.isArray(r.hidden) ? r.hidden.map(String).filter(k => valid.has(k)) : []
   };
 }
@@ -1304,6 +1366,7 @@ function savePmenu() {
 function renderPmenu() {
   pmenuSummary.textContent = pmenu.on ? "켜짐" : "꺼짐";
   pmenuOn.checked = pmenu.on;
+  pmenuInfoOn.checked = pmenu.info;
   for (const item of PMENU_ITEMS) {
     document.getElementById("pm-" + item.key).checked = !pmenu.hidden.includes(item.key);
   }
@@ -1348,6 +1411,11 @@ function setupPmenu() {
     pmenu.on = pmenuOn.checked;
     savePmenu();
     renderPmenu();
+  });
+  pmenuInfoOn.nextElementSibling.addEventListener("click", () => pmenuInfoOn.click());
+  pmenuInfoOn.addEventListener("change", () => {
+    pmenu.info = pmenuInfoOn.checked;
+    savePmenu();
   });
 }
 
@@ -1778,6 +1846,7 @@ function setupExtra() {
   });
   setupCollapse(emGroupEl, emHeadEl, "sg-em-collapsed");
   setupCollapse(viewGroupEl, viewHeadEl, "sg-view-collapsed");
+  setupCollapse(easeGroupEl, easeHeadEl, "sg-ease-collapsed");
   setupCollapse(menuGroupEl, menuHeadEl, "sg-menu-collapsed");
   extraGroupEl.classList.toggle("no-tips", !showExtraTips);
   applyExtraVisibility();
@@ -2022,6 +2091,207 @@ function setIoMsg(msg, err) {
 }
 
 // 백업·복원 대상은 동기화되는 추가 기능 설정뿐
+function normalizeQp(raw) {
+  const r = raw && typeof raw === "object" ? raw : {};
+  const src = Array.isArray(r.list) ? r.list : [];
+  const seen = new Set();
+  const list = [];
+  for (const it of src) {
+    const id = it && typeof it.id === "string" ? it.id.trim() : "";
+    if (!id || seen.has(id)) continue;
+    seen.add(id);
+    list.push({ id, label: it && typeof it.label === "string" && it.label ? it.label : id });
+    if (list.length >= QP_MAX) break;
+  }
+  return { btn: typeof r.btn === "boolean" ? r.btn : true, info: typeof r.info === "boolean" ? r.info : true, list };
+}
+
+function qpParseQuery(s) {
+  s = s.trim();
+  const m = s.match(/damoang\.net\/member\/([^/?#\s]+)/);
+  if (m) {
+    try { return decodeURIComponent(m[1]); } catch (_) { return m[1]; }
+  }
+  return s;
+}
+
+function decodeEntities(s) {
+  const ta = document.createElement("textarea");
+  ta.innerHTML = s;
+  return ta.value;
+}
+
+function setQpMsg(s) {
+  qpMsgEl.textContent = s;
+}
+
+function saveQp() {
+  duiWrite(QP_KEY, qp).catch(e => setQpMsg("저장 실패: " + (e && e.message ? e.message : e)));
+}
+
+function renderQpList() {
+  qpCountEl.textContent = qp.list.length ? String(qp.list.length) : "";
+  qpCntEl.textContent = qp.list.length + " / " + QP_MAX;
+  qpListEl.textContent = "";
+  for (const it of qp.list) {
+    const li = document.createElement("li");
+    const name = document.createElement("button");
+    name.type = "button";
+    name.className = "qp-name";
+    name.textContent = it.label;
+    name.title = it.id;
+    name.addEventListener("click", () => {
+      goToDamoang("https://damoang.net/member/" + encodeURIComponent(it.id), true);
+    });
+    const edit = document.createElement("button");
+    edit.type = "button";
+    edit.className = "qp-btn";
+    edit.textContent = "수정";
+    edit.addEventListener("click", () => qpRename(li, it, name));
+    const x = document.createElement("button");
+    x.type = "button";
+    x.className = "qp-btn qp-x";
+    x.textContent = "삭제";
+    x.addEventListener("click", () => {
+      if (!x.classList.contains("arm")) {
+        x.classList.add("arm");
+        x.textContent = "정말 삭제";
+        return;
+      }
+      qp.list = qp.list.filter(v => v !== it);
+      saveQp();
+      renderQpList();
+    });
+    li.append(name, edit, x);
+    qpListEl.append(li);
+  }
+}
+
+function qpRename(li, it, name) {
+  const inp = document.createElement("input");
+  inp.type = "text";
+  inp.className = "qp-rename";
+  inp.value = it.label;
+  li.replaceChild(inp, name);
+  inp.focus();
+  inp.select();
+  let done = false;
+  const finish = (save) => {
+    if (done) return;
+    done = true;
+    if (save) {
+      const v = inp.value.trim();
+      if (v) it.label = v;
+      saveQp();
+    }
+    renderQpList();
+  };
+  inp.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.isComposing) finish(true);
+    if (e.key === "Escape") {
+      e.preventDefault();
+      finish(false);
+    }
+  });
+  inp.addEventListener("blur", () => finish(true));
+}
+
+async function qpAdd() {
+  const q = qpParseQuery(qpInput.value);
+  if (!q) {
+    setQpMsg("닉네임이나 아이디를 입력해 주세요");
+    return;
+  }
+  if (qp.list.length >= QP_MAX) {
+    setQpMsg("최대 " + QP_MAX + "명까지 등록할 수 있습니다");
+    return;
+  }
+  qpAddBtn.disabled = true;
+  setQpMsg("회원 확인 중");
+  const r = await runInTab(fetchMemberInPage, [q]);
+  qpAddBtn.disabled = false;
+  if (!r.ok || (!r.name && !r.id)) {
+    setQpMsg("회원을 찾을 수 없습니다");
+    return;
+  }
+  const id = r.id || (/^[A-Za-z0-9_.-]+$/.test(q) ? q : "");
+  if (!id) {
+    setQpMsg("아이디를 확인하지 못했습니다");
+    return;
+  }
+  if (qp.list.some(it => it.id === id)) {
+    setQpMsg("이미 등록된 회원입니다");
+    return;
+  }
+  qp.list.push({ id, label: r.name ? decodeEntities(r.name) : id });
+  qpInput.value = "";
+  setQpMsg("");
+  saveQp();
+  renderQpList();
+}
+
+function renderQpb() {
+  qpbSummary.textContent = qp.btn ? "켜짐" : "꺼짐";
+  qpbOn.checked = qp.btn;
+  qpbInfoOn.checked = qp.info;
+}
+
+function setupQp() {
+  duiRead(QP_KEY).then(v => {
+    qp = normalizeQp(v);
+    renderQpb();
+    renderQpList();
+  });
+  qpbManageBtn.addEventListener("click", () => {
+    renderQpb();
+    qpbDialog.showModal();
+  });
+  qpbDialog.addEventListener("click", (e) => {
+    if (e.target === qpbDialog) qpbDialog.close();
+  });
+  qpbOn.nextElementSibling.addEventListener("click", () => qpbOn.click());
+  qpbOn.addEventListener("change", () => {
+    qp.btn = qpbOn.checked;
+    saveQp();
+    renderQpb();
+  });
+  qpbInfoOn.nextElementSibling.addEventListener("click", () => qpbInfoOn.click());
+  qpbInfoOn.addEventListener("change", () => {
+    qp.info = qpbInfoOn.checked;
+    saveQp();
+  });
+  // 프로필 화면의 눈 버튼으로 등록하면 열린 팝업에도 반영한다 (묵은 사본 덮어쓰기 방지)
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "sync" && area !== "local") return;
+    if (!duiChanged(changes, QP_KEY)) return;
+    duiRead(QP_KEY).then(v => {
+      qp = normalizeQp(v);
+      renderQpb();
+      renderQpList();
+    });
+  });
+  qpOpenBtn.addEventListener("click", () => {
+    setQpMsg("");
+    renderQpList();
+    qpDialog.showModal();
+  });
+  qpDialog.addEventListener("click", (e) => {
+    if (e.target === qpDialog) qpDialog.close();
+  });
+  document.getElementById("qp-goto-qpb").addEventListener("click", (e) => {
+    e.preventDefault();
+    renderQpb();
+    qpbDialog.showModal();
+  });
+  qpAddBtn.addEventListener("click", qpAdd);
+  qpInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.isComposing) {
+      e.preventDefault();
+      qpAdd();
+    }
+  });
+}
+
 function setupImportExport() {
   // Edge 는 storage.sync 를 받지만 아직 계정으로 로밍하지 않으므로 동기화 언급을 뺀다
   if (navigator.userAgent.includes("Edg/")) {
@@ -2048,7 +2318,8 @@ function setupImportExport() {
       member: follow,
       pmenu: pmenu,
       emprio: emPrio,
-      view: view
+      view: view,
+      qprofile: qp
     };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const a = document.createElement("a");
@@ -2078,7 +2349,9 @@ function setupImportExport() {
       pmenu = normalizePmenu(data.pmenu);
       emPrio = normalizePrio(data.emprio);
       view = normalizeView(data.view);
+      qp = normalizeQp(data.qprofile);
       await duiWrite(VIEW_KEY, view);
+      await duiWrite(QP_KEY, qp);
       await duiWrite(HL_KEY, hl);
       await duiWrite(FOLLOW_KEY, follow);
       await duiWrite(PMENU_KEY, pmenu);
@@ -2169,6 +2442,7 @@ async function init() {
   setupFollow();
   setupPmenu();
   setupView();
+  setupQp();
   setupExtra();
   const cached = loadCache();
   dbg("cache", cached);
@@ -2247,6 +2521,22 @@ async function init() {
     shotScope = shotScopeSelect.value;
     localStorage.setItem("shot-scope", shotScope);
   });
+  const applyQuickHidden = () => {
+    quickRowShot.style.display = quickHidden.includes("shot") ? "none" : "";
+    quickRowQp.style.display = quickHidden.includes("qp") ? "none" : "";
+  };
+  applyQuickHidden();
+  quickShowShot.checked = !quickHidden.includes("shot");
+  quickShowQp.checked = !quickHidden.includes("qp");
+  for (const [input, key] of [[quickShowShot, "shot"], [quickShowQp, "qp"]]) {
+    input.nextElementSibling.addEventListener("click", () => input.click());
+    input.addEventListener("change", () => {
+      quickHidden = quickHidden.filter(k => k !== key);
+      if (!input.checked) quickHidden.push(key);
+      localStorage.setItem("quick-hidden", JSON.stringify(quickHidden));
+      applyQuickHidden();
+    });
+  }
   quickGroupEl.classList.toggle("no-tips", !showQuickTips);
   quickTipsSwitch.checked = showQuickTips;
   quickTipsSwitch.nextElementSibling.addEventListener("click", () => quickTipsSwitch.click());
