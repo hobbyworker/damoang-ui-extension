@@ -66,7 +66,7 @@ const EXTRA_SUBGROUPS = [{ id: "em", title: "강조" }, { id: "view", title: "�
 
 // 표시 옵션. 목록 닉네임 칸 넓히기 등
 const VIEW_KEY = "view";
-let view = { wideNick: false, memberTab: true, dlgScroll: true };
+let view = { cwide: false, mwide: false, memberTab: true, dlgScroll: true, dlog: true, mlayout: "default", mheart: "default", micon: false };
 
 // 프로필 메뉴. 헤더·사이드바의 마이페이지 링크를 메뉴로 바꾼다 (content.js 가 처리).
 // 마이페이지 항목은 항상 표시라 목록에 없다
@@ -181,6 +181,67 @@ const SHOT_KEYS = ["hideMemo", "hideMemoInList"];
 let shotScope = localStorage.getItem("shot-scope") || "memo-profile";
 // 기능 설명 아이콘 표시. 섹션별로 따로 기억, 기본 켜짐
 let showTips = localStorage.getItem("settings-tips") !== "0";
+// 크기 구분(Apple size class 명칭 차용). 안드로이드 브라우저에서 페이지로 열리면 compact,
+// 데스크톱 팝업이면 regular. 팝업 레이아웃(1열/2열)의 초기값이 이걸 따른다
+const sizeClass = /Android/.test(navigator.userAgent) ? "compact" : "regular";
+document.documentElement.classList.add(sizeClass);
+let popupLayout = localStorage.getItem("popup-layout");
+if (popupLayout !== "1" && popupLayout !== "2") popupLayout = sizeClass === "compact" ? "1" : "2";
+
+function applyLayout() {
+  document.body.classList.toggle("cols1", popupLayout === "1");
+}
+applyLayout();
+
+// 아이콘 주입. 그림은 icons.js 한 곳에서 관리한다
+for (const el of document.querySelectorAll("span.info")) el.append(duiIcon("info"));
+for (const el of document.querySelectorAll("button.head-btn")) el.append(duiIcon("sliders"));
+document.getElementById("settings-btn").append(duiIcon("cog"));
+
+// 1열에서 강조 관리 다이얼로그의 그룹 목록 드로어. 그룹을 고르거나 추가하면 닫는다
+function setupSideDrawer(dialogId, toggleId, listId, addBtnId) {
+  const dialog = document.getElementById(dialogId);
+  const toggle = document.getElementById(toggleId);
+  toggle.addEventListener("click", () => dialog.classList.toggle("side-open"));
+  const closeIfCols1 = () => {
+    if (document.body.classList.contains("cols1")) dialog.classList.remove("side-open");
+  };
+  document.getElementById(listId).addEventListener("click", closeIfCols1);
+  document.getElementById(addBtnId).addEventListener("click", closeIfCols1);
+  dialog.addEventListener("close", () => dialog.classList.remove("side-open"));
+}
+setupSideDrawer("hl-dialog", "hl-side-toggle", "hl-list", "hl-add-group-btn");
+setupSideDrawer("follow-dialog", "follow-side-toggle", "follow-list", "follow-add-group-btn");
+
+// 다이얼로그나 차단막(게이트, 로딩 실패, 리셋 확인)이 떠 있는 동안
+// 휠·터치가 배경으로 새지 않게 막는다. 다이얼로그 안 스크롤 영역 위에서는 그대로 둔다.
+// 스크롤바 직접 드래그는 막을 방법이 없어 허용한다 (잠금 시도 이력은 CLAUDE 기록 참조)
+function dialogScrollLock(e) {
+  if (!document.querySelector("dialog[open], #gate:not([hidden]), #fail:not([hidden]), #reset-confirm:not([hidden])")) return;
+  let el = e.target instanceof Element ? e.target : null;
+  // body 와 1열 본문 스크롤러(#columns)는 배경이라 내부 스크롤 영역으로 치지 않는다
+  while (el && el !== document.body && el.id !== "columns" && el.tagName !== "DIALOG") {
+    if (el.scrollHeight > el.clientHeight + 1) {
+      const oy = getComputedStyle(el).overflowY;
+      if (oy === "auto" || oy === "scroll") return;
+    }
+    el = el.parentElement;
+  }
+  e.preventDefault();
+}
+document.addEventListener("wheel", dialogScrollLock, { passive: false });
+document.addEventListener("touchmove", dialogScrollLock, { passive: false });
+
+// 바깥 링크는 탭 API 로 연다. Firefox Android 는 팝업을 페이지 뷰로 열어
+// target _blank 가 새 탭 대신 제자리 이동이 되기 때문. 데스크톱 동작은 같다
+document.addEventListener("click", (e) => {
+  const a = e.target instanceof Element ? e.target.closest('a[target="_blank"]') : null;
+  if (!a || !a.href) return;
+  e.preventDefault();
+  chrome.tabs.create({ url: a.href });
+  window.close();
+});
+
 let showQuickTips = localStorage.getItem("quick-tips") !== "0";
 // 빠른 실행에서 숨길 행. 팝업 전용 설정이라 localStorage
 let quickHidden = [];
@@ -243,9 +304,20 @@ const emGroupEl = document.getElementById("sg-em");
 const emHeadEl = document.getElementById("em-head");
 const viewGroupEl = document.getElementById("sg-view");
 const viewHeadEl = document.getElementById("view-head");
-const viewWideNickSwitch = document.getElementById("view-widenick-switch");
+const clSummary = document.getElementById("cl-summary");
+const clManageBtn = document.getElementById("cl-manage-btn");
+const clDialog = document.getElementById("cl-dialog");
+const clWideSwitch = document.getElementById("cl-wide-switch");
 const viewMemberTabSwitch = document.getElementById("view-membertab-switch");
 const viewDlgScrollSwitch = document.getElementById("view-dlgscroll-switch");
+const viewDlogSwitch = document.getElementById("view-dlog-switch");
+const mlSummary = document.getElementById("ml-summary");
+const mlManageBtn = document.getElementById("ml-manage-btn");
+const mlDialog = document.getElementById("ml-dialog");
+const mlLayoutSelect = document.getElementById("ml-layout-select");
+const mlHeartSelect = document.getElementById("ml-heart-select");
+const mlIconSwitch = document.getElementById("ml-icon-switch");
+const mlWideSwitch = document.getElementById("ml-wide-switch");
 const easeGroupEl = document.getElementById("sg-ease");
 const easeHeadEl = document.getElementById("ease-head");
 const menuGroupEl = document.getElementById("sg-menu");
@@ -348,6 +420,7 @@ const versionEl = document.getElementById("version");
 const settingsBtn = document.getElementById("settings-btn");
 const settingsDialog = document.getElementById("settings-dialog");
 const themeSelect = document.getElementById("theme-select");
+const layoutSelect = document.getElementById("layout-select");
 const debugSwitch = document.getElementById("debug-switch");
 const exportBtn = document.getElementById("export-btn");
 const importBtn = document.getElementById("import-btn");
@@ -846,7 +919,7 @@ function renderRows() {
         const info = document.createElement("span");
         info.className = "info";
         info.dataset.tip = f.tip;
-        info.innerHTML = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg>';
+        info.append(duiIcon("info"));
         label.append(info);
       }
 
@@ -881,7 +954,7 @@ function renderMuteRow() {
   const info = document.createElement("span");
   info.className = "info";
   info.dataset.tip = "특정 단어가 포함된 게시글을 목록에서 숨깁니다.";
-  info.innerHTML = '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><circle cx="10" cy="10" r="7.5"/><path d="M10 9v5"/><circle cx="10" cy="6.3" r=".6" fill="currentColor" stroke="none"/></svg>';
+  info.append(duiIcon("info"));
   label.append(info);
   const right = document.createElement("span");
   right.className = "quick-btns";
@@ -1317,21 +1390,118 @@ async function reloadFollowing() {
 
 function normalizeView(raw) {
   const r = raw && typeof raw === "object" ? raw : {};
-  return { wideNick: !!r.wideNick, memberTab: typeof r.memberTab === "boolean" ? r.memberTab : true, dlgScroll: typeof r.dlgScroll === "boolean" ? r.dlgScroll : true };
+  return {
+    cwide: typeof r.cwide === "boolean" ? r.cwide : r.cnick === "wide" || r.cnick === "full" || !!r.wideNick,
+    mwide: typeof r.mwide === "boolean" ? r.mwide : !!r.wideNick,
+    memberTab: typeof r.memberTab === "boolean" ? r.memberTab : true,
+    dlgScroll: typeof r.dlgScroll === "boolean" ? r.dlgScroll : true,
+    dlog: typeof r.dlog === "boolean" ? r.dlog : true,
+    mlayout: r.mlayout === "l1" || r.mlayout === "l2" ? r.mlayout : "default",
+    mheart: r.mheart === "desk" ? "desk" : "default",
+    micon: !!r.micon
+  };
 }
 
 function setupView() {
+  const MLAYOUT_LABEL = { default: "기본", l1: "유형 1", l2: "유형 2" };
+  const renderMlPreview = () => {
+    const box = document.getElementById("ml-preview");
+    box.textContent = "";
+    const line = () => {
+      const d = document.createElement("div");
+      d.className = "mlp-line";
+      box.append(d);
+      return d;
+    };
+    const el = (cls, txt) => {
+      const s = document.createElement("span");
+      s.className = cls;
+      s.textContent = txt;
+      return s;
+    };
+    const sp = () => el("mlp-sp", "");
+    const desk = view.mheart === "desk";
+    const heart = document.createElement("span");
+    heart.className = "mlp-heart" + (desk ? " desk" : "");
+    heart.append(duiIcon("heart"));
+    heart.append(desk ? "1,180" : "5");
+    const title = el("mlp-title", "게시글 제목");
+    const tag = el("mlp-tag", "태그");
+    const memo = el("mlp-memo", "메모");
+    const nick = document.createElement("span");
+    nick.className = "mlp-muted";
+    nick.style.display = "inline-flex";
+    nick.style.alignItems = "center";
+    nick.style.gap = "3px";
+    if (view.micon && view.mlayout === "default") {
+      const av = document.createElement("span");
+      av.className = "mlp-avatar";
+      nick.append(av);
+    }
+    nick.append("닉네임");
+    if (view.micon && view.mlayout !== "default") {
+      const av = document.createElement("span");
+      av.className = "mlp-avatar";
+      nick.append(av);
+    }
+    const time = el("mlp-muted", "09:31");
+    const views = el("mlp-muted", "174");
+    if (view.mlayout === "l1") {
+      line().append(heart, title, sp());
+      line().append(tag, time, views, sp(), memo, nick);
+    } else if (view.mlayout === "l2") {
+      line().append(tag, title, sp());
+      line().append(heart, time, views, sp(), memo, nick);
+    } else {
+      line().append(title, sp(), memo);
+      line().append(heart, time, views, nick, sp());
+    }
+  };
+  const renderMl = () => {
+    mlSummary.textContent = [
+      MLAYOUT_LABEL[view.mlayout],
+      view.mheart === "desk" ? "데스크탑 공감" : "",
+      view.micon ? "닉네임 아이콘" : "",
+      view.mwide ? "닉네임 전체 표시" : ""
+    ].filter(Boolean).join(", ");
+    mlLayoutSelect.value = view.mlayout;
+    mlHeartSelect.value = view.mheart;
+    mlIconSwitch.checked = view.micon;
+    mlWideSwitch.checked = view.mwide;
+    renderMlPreview();
+  };
+  const renderCl = () => {
+    clSummary.textContent = view.cwide ? "닉네임 전체 표시" : "기본";
+    clWideSwitch.checked = view.cwide;
+  };
   duiRead(VIEW_KEY).then(v => {
     view = normalizeView(v);
-    viewWideNickSwitch.checked = view.wideNick;
     viewMemberTabSwitch.checked = view.memberTab;
     viewDlgScrollSwitch.checked = view.dlgScroll;
+    viewDlogSwitch.checked = view.dlog;
+    renderMl();
+    renderCl();
+  });
+  clManageBtn.addEventListener("click", () => {
+    renderCl();
+    clDialog.showModal();
+  });
+  clDialog.addEventListener("click", (e) => {
+    if (e.target === clDialog) clDialog.close();
+  });
+  mlManageBtn.addEventListener("click", () => {
+    renderMl();
+    mlDialog.showModal();
+  });
+  mlDialog.addEventListener("click", (e) => {
+    if (e.target === mlDialog) mlDialog.close();
   });
   const saveView = () => duiWrite(VIEW_KEY, view).catch(e => setStatus("표시 설정 저장 실패: " + (e && e.message ? e.message : e)));
-  viewWideNickSwitch.nextElementSibling.addEventListener("click", () => viewWideNickSwitch.click());
-  viewWideNickSwitch.addEventListener("change", () => {
-    view.wideNick = viewWideNickSwitch.checked;
+  clWideSwitch.nextElementSibling.addEventListener("click", () => clWideSwitch.click());
+  clWideSwitch.addEventListener("change", () => {
+    view.cwide = clWideSwitch.checked;
     saveView();
+    renderCl();
   });
   viewMemberTabSwitch.nextElementSibling.addEventListener("click", () => viewMemberTabSwitch.click());
   viewMemberTabSwitch.addEventListener("change", () => {
@@ -1342,6 +1512,33 @@ function setupView() {
   viewDlgScrollSwitch.addEventListener("change", () => {
     view.dlgScroll = viewDlgScrollSwitch.checked;
     saveView();
+  });
+  viewDlogSwitch.nextElementSibling.addEventListener("click", () => viewDlogSwitch.click());
+  viewDlogSwitch.addEventListener("change", () => {
+    view.dlog = viewDlogSwitch.checked;
+    saveView();
+  });
+  mlLayoutSelect.addEventListener("change", () => {
+    view.mlayout = mlLayoutSelect.value === "l1" || mlLayoutSelect.value === "l2" ? mlLayoutSelect.value : "default";
+    saveView();
+    renderMl();
+  });
+  mlHeartSelect.addEventListener("change", () => {
+    view.mheart = mlHeartSelect.value === "desk" ? "desk" : "default";
+    saveView();
+    renderMl();
+  });
+  mlIconSwitch.nextElementSibling.addEventListener("click", () => mlIconSwitch.click());
+  mlIconSwitch.addEventListener("change", () => {
+    view.micon = mlIconSwitch.checked;
+    saveView();
+    renderMl();
+  });
+  mlWideSwitch.nextElementSibling.addEventListener("click", () => mlWideSwitch.click());
+  mlWideSwitch.addEventListener("change", () => {
+    view.mwide = mlWideSwitch.checked;
+    saveView();
+    renderMl();
   });
 }
 
@@ -1630,7 +1827,7 @@ function renderHlEditor() {
   const g = hlGroup();
   hlEmpty.hidden = !!g;
   hlForm.hidden = !g;
-  hlDeleteBtn.disabled = !g;
+  hlDeleteBtn.hidden = !g;
   if (!g) return;
   if (hlName.value !== g.name) hlName.value = g.name;
   hlOn.checked = g.on;
@@ -2234,6 +2431,72 @@ function renderQpb() {
   qpbInfoOn.checked = qp.info;
 }
 
+// 팝업 스크롤 위치 기억. 닫았다 다시 열어도 보던 자리를 유지한다.
+// 내용이 비동기로 채워지고 탭 전환 전에는 높이가 없어서, 목표 높이가 생길 때까지
+// 재시도한다. 사용자가 먼저 스크롤하면 바로 물러난다
+// 즐겨찾기 접기. 1열에서만 동작한다 (2열은 접기 표시도 없음)
+function setupFavCollapse() {
+  const panel = document.getElementById("fav-panel");
+  const head = document.getElementById("fav-head");
+  if (localStorage.getItem("fav-collapsed") === "1") panel.classList.add("collapsed");
+  head.addEventListener("click", () => {
+    if (!document.body.classList.contains("cols1")) return;
+    localStorage.setItem("fav-collapsed", panel.classList.toggle("collapsed") ? "1" : "0");
+  });
+}
+
+function setupScrollMemory() {
+  // 비동기 콘텐츠가 위쪽에 늦게 채워지면 브라우저 스크롤 앵커링이 scrollTop 을 저절로 키운다.
+  // 그 값을 받아 적으면 열 때마다 아래로 밀리므로, 최근에 사용자 입력이 있던 스크롤만 저장한다
+  let userInputAt = 0;
+  const markUser = () => { userInputAt = Date.now(); };
+  for (const ev of ["wheel", "touchstart", "touchmove", "mousedown", "keydown"]) {
+    window.addEventListener(ev, markUser, { capture: true, passive: true });
+  }
+  const byUser = () => Date.now() - userInputAt < 2000;
+  // 저장값은 "위치|당시높이". 위쪽 콘텐츠가 덜 채워진 채 복원하면 그만큼 아래로 밀리므로
+  // 높이가 저장 당시 수준으로 차오른 뒤에 복원한다 (시한이 지나면 최선 복원)
+  const restore = (el, savedRaw, userTarget) => {
+    if (!savedRaw) return;
+    const parts = String(savedRaw).split("|");
+    const pos = parseInt(parts[0], 10);
+    const targetH = parseInt(parts[1], 10) || 0;
+    if (!(pos > 0)) return;
+    let userMoved = false;
+    const onUser = () => { userMoved = true; };
+    userTarget.addEventListener("wheel", onUser, { once: true, passive: true });
+    userTarget.addEventListener("touchstart", onUser, { once: true, passive: true });
+    const deadline = Date.now() + 20000;
+    const step = () => {
+      if (userMoved) return;
+      if (el.scrollHeight >= targetH - 4 && el.scrollHeight - el.clientHeight >= Math.min(pos, targetH - el.clientHeight - 4)) {
+        el.scrollTop = pos;
+        return;
+      }
+      if (Date.now() > deadline) {
+        el.scrollTop = pos;
+        return;
+      }
+      setTimeout(step, 200);
+    };
+    step();
+  };
+  // columns 는 1열 본문 스크롤러
+  for (const key of ["favorites", "rows", "extra-rows", "columns"]) {
+    const el = document.getElementById(key);
+    if (!el) continue;
+    const storeKey = "popup-scroll-" + key;
+    restore(el, localStorage.getItem(storeKey), el);
+    let timer = null;
+    el.addEventListener("scroll", () => {
+      if (!byUser()) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => localStorage.setItem(storeKey, el.scrollTop + "|" + el.scrollHeight), 150);
+    }, { passive: true });
+  }
+  localStorage.removeItem("popup-scroll-body");
+}
+
 function setupQp() {
   duiRead(QP_KEY).then(v => {
     qp = normalizeQp(v);
@@ -2390,6 +2653,12 @@ async function init() {
   settingsDialog.addEventListener("click", (e) => {
     if (e.target === settingsDialog) settingsDialog.close();
   });
+  layoutSelect.value = popupLayout;
+  layoutSelect.addEventListener("change", () => {
+    popupLayout = layoutSelect.value === "1" ? "1" : "2";
+    localStorage.setItem("popup-layout", popupLayout);
+    applyLayout();
+  });
   themeSelect.addEventListener("change", () => {
     themeMode = themeSelect.value;
     localStorage.setItem("theme", themeMode);
@@ -2441,6 +2710,8 @@ async function init() {
   setupPmenu();
   setupView();
   setupQp();
+  setupFavCollapse();
+  setupScrollMemory();
   setupExtra();
   const cached = loadCache();
   dbg("cache", cached);
@@ -2482,7 +2753,10 @@ async function init() {
     localStorage.setItem("shortcut-keep-open", keepPopupShortcut ? "1" : "0");
   });
 
-  favSettingsBtn.addEventListener("click", () => favDialog.showModal());
+  favSettingsBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    favDialog.showModal();
+  });
   favDialog.addEventListener("click", (e) => {
     if (e.target === favDialog) favDialog.close();
   });

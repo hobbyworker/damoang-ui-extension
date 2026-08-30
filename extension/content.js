@@ -28,7 +28,7 @@
   let follow = null;
   let pmenu = { on: false };
   let prio = { first: "member" };
-  let view = { wideNick: false, memberTab: true, dlgScroll: true };
+  let view = { cwide: false, mwide: false, memberTab: true, dlgScroll: true, dlog: true };
   let qp = { btn: true, list: [] };
   let following = null;
   let followLoading = false;
@@ -99,7 +99,17 @@
   }
 
   function normalizeView(raw) {
-    return { wideNick: bool(raw && raw.wideNick, false), memberTab: bool(raw && raw.memberTab, true), dlgScroll: bool(raw && raw.dlgScroll, true) };
+    const r = raw && typeof raw === "object" ? raw : {};
+    return {
+      cwide: bool(r.cwide, r.cnick === "wide" || r.cnick === "full" || bool(r.wideNick, false)),
+      mwide: bool(r.mwide, bool(r.wideNick, false)),
+      memberTab: bool(r.memberTab, true),
+      dlgScroll: bool(r.dlgScroll, true),
+      dlog: bool(r.dlog, true),
+      mlayout: r.mlayout === "l1" || r.mlayout === "l2" ? r.mlayout : "default",
+      mheart: r.mheart === "desk" ? "desk" : "default",
+      micon: bool(r.micon, false)
+    };
   }
 
   function normalizeFollow(raw) {
@@ -194,6 +204,173 @@
   }
 
   // 스타일은 한 번만 만들고, 내용이 달라질 때만 바꿔 MutationObserver 가 되먹임하지 않게 한다
+  // 모바일 게시글 레이아웃. 사이트의 모바일 목록(md 미만)에서 제목줄과 메타줄을
+  // display:contents 로 풀어 grid 로 재배치한다. DOM 은 건드리지 않는다.
+  // 유형 1: [공감 제목] / [태그 시간 조회 ... 메모 닉네임]
+  // 유형 2: [태그 제목] / [공감 시간 조회 ... 메모 닉네임]
+  // 닉네임을 오른쪽 끝으로 보내 목록 가운데를 누르다 메뉴가 열리는 것을 막는 것이 목적
+  function mlayoutCss() {
+    if (view.mlayout === "default" && view.mheart !== "desk" && !view.micon && !view.mwide) return "";
+    // 대상은 사이트의 모던 목록. 두 경로로 나타난다:
+    // 1) 좁은 화면 - 목록 스타일과 무관하게 모던형이 강제됨 (미디어 쿼리로 적용)
+    // 2) 목록 스타일이 모던 - 넓은 화면에서도 .mobile-meta 에 modern-view 가 붙음 (행 조건으로 적용)
+    // 같은 규칙을 두 스코프로 발행한다
+    const rules = (ROW) => {
+      const CONTENT = ROW + " > div > div.min-w-0";
+      // .mobile-meta 도 div 라서 제외하지 않으면 태그 셀렉터가 메타 span 까지 삼킨다
+      const TLINE = CONTENT + " > div:not(.mobile-meta)";
+      const META = CONTENT + " > .mobile-meta";
+      const HEART = META + " > span:nth-of-type(1)";
+      const TIME = META + " > span:nth-of-type(2)";
+      const VIEWS = META + " > span:nth-of-type(3)";
+      const NICK = META + " > span:nth-of-type(4)";
+      const TAG = TLINE + " > span:not(.flex-1):not(.memo-badge)";
+      const TITLE = TLINE + " > span.flex-1";
+      const MEMO = TLINE + " > .memo-badge";
+      let css = "";
+      if (view.mlayout !== "default") {
+        // grid 는 열 너비를 두 줄이 공유해 공감 칸이 2행 왼쪽까지 차지한다.
+        // flex wrap + 가짜 줄바꿈(::before, flex-basis 100%) + order 로 줄을 독립시킨다
+        css += CONTENT + "{display:flex !important;flex-wrap:wrap;align-items:center;row-gap:2px;column-gap:6px;}"
+          + TLINE + "," + META + "{display:contents !important;}"
+          + META + " > span:nth-of-type(2)::before," + META + " > span:nth-of-type(4)::before{content:none !important;}"
+          + CONTENT + "::before{content:\"\";flex-basis:100%;height:0;order:3;}"
+          + TITLE + "{order:2;flex:1 1 0;min-width:0;}"
+          + TIME + "{order:5;}"
+          + VIEWS + "{order:6;}"
+          + MEMO + "{order:8;margin-left:auto;pointer-events:none;}"
+          + MEMO + ".memo-badge--expand{max-width:none !important;}"
+          + NICK + "{order:9;min-width:0;}"
+          + CONTENT + ":not(:has(.memo-badge)) > .mobile-meta > span:nth-of-type(4){margin-left:auto;}";
+        if (view.mlayout === "l1") {
+          css += HEART + "{order:1;}" + TAG + "{order:4;}";
+        } else {
+          css += TAG + "{order:1;}" + HEART + "{order:4;}";
+        }
+        if (!view.mwide) {
+          // 말줄임표 대신 끝 페이드. 폭은 데스크톱 닉 칸(120px)과 같게.
+          // 그라데이션 좌표를 120px 끝에 고정해 그보다 짧은 닉네임에는 페이드가 안 걸린다.
+          // text-overflow clip: 사이트 truncate 클래스의 말줄임표가 페이드 안에 그려지는 것을 막는다
+          css += NICK + " button[data-dropdown-menu-trigger]{display:inline-block;max-width:120px;overflow:hidden;white-space:nowrap;text-overflow:clip;"
+            + "-webkit-mask-image:linear-gradient(to right,#000 106px,transparent 120px);"
+            + "mask-image:linear-gradient(to right,#000 106px,transparent 120px);}";
+        }
+      }
+      // 닉네임 전체 표시는 레이아웃과 독립. 사이트가 버튼에 max-w 11rem 을 걸어 두어 풀지 않으면 잘린다
+      if (view.mwide) {
+        css += NICK + " button[data-dropdown-menu-trigger]{max-width:none;}";
+      }
+      // 데스크탑 타입 공감. 모양은 CSS, 색·숫자는 applyHeartPill 이
+      // 같은 행의 데스크톱 알약에서 복사한다 (사이트의 단계별 색을 그대로 따라감)
+      if (view.mheart === "desk") {
+        css += HEART + "{min-width:40px;min-height:20px;padding:0 6px;border-radius:8px;"
+          + "display:inline-flex;align-items:center;justify-content:center;"
+          + "font-size:12px;font-weight:600;}"
+          + HEART + " svg{display:none;}";
+      }
+      // 닉네임 아이콘 (applyNickIcon 이 복제). 기본 레이아웃은 닉 왼쪽, 유형 1·2 는 오른쪽 끝
+      if (view.micon) {
+        css += ROW + " .mobile-meta .dui-avatar{width:18px;height:18px;border-radius:50%;object-fit:cover;flex-shrink:0;}";
+        if (view.mlayout === "default") {
+          // 구분점(::before)도 플렉스 항목이라 순서를 함께 지정해야 점, 아바타, 이름 순이 된다
+          css += ROW + " .mobile-meta .dui-avatar{order:-1;}"
+            + ROW + " .mobile-meta > span:nth-of-type(4)::before{order:-2;}";
+        }
+      }
+      return css;
+    };
+    return "@media (max-width: 767px){" + rules("a.post-row") + "}"
+      + rules("a.post-row:has(.mobile-meta.modern-view)");
+  }
+
+  // 데스크탑 타입 공감: 같은 행의 데스크톱 알약에서 배경색, 글자색, 쉼표 숫자를 복사한다.
+  // 끄면 원래 값으로 되돌린다. Svelte 가 되돌려 써도 다음 적용에서 다시 잡는다
+  function applyHeartPill() {
+    const desk = view.mheart === "desk";
+    for (const row of document.querySelectorAll("a.post-row")) {
+      const sp = row.querySelector(".mobile-meta > span:first-of-type");
+      if (!sp) continue;
+      let tn = null;
+      for (const n of sp.childNodes) {
+        if (n.nodeType === 3 && n.nodeValue.trim()) tn = n;
+      }
+      if (desk) {
+        const pill = row.querySelector(":scope > div > div:first-child > div");
+        if (!pill) continue;
+        const txt = pill.textContent.trim();
+        if (tn && txt && tn.nodeValue !== txt) {
+          if (sp.dataset.duiHeart === undefined) sp.dataset.duiHeart = tn.nodeValue;
+          tn.nodeValue = txt;
+        }
+        // 색 적용 여부는 텍스트 보관과 별개로 표시해 둔다. 안 그러면 숫자가 같아
+        // 텍스트 보관이 없는 행에서 끌 때 색 잔재가 남는다
+        sp.dataset.duiPill = "1";
+        if (sp.style.background !== pill.style.background) sp.style.background = pill.style.background;
+        if (sp.style.color !== pill.style.color) sp.style.color = pill.style.color;
+      } else {
+        if (sp.dataset.duiHeart !== undefined) {
+          if (tn) tn.nodeValue = sp.dataset.duiHeart;
+          delete sp.dataset.duiHeart;
+        }
+        if (sp.dataset.duiPill) {
+          delete sp.dataset.duiPill;
+          sp.style.background = "";
+          sp.style.color = "";
+        }
+      }
+    }
+  }
+
+  // 닉네임 아이콘. 데스크톱 닉 칸의 아바타를 모바일 닉 칸에 복제해 붙인다.
+  // 끄거나 아바타가 없으면 걷어낸다. 우리 것은 dui-avatar 로 표시해 중복을 막는다
+  function applyNickIcon() {
+    for (const row of document.querySelectorAll("a.post-row")) {
+      const nick = row.querySelector(".mobile-meta > span:nth-of-type(4)");
+      if (!nick) continue;
+      const cur = nick.querySelector("img.dui-avatar");
+      const src = view.micon ? row.querySelector(":scope > div > div.min-w-0 > span img") : null;
+      if (!src) {
+        if (cur) cur.remove();
+        continue;
+      }
+      if (cur) {
+        if (cur.getAttribute("src") !== src.getAttribute("src")) cur.setAttribute("src", src.getAttribute("src"));
+        continue;
+      }
+      const img = document.createElement("img");
+      img.className = "dui-avatar";
+      img.src = src.getAttribute("src");
+      if (src.getAttribute("srcset")) img.srcset = src.getAttribute("srcset");
+      img.alt = "";
+      img.loading = "lazy";
+      nick.append(img);
+    }
+  }
+
+  // 이용제한 기록 프로필 보기. 기록 목록 행과 상세 머리글의 회원 아이디를 누르면 프로필로 이동한다.
+  // 목록 행은 자체가 기록 상세 링크(a)라 중첩 앵커 대신 span 클릭을 가로채 클라이언트 이동한다.
+  // 대상은 닉네임(font-medium/font-bold) 바로 옆의 회색 아이디 span
+  function applyDlog() {
+    if (!location.pathname.startsWith("/disciplinelog")) return;
+    for (const sp of document.querySelectorAll('span[class*="muted-foreground/70"]')) {
+      const prev = sp.previousElementSibling;
+      if (!prev || !(prev.classList.contains("font-medium") || prev.classList.contains("font-bold"))) continue;
+      if (!view.dlog) {
+        sp.classList.remove("dui-dlog");
+        continue;
+      }
+      sp.classList.add("dui-dlog");
+      if (sp.dataset.duiDlog) continue;
+      sp.dataset.duiDlog = "1";
+      sp.addEventListener("click", (e) => {
+        if (!view.dlog) return;
+        e.preventDefault();
+        e.stopPropagation();
+        goTo("/member/" + sp.textContent.trim());
+      });
+    }
+  }
+
   function updateStyle() {
     const dark = isDark();
     let css = "";
@@ -201,9 +378,15 @@
       if (!g.on || !g.pen.on || !g.keywords.length) return;
       css += "::highlight(" + PREFIX + i + "){background-color:" + (dark ? g.pen.darkColor : g.pen.lightColor) + ";}";
     });
-    // 닉네임 넓게 표시: 넘치는 행에만 붙는 클래스. 그 행의 제목 칸만 양보한다
-    if (view.wideNick) {
-      css += "a.post-row .dui-widenick{width:auto !important;max-width:15rem;}";
+    // 클래식 닉네임 전체 표시: 넘치는 행에만 붙는 클래스. 그 행의 제목 칸만 양보한다.
+    // 칸과 별개로 안쪽 버튼에도 사이트 상한(max-w 11rem)이 있어 같이 푼다
+    if (view.cwide) {
+      css += "a.post-row .dui-widenick{width:auto !important;max-width:none;}"
+        + "a.post-row .dui-widenick button[data-dropdown-menu-trigger]{max-width:none;}";
+    }
+    css += mlayoutCss();
+    if (view.dlog) {
+      css += ".dui-dlog{text-decoration:underline;text-underline-offset:2px;cursor:pointer;}";
     }
     // 행 스타일은 나중에 출력한 쪽이 이긴다
     let hlRowCss = "";
@@ -339,7 +522,7 @@
   // 닉네임이 잘리는 칸에만 dui-widenick 을 붙인다. 판정 결과는 닉네임이 바뀔 때만 다시 계산해
   // (클래스가 붙어 안 넘치게 된 것을 다시 좁히는 진동을 막는다)
   function applyWideNick() {
-    if (!view.wideNick) {
+    if (!view.cwide) {
       // 꺼짐: 남은 표시만 청소하고 끝. 판정 캐시도 지워 다시 켜면 재판정된다
       for (const sp of document.querySelectorAll("a.post-row .post-meta-text[data-dui-nick]")) {
         sp.classList.remove("dui-widenick");
@@ -377,6 +560,17 @@
       qpbApply();
     } catch (e) {
       console.warn("[다모앙UI] 프로필 등록 버튼 실패", e);
+    }
+    try {
+      applyHeartPill();
+      applyNickIcon();
+    } catch (e) {
+      console.warn("[다모앙UI] 모바일 표시 옵션 실패", e);
+    }
+    try {
+      applyDlog();
+    } catch (e) {
+      console.warn("[다모앙UI] 이용제한 기록 프로필 보기 실패", e);
     }
     updateStyle();
   }
@@ -501,7 +695,7 @@
           info.type = "button";
           info.id = "dui-pminfo";
           info.title = "이 메뉴는 무엇인가요?";
-          info.append(svgEl(QPB_INFO));
+          info.append(duiIcon("pageInfo"));
           info.addEventListener("click", (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -696,15 +890,6 @@
   // ---- 프로필 등록 버튼 ----
   // 회원 프로필 헤더의 버튼 줄(팔로우, 쪽지, 차단)에 눈 모양 버튼을 붙인다.
   // 누르면 그 회원을 빠른 프로필 보기(qprofile)에 등록하거나 제거한다. 닉네임은 헤더 h1 에서 읽는다
-  const QPB_EYE = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></svg>';
-  const QPB_EYE_OFF = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></svg>';
-  const QPB_INFO = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>';
-
-  // 아이콘은 고정 문자열이지만 innerHTML 대입은 스토어 검사가 경고하므로 파서로 만든다
-  function svgEl(markup) {
-    return new DOMParser().parseFromString(markup, "image/svg+xml").documentElement;
-  }
-
   function ensureQpbStyle() {
     if (document.getElementById("dui-qpbtn-style")) return;
     const style = document.createElement("style");
@@ -791,7 +976,7 @@
     b.type = "button";
     b.id = "dui-qpbtn";
     b.title = on ? "빠른 프로필 보기에서 제거" : "빠른 프로필 보기에 등록";
-    b.append(svgEl(on ? QPB_EYE : QPB_EYE_OFF));
+    b.append(duiIcon(on ? "eye" : "eyeOff"));
     if (on) b.classList.add("on");
     b.addEventListener("click", (e) => {
       e.preventDefault();
@@ -804,7 +989,7 @@
       info.type = "button";
       info.id = "dui-qpinfo";
       info.title = "이 버튼은 무엇인가요?";
-      info.append(svgEl(QPB_INFO));
+      info.append(duiIcon("pageInfo"));
       info.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();
