@@ -85,7 +85,9 @@
   .head-btn:hover { color: var(--fg); }
   .head-btn svg { width: 14px; height: 14px; }
   .group-head .chev,
-  #fav-head .chev {
+  #fav-head .chev,
+  #settings-head .chev,
+  #extra-head .chev {
     display: inline-block;
     width: 0;
     height: 0;
@@ -98,11 +100,20 @@
   }
   .collapsed > .group-head .chev,
   .collapsed > .head-row .chev { transform: rotate(-90deg); }
-  /* 즐겨찾기 접기는 1열에서만 제공 */
-  #fav-head .chev { display: none; }
-  body.cols1 #fav-head .chev { display: inline-block; }
-  body.cols1 #fav-head { cursor: pointer; }
+  /* 즐겨찾기·빠른 설정·추가 기능 접기는 1열에서만 제공 */
+  #fav-head .chev,
+  #settings-head .chev,
+  #extra-head .chev { display: none; }
+  body.cols1 #fav-head .chev,
+  body.cols1 #settings-head .chev,
+  body.cols1 #extra-head .chev { display: inline-block; }
+  body.cols1 #fav-head,
+  body.cols1 #settings-head,
+  body.cols1 #extra-head { cursor: pointer; }
   body.cols1 #fav-panel.collapsed #favorites { display: none; }
+  body.cols1 .sec-collapsed > .head-row .chev { transform: rotate(-90deg); }
+  body.cols1 #settings-group.sec-collapsed > #rows,
+  body.cols1 #extra-group.sec-collapsed > #extra-rows { display: none; }
   .group.collapsed .rows,
   .subgroup.collapsed .rows { display: none; }
   /* 팝업 상단부. 차단막은 이 영역까지만 덮고 하단 정보 줄은 남긴다 */
@@ -201,6 +212,122 @@
     padding-left: 48px;
   }
   body.cols1 .side-toggle { display: inline-flex; }
+  /* ---- 1열 페이지 모드 (body.cols1) ----
+     다이얼로그를 모달 대신 다음 페이지로 연다. 상단 바(‹ 제목, 아래 가로선)는 popup.js 가 열 때 붙인다.
+     html 접두사는 compact 보정 규칙(html.compact dialog)보다 우선하기 위한 것 */
+  html body.cols1 dialog[open] {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    border: none;
+    border-radius: 0;
+    padding: 0 14px 16px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    animation: page-in 0.18s ease-out;
+  }
+  /* 크기만 !important: 다이얼로그별 고정 폭(#mute-dialog 320, #qp-dialog 340, #hl-dialog 480×500 등)이
+     id 선택자라 페이지 모드가 밀린다. 페이지는 어떤 다이얼로그든 뷰포트 전체여야 한다 */
+  @keyframes page-in {
+    from { transform: translateX(24px); opacity: 0; }
+    to { transform: none; opacity: 1; }
+  }
+  html body.cols1 dialog[open]::backdrop { background: transparent; }
+  html body.cols1 dialog[open] > h2 { display: none; }
+  html body.cols1 #hl-dialog[open],
+  html body.cols1 #follow-dialog[open] {
+    flex-direction: column;
+    padding: 0;
+  }
+  html body.cols1 #hl-dialog[open] .side-toggle,
+  html body.cols1 #follow-dialog[open] .side-toggle { top: 52px; }
+  html body.cols1 #hl-dialog[open] #hl-side,
+  html body.cols1 #follow-dialog[open] #follow-side { top: 44px; }
+  .cbar { display: none; }
+  html body.cols1 dialog[open] > .cbar {
+    display: flex;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    flex-shrink: 0;
+    height: 44px;
+    margin: 0 -14px 12px;
+    border-bottom: 1px solid var(--divider);
+    background: var(--bg);
+  }
+  html body.cols1 #hl-dialog[open] > .cbar,
+  html body.cols1 #follow-dialog[open] > .cbar { margin: 0; }
+  .cbar-back {
+    border: none;
+    background: none;
+    color: #0a84ff;
+    font-size: 30px;
+    line-height: 1;
+    padding: 0 14px 4px;
+    cursor: pointer;
+  }
+  .cbar-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-weight: 600;
+    font-size: 16px;
+    white-space: nowrap;
+  }
+  /* 1열: 섹션 머리글(h1)은 진한 띠로, 소그룹 캡션은 작은 회색 글씨 그대로 두어 두 층을 가른다.
+     둘 다 접히는 화살표가 있어 같은 모양이면 구분이 안 된다 */
+  body.cols1 h1 {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0;
+    color: var(--fg);
+    margin: 0;
+    padding: 9px 14px 7px;
+    background: color-mix(in srgb, var(--fg) 5%, transparent);
+  }
+  body.cols1 h1 .chev {
+    border-left-width: 5px;
+    border-right-width: 5px;
+    border-top-width: 6px;
+  }
+  /* 섹션 사이 여백을 없애고 머리글 띠마다 위쪽 선 하나로 통일한다. 마이페이지(6px)·빠른 실행(4px)의
+     아래 여백과 패널 경계선이 접힌 섹션 사이에 흰 틈을 만들었다 */
+  body.cols1 h1 { border-top: 1px solid var(--divider); }
+  body.cols1 #shortcut-group,
+  body.cols1 #quick-group { padding-bottom: 0; }
+  body.cols1 #shortcut-group,
+  body.cols1 .panel + .panel { border-top: none; }
+  /* 1열은 탭 없이 빠른 설정·추가 기능을 연달아 둔다 */
+  body.cols1 #tabs { display: none; }
+  body.cols1 #pages {
+    flex-direction: column;
+    flex: none;
+  }
+  body.cols1 .page {
+    display: flex;
+    flex: none;
+    overflow: visible;
+  }
+  body.cols1 #rows,
+  body.cols1 #extra-rows {
+    flex: none;
+    overflow: visible;
+    scrollbar-gutter: auto;
+  }
+  /* 1열 섹션 숨김 (설정 > 1열 섹션 표시, popup.js 가 body 에 nosec-<키> 를 붙인다) */
+  body.cols1.nosec-fav #fav-head,
+  body.cols1.nosec-fav #favorites,
+  body.cols1.nosec-shortcut #shortcut-group,
+  body.cols1.nosec-quick #quick-group,
+  body.cols1.nosec-settings #page-settings,
+  body.cols1.nosec-extra #page-extra { display: none; }
+
   /* 레이아웃별 문구 전환 */
   .cols1-only { display: none; }
   body.cols1 .cols1-only { display: inline; }
@@ -232,11 +359,35 @@
     width: auto;
     height: 100dvh;
   }
+  /* iPad 의 1열은 시트에서 팝오버로 바뀌는 순간 팝오버로 측정된다. 팝오버 크기는 문서 고유 크기를
+     따르므로 고유 크기가 뷰포트(100dvh, html 폭)에만 의존하면 작은 초기 크기에 갇힌다. 하한은 html 에 둔다.
+     body 는 iPhone 과 같이 뷰포트 높이라 시트에서는 하단 정보 줄이 시트 바닥에 붙고 안쪽만 스크롤한다.
+     2열로 바뀌면 다시 재므로 하한은 접힘만 막을 만큼이면 된다 */
+  html.ipad.compact {
+    min-width: 360px;
+    min-height: 420px;
+    overflow: hidden;
+  }
+  /* body 는 뷰포트에 고정한다. 하한 때문에 문서(html)가 시트보다 커지면 리로드·포커스 같은 프로그램
+     스크롤이 문서를 내려 body 가 위로 밀리고, overflow hidden 이 뷰포트에 전파돼 되돌릴 수도 없다 */
+  html.ipad.compact body.cols1 {
+    position: fixed;
+    inset: 0;
+    width: auto;
+    height: auto;
+  }
+  /* iOS 는 팝업을 절반 높이 시트로 열고 사용자가 끌어 올린다. 모달(2열)은 현재 시트 높이에
+     맞춰 안에서 스크롤되게 해 잘리지 않게 한다. 1열은 페이지 모드라 해당 없음 */
+  html.compact body:not(.cols1) dialog {
+    box-sizing: border-box;
+    max-height: calc(100dvh - 16px);
+    overflow-y: auto;
+  }
   /* 입력 글자 16px: 모바일 브라우저의 포커스 자동 줌을 막는다 */
   html.compact input,
   html.compact select,
   html.compact textarea { font-size: 16px; }
-  html.compact dialog { max-width: calc(100vw - 20px); }
+  html.compact body:not(.cols1) dialog { max-width: calc(100vw - 20px); }
 
   /* 오른쪽 칼럼: 빠른 실행은 탭과 무관하게 항상 위에 */
   #quick-group {
@@ -1234,14 +1385,14 @@
       <section class="page" id="page-settings">
         <div id="groups">
           <section class="group" id="settings-group">
-            <h1 class="head-row" id="settings-head">빠른 설정<span id="memo-spin" class="spinner"></span><button id="settings-opt-btn" class="head-btn" title="빠른 설정 옵션"></button></h1>
+            <h1 class="head-row" id="settings-head"><span class="chev"></span>빠른 설정<span id="memo-spin" class="spinner"></span><button id="settings-opt-btn" class="head-btn" title="빠른 설정 옵션"></button></h1>
             <div id="rows" class="rows"></div>
           </section>
         </div>
       </section>
       <section class="page" id="page-extra">
         <section class="group" id="extra-group">
-          <h1 class="head-row">추가 기능<button id="extra-opt-btn" class="head-btn" title="추가 기능 옵션"></button></h1>
+          <h1 class="head-row" id="extra-head"><span class="chev"></span>추가 기능<button id="extra-opt-btn" class="head-btn" title="추가 기능 옵션"></button></h1>
           <div id="extra-rows" class="rows">
             <section class="subgroup" id="sg-em">
               <div class="caption group-head" id="em-head"><span class="chev"></span>강조</div>
@@ -1280,8 +1431,8 @@
                   <label for="view-membertab-switch">프로필 보던 탭 기억<span class="info" data-tip="회원 프로필에서 글을 보러 갔다가 뒤로가기로 돌아오면 보고 있던 탭과 스크롤 위치를 되살립니다."></span></label>
                   <span class="switch"><input type="checkbox" id="view-membertab-switch"><span class="track"></span></span>
                 </div>
-                <div class="row">
-                  <label for="view-dlgscroll-switch">공감 목록 쉬운 메모<span class="info" data-tip="공감한 사람들 목록에서 메모를 작성하거나 삭제할 때 스크롤이 맨 위로 초기화되는 것을 막습니다."></span></label>
+                <div class="row" id="view-dlgscroll-row">
+                  <label for="view-dlgscroll-switch">공감 목록 쉬운 메모<span class="info" data-tip="공감한 사람들 목록에서 메모를 저장하면 Chrome, Edge, Firefox는 대화상자가 포커스를 맨 위 회원으로 옮기면서 목록이 처음으로 되돌아갑니다. 보던 자리를 유지합니다. Safari는 포커스가 옮겨지지 않아 원래 유지되므로 이 옵션이 없습니다."></span></label>
                   <span class="switch"><input type="checkbox" id="view-dlgscroll-switch"><span class="track"></span></span>
                 </div>
                 <div class="row">
@@ -1369,11 +1520,52 @@
         <span class="track"></span>
       </span>
     </div>
+    <div id="cols1-sections" hidden>
+      <div class="opt-divider"></div>
+      <div class="opt-caption">1열 섹션 표시</div>
+      <div class="opt-row">
+        <label for="sec-fav">즐겨찾기</label>
+        <span class="switch">
+          <input type="checkbox" id="sec-fav" data-sec="fav">
+          <span class="track"></span>
+        </span>
+      </div>
+      <div class="opt-row">
+        <label for="sec-shortcut">마이페이지 바로가기</label>
+        <span class="switch">
+          <input type="checkbox" id="sec-shortcut" data-sec="shortcut">
+          <span class="track"></span>
+        </span>
+      </div>
+      <div class="opt-row">
+        <label for="sec-quick">빠른 실행</label>
+        <span class="switch">
+          <input type="checkbox" id="sec-quick" data-sec="quick">
+          <span class="track"></span>
+        </span>
+      </div>
+      <div class="opt-row">
+        <label for="sec-settings">빠른 설정</label>
+        <span class="switch">
+          <input type="checkbox" id="sec-settings" data-sec="settings">
+          <span class="track"></span>
+        </span>
+      </div>
+      <div class="opt-row">
+        <label for="sec-extra">추가 기능</label>
+        <span class="switch">
+          <input type="checkbox" id="sec-extra" data-sec="extra">
+          <span class="track"></span>
+        </span>
+      </div>
+    </div>
+    <div class="opt-divider"></div>
     <div class="opt-caption">추가 기능 백업 및 복원</div>
     <div class="opt-note" id="backup-note">추가 기능의 설정은 브라우저 계정으로 기기 간 동기화됩니다. 백업 파일에는 이 설정이 담기며, 다른 종류의 브라우저로 옮기거나 만약을 대비해 보관할 때 사용합니다.</div>
     <div class="opt-btns">
       <button id="export-btn">백업</button>
       <button id="import-btn">복원</button>
+      <button id="backup-go-btn" hidden>이동</button>
       <input type="file" id="import-file" accept=".json,application/json" hidden>
     </div>
     <div class="opt-note" id="io-msg" hidden></div>

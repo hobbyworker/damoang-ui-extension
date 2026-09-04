@@ -1,0 +1,1154 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		D393F7553047C1870041E46A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7543047C1870041E46A /* AppDelegate.swift */; };
+		D393F7573047C1870041E46A /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7563047C1870041E46A /* SceneDelegate.swift */; };
+		D393F75A3047C1870041E46A /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D393F7583047C1870041E46A /* LaunchScreen.storyboard */; };
+		D393F75D3047C1870041E46A /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D393F75B3047C1870041E46A /* Main.storyboard */; };
+		D393F7663047C1870041E46A /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7653047C1870041E46A /* AppDelegate.swift */; };
+		D393F7693047C1870041E46A /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D393F7673047C1870041E46A /* Main.storyboard */; };
+		D393F7703047C1870041E46A /* Damoang UI Extension Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D393F76F3047C1870041E46A /* Damoang UI Extension Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D393F77A3047C1870041E46A /* Damoang UI Extension Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = D393F7793047C1870041E46A /* Damoang UI Extension Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		D393F77F3047C1870041E46A /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = D393F7443047C1860041E46A /* Main.html */; };
+		D393F7803047C1870041E46A /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = D393F7443047C1860041E46A /* Main.html */; };
+		D393F7813047C1870041E46A /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = D393F7463047C1860041E46A /* Icon.png */; };
+		D393F7823047C1870041E46A /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = D393F7463047C1860041E46A /* Icon.png */; };
+		D393F7833047C1870041E46A /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = D393F7473047C1860041E46A /* Style.css */; };
+		D393F7843047C1870041E46A /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = D393F7473047C1860041E46A /* Style.css */; };
+		D393F7853047C1870041E46A /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F7483047C1860041E46A /* Script.js */; };
+		D393F7863047C1870041E46A /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F7483047C1860041E46A /* Script.js */; };
+		D393F7873047C1870041E46A /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7493047C1860041E46A /* ViewController.swift */; };
+		D393F7883047C1870041E46A /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7493047C1860041E46A /* ViewController.swift */; };
+		D393F7893047C1870041E46A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D393F74A3047C1870041E46A /* Assets.xcassets */; };
+		D393F78A3047C1870041E46A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D393F74A3047C1870041E46A /* Assets.xcassets */; };
+		D393F78B3047C1870041E46A /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F74C3047C1870041E46A /* SafariWebExtensionHandler.swift */; };
+		D393F78C3047C1870041E46A /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F74C3047C1870041E46A /* SafariWebExtensionHandler.swift */; };
+		D393F7A83047C1880041E46A /* icons.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F79E3047C1880041E46A /* icons.js */; };
+		D393F7A93047C1880041E46A /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F79F3047C1880041E46A /* popup.js */; };
+		D393F7AA3047C1880041E46A /* backup.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A03047C1880041E46A /* backup.js */; };
+		D393F7AB3047C1880041E46A /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A13047C1880041E46A /* popup.html */; };
+		D393F7AC3047C1880041E46A /* icons in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A23047C1880041E46A /* icons */; };
+		D393F7AE3047C1880041E46A /* backup.html in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A43047C1880041E46A /* backup.html */; };
+		D393F7AF3047C1880041E46A /* common.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A53047C1880041E46A /* common.js */; };
+		D393F7B03047C1880041E46A /* _locales in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A63047C1880041E46A /* _locales */; };
+		D393F7B13047C1880041E46A /* content.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A73047C1880041E46A /* content.js */; };
+		D393F7B23047C1880041E46A /* icons.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F79E3047C1880041E46A /* icons.js */; };
+		D393F7B33047C1880041E46A /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F79F3047C1880041E46A /* popup.js */; };
+		D393F7B43047C1880041E46A /* backup.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A03047C1880041E46A /* backup.js */; };
+		D393F7B53047C1880041E46A /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A13047C1880041E46A /* popup.html */; };
+		D393F7B63047C1880041E46A /* icons in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A23047C1880041E46A /* icons */; };
+		D393F7B83047C1880041E46A /* backup.html in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A43047C1880041E46A /* backup.html */; };
+		D393F7B93047C1880041E46A /* common.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A53047C1880041E46A /* common.js */; };
+		D393F7BA3047C1880041E46A /* _locales in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A63047C1880041E46A /* _locales */; };
+		D393F7BB3047C1880041E46A /* content.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A73047C1880041E46A /* content.js */; };
+		D393F7A0AAAA0003AAAA0003 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A0AAAA0002AAAA0002 /* AppIcon.icon */; };
+		D393F7A0AAAA0004AAAA0004 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A0AAAA0002AAAA0002 /* AppIcon.icon */; };
+		D393F7A0BBBB0012BBBB0012 /* DamoangUICore in Frameworks */ = {isa = PBXBuildFile; productRef = D393F7A0BBBB0011BBBB0011 /* DamoangUICore */; };
+		D393F7A0BBBB0014BBBB0014 /* DamoangUICore in Frameworks */ = {isa = PBXBuildFile; productRef = D393F7A0BBBB0013BBBB0013 /* DamoangUICore */; };
+		D393F7A0BBBB0016BBBB0016 /* DamoangUICore in Frameworks */ = {isa = PBXBuildFile; productRef = D393F7A0BBBB0015BBBB0015 /* DamoangUICore */; };
+		D393F7A0BBBB0018BBBB0018 /* DamoangUICore in Frameworks */ = {isa = PBXBuildFile; productRef = D393F7A0BBBB0017BBBB0017 /* DamoangUICore */; };
+		D393F7A0BBBB001ABBBB001A /* PlatformServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB0019BBBB0019 /* PlatformServices.swift */; };
+		D393F7A0BBBB001BBBBB001B /* PlatformServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB0019BBBB0019 /* PlatformServices.swift */; };
+		D393F7A0BBBB001DBBBB001D /* ContainerPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB001CBBBB001C /* ContainerPresenter.swift */; };
+		D393F7A0BBBB001EBBBB001E /* ContainerPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB001CBBBB001C /* ContainerPresenter.swift */; };
+		D393F7A0BBBB0020BBBB0020 /* AppAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB001FBBBB001F /* AppAssembly.swift */; };
+		D393F7A0BBBB0021BBBB0021 /* AppAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB001FBBBB001F /* AppAssembly.swift */; };
+		D393F7A0BBBB0023BBBB0023 /* NativeMessageCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB0022BBBB0022 /* NativeMessageCodec.swift */; };
+		D393F7A0BBBB0024BBBB0024 /* NativeMessageCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB0022BBBB0022 /* NativeMessageCodec.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		D393F7713047C1870041E46A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D393F73E3047C1860041E46A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D393F76E3047C1870041E46A;
+			remoteInfo = "Damoang UI Extension Extension (iOS)";
+		};
+		D393F77B3047C1870041E46A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = D393F73E3047C1860041E46A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D393F7783047C1870041E46A;
+			remoteInfo = "Damoang UI Extension Extension (macOS)";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		D393F7923047C1870041E46A /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				D393F7703047C1870041E46A /* Damoang UI Extension Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D393F7993047C1870041E46A /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				D393F77A3047C1870041E46A /* Damoang UI Extension Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		D393F7453047C1860041E46A /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		D393F7463047C1860041E46A /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		D393F7473047C1860041E46A /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		D393F7483047C1860041E46A /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		D393F7493047C1860041E46A /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		D393F74A3047C1870041E46A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D393F74C3047C1870041E46A /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		D393F7513047C1870041E46A /* Damoang UI Extension.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Damoang UI Extension.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D393F7543047C1870041E46A /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		D393F7563047C1870041E46A /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		D393F7593047C1870041E46A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		D393F75C3047C1870041E46A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		D393F75E3047C1870041E46A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D393F7633047C1870041E46A /* Damoang UI Extension.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Damoang UI Extension.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D393F7653047C1870041E46A /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		D393F7683047C1870041E46A /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		D393F76A3047C1870041E46A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D393F76F3047C1870041E46A /* Damoang UI Extension Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Damoang UI Extension Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D393F7743047C1870041E46A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D393F7793047C1870041E46A /* Damoang UI Extension Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Damoang UI Extension Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		D393F77E3047C1870041E46A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D393F79E3047C1880041E46A /* icons.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = icons.js; path = ../../../extension/icons.js; sourceTree = "<group>"; };
+		D393F79F3047C1880041E46A /* popup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = popup.js; path = ../../../extension/popup.js; sourceTree = "<group>"; };
+		D393F7A03047C1880041E46A /* backup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = backup.js; path = ../../../extension/backup.js; sourceTree = "<group>"; };
+		D393F7A13047C1880041E46A /* popup.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = popup.html; path = ../../../extension/popup.html; sourceTree = "<group>"; };
+		D393F7A23047C1880041E46A /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icons; path = ../../../extension/icons; sourceTree = "<group>"; };
+		D393F7A33047C1880041E46A /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../../extension/manifest.json; sourceTree = "<group>"; };
+		D393F7A43047C1880041E46A /* backup.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = backup.html; path = ../../../extension/backup.html; sourceTree = "<group>"; };
+		D393F7A53047C1880041E46A /* common.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = common.js; path = ../../../extension/common.js; sourceTree = "<group>"; };
+		D393F7A63047C1880041E46A /* _locales */ = {isa = PBXFileReference; lastKnownFileType = folder; name = _locales; path = ../../../extension/_locales; sourceTree = "<group>"; };
+		D393F7A73047C1880041E46A /* content.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = content.js; path = ../../../extension/content.js; sourceTree = "<group>"; };
+		D393F7A0AAAA0001AAAA0001 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		D393F7A0AAAA0002AAAA0002 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		D393F7A0BBBB0019BBBB0019 /* PlatformServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Presentation/PlatformServices.swift"; sourceTree = "<group>"; };
+		D393F7A0BBBB001CBBBB001C /* ContainerPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Presentation/ContainerPresenter.swift"; sourceTree = "<group>"; };
+		D393F7A0BBBB001FBBBB001F /* AppAssembly.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Presentation/AppAssembly.swift"; sourceTree = "<group>"; };
+		D393F7A0BBBB0022BBBB0022 /* NativeMessageCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NativeMessageCodec.swift"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D393F74E3047C1870041E46A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D393F7A0BBBB0012BBBB0012 /* DamoangUICore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D393F7603047C1870041E46A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D393F7A0BBBB0014BBBB0014 /* DamoangUICore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D393F76C3047C1870041E46A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D393F7A0BBBB0016BBBB0016 /* DamoangUICore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D393F7763047C1870041E46A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D393F7A0BBBB0018BBBB0018 /* DamoangUICore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D393F73D3047C1860041E46A = {
+			isa = PBXGroup;
+			children = (
+				D393F7A0AAAA0001AAAA0001 /* Signing.xcconfig */,
+				D393F7423047C1860041E46A /* Shared (App) */,
+				D393F74B3047C1870041E46A /* Shared (Extension) */,
+				D393F7533047C1870041E46A /* iOS (App) */,
+				D393F7643047C1870041E46A /* macOS (App) */,
+				D393F7733047C1870041E46A /* iOS (Extension) */,
+				D393F77D3047C1870041E46A /* macOS (Extension) */,
+				D393F7523047C1870041E46A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D393F7423047C1860041E46A /* Shared (App) */ = {
+			isa = PBXGroup;
+			children = (
+				D393F7A0BBBB001FBBBB001F /* AppAssembly.swift */,
+				D393F7A0BBBB001CBBBB001C /* ContainerPresenter.swift */,
+				D393F7A0BBBB0019BBBB0019 /* PlatformServices.swift */,
+				D393F7A0AAAA0002AAAA0002 /* AppIcon.icon */,
+				D393F7493047C1860041E46A /* ViewController.swift */,
+				D393F74A3047C1870041E46A /* Assets.xcassets */,
+				D393F7433047C1860041E46A /* Resources */,
+			);
+			path = "Shared (App)";
+			sourceTree = "<group>";
+		};
+		D393F7433047C1860041E46A /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				D393F7443047C1860041E46A /* Main.html */,
+				D393F7463047C1860041E46A /* Icon.png */,
+				D393F7473047C1860041E46A /* Style.css */,
+				D393F7483047C1860041E46A /* Script.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		D393F74B3047C1870041E46A /* Shared (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				D393F7A0BBBB0022BBBB0022 /* NativeMessageCodec.swift */,
+				D393F79D3047C1880041E46A /* Resources */,
+				D393F74C3047C1870041E46A /* SafariWebExtensionHandler.swift */,
+			);
+			path = "Shared (Extension)";
+			sourceTree = "<group>";
+		};
+		D393F7523047C1870041E46A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D393F7513047C1870041E46A /* Damoang UI Extension.app */,
+				D393F7633047C1870041E46A /* Damoang UI Extension.app */,
+				D393F76F3047C1870041E46A /* Damoang UI Extension Extension.appex */,
+				D393F7793047C1870041E46A /* Damoang UI Extension Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D393F7533047C1870041E46A /* iOS (App) */ = {
+			isa = PBXGroup;
+			children = (
+				D393F7543047C1870041E46A /* AppDelegate.swift */,
+				D393F7563047C1870041E46A /* SceneDelegate.swift */,
+				D393F7583047C1870041E46A /* LaunchScreen.storyboard */,
+				D393F75B3047C1870041E46A /* Main.storyboard */,
+				D393F75E3047C1870041E46A /* Info.plist */,
+			);
+			path = "iOS (App)";
+			sourceTree = "<group>";
+		};
+		D393F7643047C1870041E46A /* macOS (App) */ = {
+			isa = PBXGroup;
+			children = (
+				D393F7653047C1870041E46A /* AppDelegate.swift */,
+				D393F7673047C1870041E46A /* Main.storyboard */,
+				D393F76A3047C1870041E46A /* Info.plist */,
+			);
+			path = "macOS (App)";
+			sourceTree = "<group>";
+		};
+		D393F7733047C1870041E46A /* iOS (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				D393F7743047C1870041E46A /* Info.plist */,
+			);
+			path = "iOS (Extension)";
+			sourceTree = "<group>";
+		};
+		D393F77D3047C1870041E46A /* macOS (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				D393F77E3047C1870041E46A /* Info.plist */,
+			);
+			path = "macOS (Extension)";
+			sourceTree = "<group>";
+		};
+		D393F79D3047C1880041E46A /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				D393F79E3047C1880041E46A /* icons.js */,
+				D393F79F3047C1880041E46A /* popup.js */,
+				D393F7A03047C1880041E46A /* backup.js */,
+				D393F7A13047C1880041E46A /* popup.html */,
+				D393F7A23047C1880041E46A /* icons */,
+				D393F7A33047C1880041E46A /* manifest.json */,
+				D393F7A43047C1880041E46A /* backup.html */,
+				D393F7A53047C1880041E46A /* common.js */,
+				D393F7A63047C1880041E46A /* _locales */,
+				D393F7A73047C1880041E46A /* content.js */,
+			);
+			name = Resources;
+			path = "Shared (Extension)";
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D393F7503047C1870041E46A /* Damoang UI Extension (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D393F7933047C1870041E46A /* Build configuration list for PBXNativeTarget "Damoang UI Extension (iOS)" */;
+			buildPhases = (
+				D393F74D3047C1870041E46A /* Sources */,
+				D393F74E3047C1870041E46A /* Frameworks */,
+				D393F74F3047C1870041E46A /* Resources */,
+				D393F7923047C1870041E46A /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D393F7723047C1870041E46A /* PBXTargetDependency */,
+			);
+			packageProductDependencies = (
+				D393F7A0BBBB0011BBBB0011 /* DamoangUICore */,
+			);
+			name = "Damoang UI Extension (iOS)";
+			packageProductDependencies = (
+			);
+			productName = "Damoang UI Extension (iOS)";
+			productReference = D393F7513047C1870041E46A /* Damoang UI Extension.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D393F7623047C1870041E46A /* Damoang UI Extension (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D393F79A3047C1870041E46A /* Build configuration list for PBXNativeTarget "Damoang UI Extension (macOS)" */;
+			buildPhases = (
+				D393F75F3047C1870041E46A /* Sources */,
+				D393F7603047C1870041E46A /* Frameworks */,
+				D393F7613047C1870041E46A /* Resources */,
+				D393F7993047C1870041E46A /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				D393F77C3047C1870041E46A /* PBXTargetDependency */,
+			);
+			packageProductDependencies = (
+				D393F7A0BBBB0013BBBB0013 /* DamoangUICore */,
+			);
+			name = "Damoang UI Extension (macOS)";
+			packageProductDependencies = (
+			);
+			productName = "Damoang UI Extension (macOS)";
+			productReference = D393F7633047C1870041E46A /* Damoang UI Extension.app */;
+			productType = "com.apple.product-type.application";
+		};
+		D393F76E3047C1870041E46A /* Damoang UI Extension Extension (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D393F78F3047C1870041E46A /* Build configuration list for PBXNativeTarget "Damoang UI Extension Extension (iOS)" */;
+			buildPhases = (
+				D393F76B3047C1870041E46A /* Sources */,
+				D393F76C3047C1870041E46A /* Frameworks */,
+				D393F76D3047C1870041E46A /* Resources */,
+				D393F7A0BBBB0025BBBB0025 /* Patch Safari Manifest */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			packageProductDependencies = (
+				D393F7A0BBBB0015BBBB0015 /* DamoangUICore */,
+			);
+			name = "Damoang UI Extension Extension (iOS)";
+			packageProductDependencies = (
+			);
+			productName = "Damoang UI Extension Extension (iOS)";
+			productReference = D393F76F3047C1870041E46A /* Damoang UI Extension Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		D393F7783047C1870041E46A /* Damoang UI Extension Extension (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D393F7963047C1870041E46A /* Build configuration list for PBXNativeTarget "Damoang UI Extension Extension (macOS)" */;
+			buildPhases = (
+				D393F7753047C1870041E46A /* Sources */,
+				D393F7763047C1870041E46A /* Frameworks */,
+				D393F7773047C1870041E46A /* Resources */,
+				D393F7A0BBBB0026BBBB0026 /* Patch Safari Manifest */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			packageProductDependencies = (
+				D393F7A0BBBB0017BBBB0017 /* DamoangUICore */,
+			);
+			name = "Damoang UI Extension Extension (macOS)";
+			packageProductDependencies = (
+			);
+			productName = "Damoang UI Extension Extension (macOS)";
+			productReference = D393F7793047C1870041E46A /* Damoang UI Extension Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		D393F73E3047C1860041E46A /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2660;
+				LastUpgradeCheck = 2660;
+				TargetAttributes = {
+					D393F7503047C1870041E46A = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					D393F7623047C1870041E46A = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					D393F76E3047C1870041E46A = {
+						CreatedOnToolsVersion = 26.6;
+					};
+					D393F7783047C1870041E46A = {
+						CreatedOnToolsVersion = 26.6;
+					};
+				};
+			};
+			buildConfigurationList = D393F7413047C1860041E46A /* Build configuration list for PBXProject "Damoang UI Extension" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = D393F73D3047C1860041E46A;
+			packageReferences = (
+				D393F7A0BBBB0010BBBB0010 /* XCLocalSwiftPackageReference "DamoangUICore" */,
+			);
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D393F7523047C1870041E46A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D393F7503047C1870041E46A /* Damoang UI Extension (iOS) */,
+				D393F7623047C1870041E46A /* Damoang UI Extension (macOS) */,
+				D393F76E3047C1870041E46A /* Damoang UI Extension Extension (iOS) */,
+				D393F7783047C1870041E46A /* Damoang UI Extension Extension (macOS) */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		D393F74F3047C1870041E46A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D393F7A0AAAA0003AAAA0003 /* AppIcon.icon in Resources */,
+				D393F7813047C1870041E46A /* Icon.png in Resources */,
+				D393F75A3047C1870041E46A /* LaunchScreen.storyboard in Resources */,
+				D393F77F3047C1870041E46A /* Main.html in Resources */,
+				D393F7853047C1870041E46A /* Script.js in Resources */,
+				D393F7893047C1870041E46A /* Assets.xcassets in Resources */,
+				D393F75D3047C1870041E46A /* Main.storyboard in Resources */,
+				D393F7833047C1870041E46A /* Style.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D393F7613047C1870041E46A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D393F7A0AAAA0004AAAA0004 /* AppIcon.icon in Resources */,
+				D393F7823047C1870041E46A /* Icon.png in Resources */,
+				D393F7843047C1870041E46A /* Style.css in Resources */,
+				D393F7693047C1870041E46A /* Main.storyboard in Resources */,
+				D393F7863047C1870041E46A /* Script.js in Resources */,
+				D393F78A3047C1870041E46A /* Assets.xcassets in Resources */,
+				D393F7803047C1870041E46A /* Main.html in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D393F76D3047C1870041E46A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D393F7BA3047C1880041E46A /* _locales in Resources */,
+				D393F7B43047C1880041E46A /* backup.js in Resources */,
+				D393F7B53047C1880041E46A /* popup.html in Resources */,
+				D393F7B23047C1880041E46A /* icons.js in Resources */,
+				D393F7BB3047C1880041E46A /* content.js in Resources */,
+				D393F7B63047C1880041E46A /* icons in Resources */,
+				D393F7B93047C1880041E46A /* common.js in Resources */,
+				D393F7B33047C1880041E46A /* popup.js in Resources */,
+				D393F7B83047C1880041E46A /* backup.html in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D393F7773047C1870041E46A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D393F7B03047C1880041E46A /* _locales in Resources */,
+				D393F7AA3047C1880041E46A /* backup.js in Resources */,
+				D393F7AB3047C1880041E46A /* popup.html in Resources */,
+				D393F7A83047C1880041E46A /* icons.js in Resources */,
+				D393F7B13047C1880041E46A /* content.js in Resources */,
+				D393F7AC3047C1880041E46A /* icons in Resources */,
+				D393F7AF3047C1880041E46A /* common.js in Resources */,
+				D393F7A93047C1880041E46A /* popup.js in Resources */,
+				D393F7AE3047C1880041E46A /* backup.html in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		D393F7A0BBBB0025BBBB0025 /* Patch Safari Manifest */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Scripts/safari-manifest.py",
+				"$(SRCROOT)/Shared (Extension)/Resources/background.js",
+				"$(SRCROOT)/../../extension/manifest.json",
+			);
+			name = "Patch Safari Manifest";
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/background.js",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/manifest.json",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "python3 \"${SRCROOT}/Scripts/safari-manifest.py\" \"${SRCROOT}/../../extension/manifest.json\" \"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\" \"${SRCROOT}/Shared (Extension)/Resources/background.js\"\n";
+		};
+		D393F7A0BBBB0026BBBB0026 /* Patch Safari Manifest */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Scripts/safari-manifest.py",
+				"$(SRCROOT)/Shared (Extension)/Resources/background.js",
+				"$(SRCROOT)/../../extension/manifest.json",
+			);
+			name = "Patch Safari Manifest";
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/background.js",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/manifest.json",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "python3 \"${SRCROOT}/Scripts/safari-manifest.py\" \"${SRCROOT}/../../extension/manifest.json\" \"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\" \"${SRCROOT}/Shared (Extension)/Resources/background.js\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		D393F74D3047C1870041E46A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D393F7A0BBBB0020BBBB0020 /* AppAssembly.swift in Sources */,
+				D393F7A0BBBB001DBBBB001D /* ContainerPresenter.swift in Sources */,
+				D393F7A0BBBB001ABBBB001A /* PlatformServices.swift in Sources */,
+				D393F7873047C1870041E46A /* ViewController.swift in Sources */,
+				D393F7553047C1870041E46A /* AppDelegate.swift in Sources */,
+				D393F7573047C1870041E46A /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D393F75F3047C1870041E46A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D393F7A0BBBB0021BBBB0021 /* AppAssembly.swift in Sources */,
+				D393F7A0BBBB001EBBBB001E /* ContainerPresenter.swift in Sources */,
+				D393F7A0BBBB001BBBBB001B /* PlatformServices.swift in Sources */,
+				D393F7883047C1870041E46A /* ViewController.swift in Sources */,
+				D393F7663047C1870041E46A /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D393F76B3047C1870041E46A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D393F7A0BBBB0023BBBB0023 /* NativeMessageCodec.swift in Sources */,
+				D393F78B3047C1870041E46A /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D393F7753047C1870041E46A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D393F7A0BBBB0024BBBB0024 /* NativeMessageCodec.swift in Sources */,
+				D393F78C3047C1870041E46A /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		D393F7723047C1870041E46A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D393F76E3047C1870041E46A /* Damoang UI Extension Extension (iOS) */;
+			targetProxy = D393F7713047C1870041E46A /* PBXContainerItemProxy */;
+		};
+		D393F77C3047C1870041E46A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D393F7783047C1870041E46A /* Damoang UI Extension Extension (macOS) */;
+			targetProxy = D393F77B3047C1870041E46A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		D393F7443047C1860041E46A /* Main.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D393F7453047C1860041E46A /* Base */,
+			);
+			name = Main.html;
+			sourceTree = "<group>";
+		};
+		D393F7583047C1870041E46A /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D393F7593047C1870041E46A /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		D393F75B3047C1870041E46A /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D393F75C3047C1870041E46A /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		D393F7673047C1870041E46A /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				D393F7683047C1870041E46A /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		D393F78D3047C1870041E46A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D393F7A0AAAA0001AAAA0001 /* Signing.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		D393F78E3047C1870041E46A /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = D393F7A0AAAA0001AAAA0001 /* Signing.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		D393F7903047C1870041E46A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = "iOS (Extension)/Sync.entitlements";
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 hobbyworker";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.6.5;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = me.hobbyworker.DamoangUIExtension.Extension;
+				PRODUCT_NAME = "Damoang UI Extension Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D393F7913047C1870041E46A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = "iOS (Extension)/Sync.entitlements";
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 hobbyworker";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.6.5;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = me.hobbyworker.DamoangUIExtension.Extension;
+				PRODUCT_NAME = "Damoang UI Extension Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		D393F7943047C1870041E46A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = "iOS (App)/Sync.entitlements";
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.6.5;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = me.hobbyworker.DamoangUIExtension;
+				PRODUCT_NAME = "Damoang UI Extension";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		D393F7953047C1870041E46A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = "iOS (App)/Sync.entitlements";
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.6.5;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = me.hobbyworker.DamoangUIExtension;
+				PRODUCT_NAME = "Damoang UI Extension";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		D393F7973047C1870041E46A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = "macOS (Extension)/Sync.entitlements";
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 hobbyworker";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
+				MARKETING_VERSION = 0.6.5;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = me.hobbyworker.DamoangUIExtension.Extension;
+				PRODUCT_NAME = "Damoang UI Extension Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		D393F7983047C1870041E46A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = "macOS (Extension)/Sync.entitlements";
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 hobbyworker";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
+				MARKETING_VERSION = 0.6.5;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = me.hobbyworker.DamoangUIExtension.Extension;
+				PRODUCT_NAME = "Damoang UI Extension Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		D393F79B3047C1870041E46A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = "macOS (App)/Sync.entitlements";
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
+				MARKETING_VERSION = 0.6.5;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = me.hobbyworker.DamoangUIExtension;
+				PRODUCT_NAME = "Damoang UI Extension";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		D393F79C3047C1870041E46A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				CODE_SIGN_ENTITLEMENTS = "macOS (App)/Sync.entitlements";
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
+				MARKETING_VERSION = 0.6.5;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = me.hobbyworker.DamoangUIExtension;
+				PRODUCT_NAME = "Damoang UI Extension";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		D393F7413047C1860041E46A /* Build configuration list for PBXProject "Damoang UI Extension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D393F78D3047C1870041E46A /* Debug */,
+				D393F78E3047C1870041E46A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D393F78F3047C1870041E46A /* Build configuration list for PBXNativeTarget "Damoang UI Extension Extension (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D393F7903047C1870041E46A /* Debug */,
+				D393F7913047C1870041E46A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D393F7933047C1870041E46A /* Build configuration list for PBXNativeTarget "Damoang UI Extension (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D393F7943047C1870041E46A /* Debug */,
+				D393F7953047C1870041E46A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D393F7963047C1870041E46A /* Build configuration list for PBXNativeTarget "Damoang UI Extension Extension (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D393F7973047C1870041E46A /* Debug */,
+				D393F7983047C1870041E46A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		D393F79A3047C1870041E46A /* Build configuration list for PBXNativeTarget "Damoang UI Extension (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D393F79B3047C1870041E46A /* Debug */,
+				D393F79C3047C1870041E46A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+/* Begin XCLocalSwiftPackageReference section */
+		D393F7A0BBBB0010BBBB0010 /* XCLocalSwiftPackageReference "DamoangUICore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = DamoangUICore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D393F7A0BBBB0011BBBB0011 /* DamoangUICore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DamoangUICore;
+		};
+		D393F7A0BBBB0013BBBB0013 /* DamoangUICore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DamoangUICore;
+		};
+		D393F7A0BBBB0015BBBB0015 /* DamoangUICore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DamoangUICore;
+		};
+		D393F7A0BBBB0017BBBB0017 /* DamoangUICore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = DamoangUICore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = D393F73E3047C1860041E46A /* Project object */;
+}

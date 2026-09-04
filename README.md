@@ -1,7 +1,7 @@
 # 다모앙 UI 확장
 
 다모앙(damoang.net)의 메모 설정과 즐겨찾기를 툴바 팝업에서 바로 다루는 브라우저 확장입니다.
-Chrome, Microsoft Edge, Firefox에서 동작합니다.
+Chrome, Microsoft Edge, Firefox, Safari(macOS·iOS)에서 동작합니다.
 
 다모앙 운영사와 관련이 없는 비공식 애플리케이션입니다.
 
@@ -38,6 +38,7 @@ Chrome, Microsoft Edge, Firefox에서 동작합니다.
 - Chrome Web Store: https://chromewebstore.google.com/detail/amlnkdgoebgibpcnlalgmllophgkgbgc
 - Microsoft Edge Add-ons: https://microsoftedge.microsoft.com/addons/detail/cgoaiibgggnpgibehddbpbloipcdbjka
 - Firefox Add-ons: https://addons.mozilla.org/ko/firefox/addon/damoang-ui-extension/
+- App Store (Safari, macOS·iOS): 출시 준비 중
 
 직접 로드하려면:
 
@@ -46,6 +47,8 @@ Chrome, Microsoft Edge, Firefox에서 동작합니다.
 3. "압축해제된 확장 프로그램을 로드합니다"로 `extension/` 폴더를 선택합니다.
 
 Firefox는 `about:debugging#/runtime/this-firefox`의 "임시 부가 기능 로드"에서 `extension/manifest.json`을 선택합니다. Firefox는 사이트 접근 권한을 따로 묻기 때문에, 팝업의 "다모앙 접근 허용" 버튼으로 한 번 허용해야 합니다.
+
+Safari는 `safari/Damoang UI Extension/Damoang UI Extension.xcodeproj`를 Xcode로 열어 macOS 또는 iOS 스킴을 실행합니다. 확장 소스는 `extension/`을 그대로 참조합니다. 서명은 `Signing.xcconfig.example`을 `Signing.xcconfig`로 복사해 팀 ID를 넣으면 됩니다(git에 올라가지 않음). 실행 후 Safari 설정(iOS는 설정 앱)의 확장 프로그램에서 켜고 damoang.net 접근을 허용합니다.
 
 ## 동작 방식
 

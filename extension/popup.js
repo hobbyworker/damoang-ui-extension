@@ -182,11 +182,171 @@ let shotScope = localStorage.getItem("shot-scope") || "memo-profile";
 // 기능 설명 아이콘 표시. 섹션별로 따로 기억, 기본 켜짐
 let showTips = localStorage.getItem("settings-tips") !== "0";
 // 크기 구분(Apple size class 명칭 차용). 안드로이드 브라우저에서 페이지로 열리면 compact,
-// 데스크톱 팝업이면 regular. 팝업 레이아웃(1열/2열)의 초기값이 이걸 따른다
-const sizeClass = /Android/.test(navigator.userAgent) ? "compact" : "regular";
+// 데스크톱 팝업이면 regular. 팝업 레이아웃(1열/2열)의 초기값이 이걸 따른다.
+// iPad 는 UA 가 Mac 이라 regular 로 둔다 (팝오버 폭이 넉넉함)
+let sizeClass = /Android|iPhone|iPod/.test(navigator.userAgent) ? "compact" : "regular";
+// iOS Safari 는 팝업을 시트(iPhone, 좁은 iPad 창)나 팝오버(넓은 iPad 창)로 연다. CSS 가 이 클래스로 구분한다
+const isIOSDevice = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
+if (isIOSDevice) document.documentElement.classList.add("ios");
+// iPad 는 창이 넓으면 팝오버, 좁으면 시트로 열리고 열린 채로도 서로 바뀐다. 시트는 창 전체 폭으로
+// 펼쳐지므로 호스트 폭(outerWidth) = Safari 창 폭이고, 팝오버는 내용 크기 상자라 창보다 좁다.
+// 창 폭은 팝업이 볼 수 없어 damoang 탭에서 읽는다. 문서 크기나 호스트 높이로 판정하면 되먹이거나
+// 인셋에 흔들린다 (2026-09-03 시행착오)
+const isIPad = isIOSDevice && sizeClass === "regular";
+const ipadState = { winW: 0 };
+function applySizeClass(next) {
+  if (next === sizeClass) return;
+  document.documentElement.classList.remove(sizeClass);
+  sizeClass = next;
+  document.documentElement.classList.add(sizeClass);
+  if (typeof applyLayout === "function") {
+    popupLayout = sizeClass === "compact" ? "1" : "2";
+    applyLayout();
+  }
+}
+if (isIPad) {
+  document.documentElement.classList.add("ipad");
+  let pending = 0;
+  let pendingCls = "";
+  let decided = false;
+  let measuring = false;
+  let hostAtMeasure = 0;
+  let measuredAt = 0;
+  // 팝오버에서 시트로 넘어오면 팝오버 때 레이아웃 폭이 남아 넓은 시트를 못 채우고 좁은 시트는 넘친다.
+  // 1열에서는 html 폭을 호스트 폭에 맞춘다 (Safari 가 늦게 반영하므로 매번 현재 값으로)
+  const fitSheet = () => {
+    const want = sizeClass === "compact" && window.outerWidth ? window.outerWidth + "px" : "";
+    if (document.documentElement.style.width !== want) document.documentElement.style.width = want;
+  };
+  // 창 폭. 같은 창의 damoang 탭에서 outerWidth(탭의 호스트 = Safari 창)를 읽는다. 없으면 확장 API 값
+  const measureWindow = async () => {
+    try {
+      const [tab] = await chrome.tabs.query({ url: "https://damoang.net/*", currentWindow: true });
+      if (tab) {
+        const r = await Promise.race([
+          chrome.scripting.executeScript({ target: { tabId: tab.id }, func: () => window.outerWidth || window.innerWidth }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 1500))
+        ]);
+        const v = r && r[0] && r[0].result;
+        if (v > 0) return { w: v };
+      }
+    } catch (e) { /* 탭 없음, 주입 실패 */ }
+    try {
+      if (chrome.windows && chrome.windows.getCurrent) {
+        const w = await chrome.windows.getCurrent();
+        if (w && w.width > 0) return { w: w.width };
+      }
+    } catch (e) { /* 미지원 */ }
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab && tab.width > 0) return { w: tab.width };
+    } catch (e) { /* 미지원 */ }
+    return null;
+  };
+  const classify = () => {
+    const hostW = window.outerWidth;
+    if (!hostW || !ipadState.winW) return "";
+    return Math.abs(hostW - ipadState.winW) <= 1 ? "compact" : "regular";
+  };
+  const apply = (why, now) => {
+    const cls = classify();
+    const first = !decided;
+    if (cls) decided = true;
+    if (!cls || cls === sizeClass) {
+      if (pending) { clearTimeout(pending); pending = 0; }
+      fitSheet();
+      return;
+    }
+    if (now || first) {
+      applySizeClass(cls);
+      fitSheet();
+      return;
+    }
+    // 전환 애니메이션 중에는 값이 흔들리므로 잠시 같은 값이 유지될 때 바꾼다
+    if (pending && pendingCls === cls) return;
+    if (pending) clearTimeout(pending);
+    pendingCls = cls;
+    pending = setTimeout(() => { pending = 0; apply("settle", true); }, 150);
+  };
+  // 표시 방식이 바뀌면 호스트 폭도 바뀌므로 호스트 폭이 달라졌을 때 창 폭을 다시 잰다. 2초에 한 번은 갱신
+  const decide = async (why) => {
+    const hostW = window.outerWidth;
+    const t = Date.now();
+    const stale = hostW !== hostAtMeasure || !ipadState.winW || t - measuredAt > 2000;
+    if (hostW && stale && !measuring && t - measuredAt > 200) {
+      measuring = true;
+      hostAtMeasure = hostW;
+      measuredAt = t;
+      const m = await measureWindow();
+      measuring = false;
+      if (m) ipadState.winW = m.w;
+    }
+    apply(why);
+  };
+  decide("init");
+  window.addEventListener("resize", () => decide("rs"));
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", () => decide("vv"));
+  setInterval(() => decide("poll"), 500);
+  window.addEventListener("load", fitSheet);
+}
 document.documentElement.classList.add(sizeClass);
+// 1열에서는 다이얼로그가 다음 페이지로 열린다. 상단 바(‹ 제목)를 붙이고, 빈 영역 클릭으로 닫는
+// 배경 클릭 처리는 막는다 (페이지에는 배경이 없다). compact 와 iOS(iPad 팝오버 포함)에서는 열리며
+// 첫 입력칸에 가는 자동 포커스도 거둔다. iOS 는 포커스만으로 키보드나 select 피커를 띄우고 시트를 키운다
+const noAutoFocus = sizeClass === "compact" || isIOSDevice;
+const PAGE_TITLE = { "hl-dialog": "제목 강조", "follow-dialog": "사용자 강조" };
+const isCols1 = () => document.body.classList.contains("cols1");
+function ensurePageBar(dialog) {
+  if (dialog.querySelector(":scope > .cbar")) return;
+  const bar = document.createElement("div");
+  bar.className = "cbar";
+  const back = document.createElement("button");
+  back.className = "cbar-back";
+  back.type = "button";
+  back.setAttribute("aria-label", "뒤로");
+  back.textContent = "\u2039";
+  back.addEventListener("click", () => dialog.close());
+  const title = document.createElement("span");
+  title.className = "cbar-title";
+  const h2 = dialog.querySelector(":scope > h2");
+  title.textContent = PAGE_TITLE[dialog.id] || (h2 ? h2.textContent.trim() : "");
+  bar.append(back, title);
+  dialog.prepend(bar);
+  dialog.addEventListener("click", (e) => { if (e.target === dialog && isCols1()) e.stopImmediatePropagation(); }, true);
+}
+{
+  const showModal = HTMLDialogElement.prototype.showModal;
+  HTMLDialogElement.prototype.showModal = function () {
+    if (isCols1()) ensurePageBar(this);
+    showModal.call(this);
+    if (isCols1()) this.scrollTop = 0;
+    if (!noAutoFocus) return;
+    const a = document.activeElement;
+    if (a && a !== this && this.contains(a) && typeof a.blur === "function") a.blur();
+  };
+}
+const focusIfRegular = (el) => { if (!noAutoFocus) el.focus(); };
+// iOS 는 입력칸 포커스로 시트를 키우고 키보드를 띄우면서 페이지를 위로 밀어 둔다. 키보드가 관여한
+// 뒤(입력칸에 포커스가 있었을 때)에만 되돌린다. 시트 끌기나 문서 스크롤로 뷰포트가 바뀌는 경우는 건드리지 않는다
+{
+  const isField = (el) => !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT");
+  let fieldAt = 0;
+  const unshift = () => {
+    if (sizeClass !== "compact") return;
+    if (isField(document.activeElement)) return;
+    if (Date.now() - fieldAt > 1500) return;
+    window.scrollTo(0, 0);
+    if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+  };
+  document.addEventListener("focusin", (e) => { if (isField(e.target)) fieldAt = Date.now(); });
+  document.addEventListener("focusout", (e) => { if (isField(e.target)) { fieldAt = Date.now(); setTimeout(unshift, 50); } });
+  if (window.visualViewport) window.visualViewport.addEventListener("resize", () => { if (fieldAt) setTimeout(unshift, 50); });
+}
+const isIOS = document.documentElement.classList.contains("ios");
 let popupLayout = localStorage.getItem("popup-layout");
 if (popupLayout !== "1" && popupLayout !== "2") popupLayout = sizeClass === "compact" ? "1" : "2";
+// iOS 는 레이아웃을 고르지 않는다. iPhone 은 항상 1열, iPad 는 항상 2열
+if (isIOS) popupLayout = sizeClass === "compact" ? "1" : "2";
 
 function applyLayout() {
   document.body.classList.toggle("cols1", popupLayout === "1");
@@ -215,16 +375,18 @@ setupSideDrawer("follow-dialog", "follow-side-toggle", "follow-list", "follow-ad
 
 // 다이얼로그나 차단막(게이트, 로딩 실패, 리셋 확인)이 떠 있는 동안
 // 휠·터치가 배경으로 새지 않게 막는다. 다이얼로그 안 스크롤 영역 위에서는 그대로 둔다.
-// 스크롤바 직접 드래그는 막을 방법이 없어 허용한다 (잠금 시도 이력은 CLAUDE 기록 참조)
+// 스크롤바 직접 드래그는 막을 방법이 없어 허용한다
 function dialogScrollLock(e) {
   if (!document.querySelector("dialog[open], #gate:not([hidden]), #fail:not([hidden]), #reset-confirm:not([hidden])")) return;
   let el = e.target instanceof Element ? e.target : null;
-  // body 와 1열 본문 스크롤러(#columns)는 배경이라 내부 스크롤 영역으로 치지 않는다
-  while (el && el !== document.body && el.id !== "columns" && el.tagName !== "DIALOG") {
+  // body 와 1열 본문 스크롤러(#columns)는 배경이라 내부 스크롤 영역으로 치지 않는다.
+  // 다이얼로그 자체가 스크롤러인 경우(compact)는 허용해야 하므로 DIALOG 까지 검사한다
+  while (el && el !== document.body && el.id !== "columns") {
     if (el.scrollHeight > el.clientHeight + 1) {
       const oy = getComputedStyle(el).overflowY;
       if (oy === "auto" || oy === "scroll") return;
     }
+    if (el.tagName === "DIALOG") break;
     el = el.parentElement;
   }
   e.preventDefault();
@@ -967,7 +1129,7 @@ function renderMuteRow() {
     muteMsgEl.textContent = "";
     muteInput.value = "";
     muteDialog.showModal();
-    muteInput.focus();
+    focusIfRegular(muteInput);
   });
   right.append(muteRowCountEl, muteManageBtn);
   row.append(label, right);
@@ -1350,8 +1512,8 @@ function addFollowGroup() {
   follow.groups.push({ name: "그룹 " + n, style: normalizeFollowStyle(null, true), members: [] });
   saveFollow();
   selectFollowItem(follow.groups.length - 1);
-  followName.focus();
-  followName.select();
+  focusIfRegular(followName);
+  if (!noAutoFocus) followName.select();
 }
 
 function addFollowMember() {
@@ -1478,6 +1640,8 @@ function setupView() {
     view = normalizeView(v);
     viewMemberTabSwitch.checked = view.memberTab;
     viewDlgScrollSwitch.checked = view.dlgScroll;
+    // Safari(WebKit)는 사이트가 목록 위치를 유지하므로 옵션이 할 일이 없다 (2026-09-04 브라우저별 확인). 값은 그대로 두고 행만 숨긴다
+    if (DUI_SYNC.enabled) document.getElementById("view-dlgscroll-row").style.display = "none";
     viewDlogSwitch.checked = view.dlog;
     renderMl();
     renderCl();
@@ -1912,8 +2076,8 @@ function addHlGroup() {
   }, normalizeSections({}, true)));
   saveHl();
   selectHlGroup(i);
-  hlName.focus();
-  hlName.select();
+  focusIfRegular(hlName);
+  if (!noAutoFocus) hlName.select();
 }
 
 function addHlKeyword() {
@@ -1963,7 +2127,7 @@ function setupHighlight() {
   hlManageBtn.addEventListener("click", () => {
     selectHlGroup(hl.groups.length ? 0 : -1);
     hlDialog.showModal();
-    if (hlGroup()) hlInput.focus();
+    if (hlGroup()) focusIfRegular(hlInput);
   });
   hlDialog.addEventListener("click", (e) => {
     if (e.target === hlDialog) hlDialog.close();
@@ -2226,7 +2390,11 @@ async function onFailRetry() {
 
 function updateDevBadge() {
   const names = { logout: "비로그인", fail: "실패", timeout: "타임아웃" };
-  devBadgeEl.textContent = simMode ? "DEV: " + names[simMode] : "DEV";
+  const vv = window.visualViewport;
+  const metrics = window.innerWidth + "x" + window.innerHeight + " c" + document.documentElement.clientWidth
+    + " s" + screen.width + "x" + screen.height + (vv ? " vv" + Math.round(vv.width) + "@" + vv.scale.toFixed(2) : "")
+    + " dpr" + window.devicePixelRatio;
+  devBadgeEl.textContent = (simMode ? "DEV: " + names[simMode] : "DEV") + " " + metrics;
   devBadgeEl.classList.toggle("fail", !!simMode);
 }
 
@@ -2246,6 +2414,8 @@ function setupReset() {
     resetCancelBtn.disabled = true;
     resetHoldBtn.textContent = "지우는 중…";
     try {
+      const resetT = Date.now();
+      await duiSyncPush(["highlight", "member", "pmenu", "emprio", "view", "qprofile"].map(key => ({ key, json: null, t: resetT })));
       await chrome.storage.sync.clear();
     } catch (_) {}
     try {
@@ -2445,6 +2615,46 @@ function setupFavCollapse() {
   });
 }
 
+// 1열에서 빠른 설정·추가 기능 머리글로 접기. 옵션 톱니 클릭은 제외
+function setupSectionCollapse() {
+  const items = [["settings-group", "settings-head", "sec-settings-collapsed"], ["extra-group", "extra-head", "sec-extra-collapsed"]];
+  for (const [gid, hid, key] of items) {
+    const group = document.getElementById(gid);
+    const head = document.getElementById(hid);
+    if (localStorage.getItem(key) === "1") group.classList.add("sec-collapsed");
+    head.addEventListener("click", (e) => {
+      if (!document.body.classList.contains("cols1")) return;
+      if (e.target.closest("button")) return;
+      localStorage.setItem(key, group.classList.toggle("sec-collapsed") ? "1" : "0");
+    });
+  }
+}
+
+// 1열 섹션 표시. 팝업 전용이라 localStorage (기기별)
+// 후원은 항상 표시
+const SEC_KEYS = ["fav", "shortcut", "quick", "settings", "extra"];
+let secHidden = [];
+try { secHidden = JSON.parse(localStorage.getItem("cols1-hidden") || "[]"); } catch (e) { secHidden = []; }
+if (!Array.isArray(secHidden)) secHidden = [];
+secHidden = secHidden.filter(k => SEC_KEYS.includes(k));
+function applySections() {
+  for (const k of SEC_KEYS) document.body.classList.toggle("nosec-" + k, secHidden.includes(k));
+}
+function setupSections() {
+  applySections();
+  for (const input of document.querySelectorAll("#cols1-sections input[data-sec]")) {
+    input.checked = !secHidden.includes(input.dataset.sec);
+    input.addEventListener("change", () => {
+      secHidden = SEC_KEYS.filter(k => {
+        const el = document.getElementById("sec-" + k);
+        return el && !el.checked;
+      });
+      localStorage.setItem("cols1-hidden", JSON.stringify(secHidden));
+      applySections();
+    });
+  }
+}
+
 function setupScrollMemory() {
   // 비동기 콘텐츠가 위쪽에 늦게 채워지면 브라우저 스크롤 앵커링이 scrollTop 을 저절로 키운다.
   // 그 값을 받아 적으면 열 때마다 아래로 밀리므로, 최근에 사용자 입력이 있던 스크롤만 저장한다
@@ -2559,18 +2769,28 @@ function setupImportExport() {
     document.getElementById("backup-note").textContent =
       "백업 파일에는 추가 기능의 설정이 담깁니다. 다른 기기나 브라우저로 옮기거나 만약을 대비해 보관할 때 사용합니다.";
   }
-  // Firefox 는 팝업에서 파일 창을 열면 팝업이 닫힌다. 백업·복원 모두 전용 탭에서 (UI 통일)
+  // Safari 는 storage.sync 가 로밍하지 않고 확장 앱이 iCloud 로 동기화한다
+  if (DUI_SYNC.enabled) {
+    document.getElementById("backup-note").textContent =
+      "추가 기능의 설정은 iCloud로 기기 간 동기화됩니다. 백업 파일에는 이 설정이 담기며, 다른 종류의 브라우저로 옮기거나 만약을 대비해 보관할 때 사용합니다.";
+  }
+  // Firefox 는 팝업에서 파일 창을 열면 팝업이 닫히고, macOS Safari 팝업은 blob 다운로드가 안 되어 그 주소로
+  // 이동해 버린다. Safari 는 iOS 까지 포함해 백업·복원을 전용 탭(backup.html)에서 하고, 팝업에는 이동 버튼만 둔다
   const firefox = navigator.userAgent.includes("Firefox");
+  const useTab = firefox || DUI_SYNC.enabled;
   const openBackupPage = () => {
     chrome.tabs.create({ url: chrome.runtime.getURL("backup.html") });
     window.close();
   };
-  if (firefox) {
-    exportBtn.addEventListener("click", openBackupPage);
-    importBtn.addEventListener("click", openBackupPage);
+  if (useTab) {
+    exportBtn.hidden = true;
+    importBtn.hidden = true;
+    const goBtn = document.getElementById("backup-go-btn");
+    goBtn.hidden = false;
+    goBtn.addEventListener("click", openBackupPage);
   }
-  exportBtn.addEventListener("click", () => {
-    if (firefox) return;
+  exportBtn.addEventListener("click", async () => {
+    if (useTab) return;
     const data = {
       app: "damoang-ui-extension",
       schema: 1,
@@ -2582,20 +2802,35 @@ function setupImportExport() {
       view: view,
       qprofile: qp
     };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
+    const json = JSON.stringify(data, null, 2);
     const d = new Date();
     const pad = n => String(n).padStart(2, "0");
-    a.download = "damoang-ui-extension-backup-" + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + ".json";
+    const name = "damoang-ui-extension-backup-" + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + ".json";
+    // iOS 는 팝업 안 다운로드가 열리지 않아 공유 시트(파일에 저장)로
+    if (isIOS && navigator.canShare) {
+      const file = new File([json], name, { type: "application/json" });
+      if (navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file] });
+          setIoMsg("백업 파일을 공유했습니다.");
+        } catch (e) {
+          if (!(e && e.name === "AbortError")) setIoMsg("백업 실패: " + (e && e.message ? e.message : e), true);
+        }
+        return;
+      }
+    }
+    const blob = new Blob([json], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
     document.body.append(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(a.href);
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
     setIoMsg("백업 파일을 내려받았습니다.");
   });
   importBtn.addEventListener("click", () => {
-    if (firefox) return;
+    if (useTab) return;
     importFile.click();
   });
   importFile.addEventListener("change", async () => {
@@ -2623,14 +2858,33 @@ function setupImportExport() {
       setIoMsg("복원 실패: " + (e && e.message ? e.message : e), true);
     }
   });
+
+}
+
+// iCloud 에서 당겨 와 바뀐 항목이 있으면 팝업을 다시 그린다. 입력 중이거나 다이얼로그가 열려 있으면 다음 기회에
+async function syncFromCloud() {
+  if (!DUI_SYNC.enabled) return;
+  const r = await duiSyncPull(3);
+  if (!r || !Array.isArray(r.changed) || !r.changed.length) return;
+  const a = document.activeElement;
+  if ((a && (a.tagName === "INPUT" || a.tagName === "TEXTAREA")) || document.querySelector("dialog[open]")) return;
+  location.reload();
 }
 
 async function init() {
+  syncFromCloud();
+  if (DUI_SYNC.enabled) {
+    setInterval(syncFromCloud, 20000);
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") syncFromCloud(); });
+  }
   const manifest = chrome.runtime.getManifest();
   // 확장 이름은 manifest(로케일 해석 후)를 따른다
   document.getElementById("site-link").textContent = manifest.name;
   const version = manifest.version;
-  versionEl.textContent = "v" + version;
+  // 빌드 시각(디버그 빌드의 version_name)은 디버그를 켰을 때만 보인다
+  const renderVersion = () => { versionEl.textContent = "v" + (debugMode && manifest.version_name ? manifest.version_name : version); };
+  renderVersion();
+  debugSwitch.addEventListener("change", () => setTimeout(renderVersion, 0));
   // 버전 페이지의 해당 버전 앵커로 (versions.md의 {#v0-1-0} 규칙과 짝)
   versionEl.href = "https://damoang-ui-extension.hobbyworker.me/versions/#v" + version.split(".").join("-");
 
@@ -2639,6 +2893,7 @@ async function init() {
     themeSelect.value = themeMode;
     autosaveInput.value = String(autosaveDelay / 1000);
     debugSwitch.checked = debugMode;
+    document.getElementById("cols1-sections").hidden = popupLayout !== "1";
     setIoMsg("");
     settingsDialog.showModal();
   });
@@ -2654,10 +2909,13 @@ async function init() {
     if (e.target === settingsDialog) settingsDialog.close();
   });
   layoutSelect.value = popupLayout;
+  // iOS 는 표시 방식이 레이아웃을 정한다 (iPhone 1열, iPad 팝오버 2열·시트 1열). 항목 자체를 숨긴다
+  if (isIOS) layoutSelect.closest(".opt-row").hidden = true;
   layoutSelect.addEventListener("change", () => {
     popupLayout = layoutSelect.value === "1" ? "1" : "2";
     localStorage.setItem("popup-layout", popupLayout);
     applyLayout();
+    document.getElementById("cols1-sections").hidden = popupLayout !== "1";
   });
   themeSelect.addEventListener("change", () => {
     themeMode = themeSelect.value;
@@ -2682,6 +2940,7 @@ async function init() {
 
   devBadgeEl.hidden = !debugMode;
   updateDevBadge();
+  window.addEventListener("resize", () => { if (debugMode) updateDevBadge(); });
   devBadgeEl.addEventListener("click", () => {
     for (const b of devDialog.querySelectorAll("button")) {
       b.classList.toggle("on", b.dataset.sim === simMode);
@@ -2711,6 +2970,8 @@ async function init() {
   setupView();
   setupQp();
   setupFavCollapse();
+  setupSectionCollapse();
+  setupSections();
   setupScrollMemory();
   setupExtra();
   const cached = loadCache();

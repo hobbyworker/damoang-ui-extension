@@ -11,6 +11,7 @@
     --fg: #1c1c1e;
     --muted: #8e8e93;
     --divider: rgba(0, 0, 0, 0.06);
+    --field: rgba(0, 0, 0, 0.03);
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
@@ -18,6 +19,7 @@
       --fg: #f2f2f4;
       --muted: #98989e;
       --divider: rgba(255, 255, 255, 0.08);
+      --field: rgba(255, 255, 255, 0.05);
     }
   }
   /* 수동 다크. popup.html 과 값이 같아야 한다 */
@@ -27,35 +29,68 @@
     --fg: #f2f2f4;
     --muted: #98989e;
     --divider: rgba(255, 255, 255, 0.08);
+    --field: rgba(255, 255, 255, 0.05);
   }
   :root[data-theme="light"] { color-scheme: light; }
   body {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     min-height: 100vh;
     margin: 0;
+    padding: 24px 0;
+    box-sizing: border-box;
     background: var(--bg);
     color: var(--fg);
     font: 14px/1.5 -apple-system, "Apple SD Gothic Neo", "Pretendard", system-ui, sans-serif;
   }
   main {
-    width: min(420px, 90vw);
-    padding: 28px;
+    width: min(720px, 94vw);
+    padding: 24px;
+    box-sizing: border-box;
     border: 1px solid var(--divider);
     border-radius: 14px;
   }
   h1 {
-    margin: 0 0 10px;
+    margin: 0 0 8px;
     font-size: 18px;
   }
   p {
-    margin: 0 0 16px;
+    margin: 0 0 14px;
     color: var(--muted);
     font-size: 13px;
   }
-  button {
+  textarea {
+    display: block;
     width: 100%;
+    height: min(52vh, 480px);
+    box-sizing: border-box;
+    padding: 10px 12px;
+    border: 1px solid var(--divider);
+    border-radius: 10px;
+    background: var(--field);
+    color: var(--fg);
+    font: 12px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    resize: vertical;
+    tab-size: 2;
+  }
+  textarea:focus { outline: 2px solid rgba(26, 115, 232, 0.4); outline-offset: 1px; }
+  .check {
+    margin: 8px 0 0;
+    min-height: 20px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .check.err { color: #d33; }
+  .check.ok { color: #2e9e4f; }
+  .btns {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .btns + .btns { margin-top: 8px; }
+  button {
+    flex: 1;
     padding: 9px 0;
     border-radius: 8px;
     border: 1px solid var(--divider);
@@ -65,6 +100,7 @@
     font-weight: 600;
     cursor: pointer;
   }
+  button.primary { border-color: #1a73e8; color: #1a73e8; }
   button:not(:disabled):active { opacity: 0.75; }
   button:disabled { opacity: 0.4; cursor: default; }
   #msg {
@@ -73,16 +109,53 @@
   }
   #msg.err { color: #d33; }
   #msg.ok { color: #2e9e4f; }
+  details {
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--divider);
+  }
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  details[open] summary { color: var(--fg); margin-bottom: 8px; }
+  p.sub { margin: 0 0 10px; }
+  .advmsg { margin: 10px 0 0; font-size: 13px; }
+  .advmsg.err { color: #d33; }
+  .advmsg.ok { color: #2e9e4f; }
+  @media (max-width: 520px) {
+    .btns { flex-wrap: wrap; }
+    button { flex-basis: calc(50% - 4px); }
+  }
+  /* 모바일은 입력 글자 16px 미만이면 포커스 때 자동 확대된다 */
+  @media (pointer: coarse) {
+    textarea { font-size: 16px; }
+  }
 </style>
 </head>
 <body>
   <main>
     <h1>추가 기능 백업 및 복원</h1>
     <p>추가 기능 설정을 파일로 백업하거나, 백업 파일을 선택해 복원합니다. 다모앙 서버에 저장된 설정은 영향을 받지 않습니다.</p>
-    <button id="export-btn">백업 파일 내려받기</button>
-    <button id="pick-btn" style="margin-top:8px">백업 파일 선택 (복원)</button>
+    <div class="btns">
+      <button id="export-btn">백업 파일 내려받기</button>
+      <button id="pick-btn">백업 파일 선택 (복원)</button>
+    </div>
     <input type="file" id="file-input" accept=".json,application/json" hidden>
     <div id="msg" hidden></div>
+    <details id="adv">
+      <summary>설정 내용 직접 보기·편집</summary>
+      <p class="sub">복사해 두거나 붙여 넣은 내용을 적용할 수 있습니다. 적용할 때 형식을 검사합니다.</p>
+      <textarea id="editor" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+      <div id="check" class="check"></div>
+      <div class="btns">
+        <button id="reload-btn">현재 설정 불러오기</button>
+        <button id="copy-btn">복사</button>
+        <button id="apply-btn" class="primary">적용</button>
+      </div>
+      <div id="adv-msg" class="advmsg" hidden></div>
+    </details>
   </main>
   <script src="common.js"></script>
   <script src="backup.js"></script>

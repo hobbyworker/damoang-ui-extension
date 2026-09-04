@@ -5,6 +5,13 @@
 // 팔로우 목록은 페이지를 열 때마다 서버에서 받으므로 따로 동기화하지 않는다.
 // 설정은 "highlight", "member" (common.js 저장 계층, storage.sync + 구버전 local 폴백). 팝업이 쓰고 여기서 읽는다
 (() => {
+  // 확장을 설치·갱신하면 Safari 는 열려 있는 탭에 새 스크립트를 바로 주입하고 옛 스크립트도 살아 남는다.
+  // 둘이 같은 요소를 서로 갈아치우며 깜빡이므로 문서에 토큰을 적어 가장 나중 인스턴스만 동작한다.
+  // 리스너는 listen() 으로 걸어 소유자가 아니면 반응하지 않는다
+  const INSTANCE = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  document.documentElement.dataset.duiInstance = INSTANCE;
+  const owner = () => document.documentElement.dataset.duiInstance === INSTANCE;
+  const listen = (target, type, fn, opts) => target.addEventListener(type, (e) => { if (owner()) fn(e); }, opts);
   const HL_KEY = "highlight";
   const FOLLOW_KEY = "member";
   const PMENU_KEY = "pmenu";
@@ -36,6 +43,14 @@
   let lastCss = "";
   // 등록한 Highlight 이름. CSS.highlights 를 순회하면 Firefox(Xray)에서 막히므로 직접 기억한다
   let hlNames = [];
+  // 마지막으로 칠한 제목 텍스트 노드들과 설정 세대. 같으면 Range 를 다시 만들지 않는다.
+  // 사이트가 시계·광고로 DOM 을 자주 건드려 apply 가 초당 여러 번 도는데, 그때마다 살아 있는 Range 를
+  // 수백 개 새로 만들면 GC 전까지 DOM 변경마다 갱신 대상이 되어 페이지 전체가 느려진다
+  let hlLastNodes = [];
+  let hlLastTexts = [];
+  let hlLastRows = [];
+  let hlRev = 0;
+  let hlLastRev = -1;
 
   const bool = (v, d) => (typeof v === "boolean" ? v : d);
 
@@ -420,6 +435,25 @@
   }
 
   function applyHighlight() {
+    const rows = document.querySelectorAll("a.post-row");
+    const nodes = [];
+    const texts = [];
+    for (const row of rows) {
+      for (const el of row.querySelectorAll(".post-title, .post-title-read-dimmed")) {
+        for (const node of el.childNodes) {
+          if (node.nodeType !== Node.TEXT_NODE) continue;
+          nodes.push(node);
+          texts.push(node.data);
+        }
+      }
+    }
+    // 사이트가 행의 class 속성을 통째로 다시 쓰면 우리 행 클래스가 사라질 수 있어 그것도 확인한다
+    if (hlLastRev === hlRev && nodes.length === hlLastNodes.length && nodes.every((n, i) => n === hlLastNodes[i] && texts[i] === hlLastTexts[i])
+      && hlLastRows.every(([row, want]) => !want || row.classList.contains(want))) return;
+    hlLastRev = hlRev;
+    hlLastNodes = nodes;
+    hlLastTexts = texts;
+    hlLastRows = [];
     for (const name of hlNames) {
       if (hasHighlight) CSS.highlights.delete(name);
     }
@@ -431,7 +465,7 @@
       const re = g.on && (pen || rowClass) ? buildRegex(g) : null;
       if (re) jobs.push({ re, pen, rowClass, hl: pen ? new Highlight() : null, name: PREFIX + i });
     });
-    for (const row of document.querySelectorAll("a.post-row")) {
+    for (const row of rows) {
       // 그룹 순서상 먼저 맞은 그룹의 행 스타일을 쓴다
       let want = "";
       for (const el of row.querySelectorAll(".post-title, .post-title-read-dimmed")) {
@@ -462,6 +496,7 @@
         if (c.startsWith(HLROW_PREFIX) && c !== want) row.classList.remove(c);
       }
       if (want) row.classList.add(want);
+      hlLastRows.push([row, want]);
     }
     for (const job of jobs) {
       if (!job.pen) continue;
@@ -541,47 +576,52 @@
   }
 
   function apply() {
-    try {
-      applyHighlight();
-    } catch (e) {
-      console.warn("[다모앙UI] 제목 강조 실패", e);
+    if (!alive()) return;
+    const steps = [[applyHighlight, "제목 강조 실패"], [applyFollow, "사용자 강조 실패"], [applyWideNick, "닉네임 표시 실패"],
+      [qpbApply, "프로필 등록 버튼 실패"], [() => { applyHeartPill(); applyNickIcon(); }, "모바일 표시 옵션 실패"],
+      [applyDlog, "이용제한 기록 프로필 보기 실패"], [updateStyle, "스타일 갱신 실패"]];
+    for (const [fn, msg] of steps) {
+      try {
+        fn();
+      } catch (e) {
+        console.warn("[다모앙UI] " + msg, e);
+      }
     }
-    try {
-      applyFollow();
-    } catch (e) {
-      console.warn("[다모앙UI] 사용자 강조 실패", e);
-    }
-    try {
-      applyWideNick();
-    } catch (e) {
-      console.warn("[다모앙UI] 닉네임 표시 실패", e);
-    }
-    try {
-      qpbApply();
-    } catch (e) {
-      console.warn("[다모앙UI] 프로필 등록 버튼 실패", e);
-    }
-    try {
-      applyHeartPill();
-      applyNickIcon();
-    } catch (e) {
-      console.warn("[다모앙UI] 모바일 표시 옵션 실패", e);
-    }
-    try {
-      applyDlog();
-    } catch (e) {
-      console.warn("[다모앙UI] 이용제한 기록 프로필 보기 실패", e);
-    }
-    updateStyle();
   }
 
+  // 확장이 갱신되면 열려 있던 탭의 이 스크립트는 고아가 된다(저장소·메시지 불가, DOM 감시는 계속).
+  // 새 인스턴스와 같은 요소를 서로 갈아치우며 깜빡이므로, 고아를 감지하면 감시를 끊고 넣은 것을 걷어낸다
+  const observers = [];
+  let retired = false;
+  function runtimeAlive() {
+    try { return !!(chrome.runtime && chrome.runtime.id); } catch (_) { return false; }
+  }
+  function alive() {
+    if (retired) return false;
+    if (!owner()) { retire(false); return false; }
+    if (!runtimeAlive()) { retire(true); return false; }
+    return true;
+  }
+  function retire(removeUi) {
+    retired = true;
+    clearTimeout(timer);
+    for (const o of observers) o.disconnect();
+    observers.length = 0;
+    if (!removeUi) return;
+    for (const id of ["dui-qpwrap", "dui-qptip", "dui-pmenu", "dui-qpbtn-style", "dui-pmenu-style", "dui-highlight-style"]) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+  }
   function schedule() {
+    if (!alive()) return;
     clearTimeout(timer);
     timer = setTimeout(apply, 150);
   }
 
   async function loadCfg() {
     hl = normalizeHl(await duiRead(HL_KEY));
+    hlRev += 1;
     follow = normalizeFollow(await duiRead(FOLLOW_KEY));
     pmenu = normalizePmenu(await duiRead(PMENU_KEY));
     prio = normalizePrio(await duiRead(PRIO_KEY));
@@ -590,8 +630,28 @@
     if (!view.memberTab) mtabClear();
     apply();
   }
-  loadCfg();
+  loadCfg().then(() => duiSyncPull(0.5));
+  // 팝업에서 바꾼 뒤 탭으로 돌아오면 다시 읽는다. onChanged 가 늦거나 오지 않는 경우의 안전망
+  let refocusAt = 0;
+  const refresh = () => {
+    if (document.visibilityState === "hidden") return;
+    const now = Date.now();
+    if (now - refocusAt < 500) return;
+    refocusAt = now;
+    if (alive()) loadCfg();
+  };
+  listen(document, "visibilitychange", refresh);
+  listen(window, "focus", refresh);
+  listen(window, "pageshow", refresh);
+  // 팝업·백그라운드가 설정을 쓰면 메시지와 문서 이벤트로 알려 준다 (Safari 는 storage.onChanged 가 오지 않는다)
+  if (chrome.runtime && chrome.runtime.onMessage) {
+    chrome.runtime.onMessage.addListener((msg) => {
+      if (msg && msg.dui === "changed" && alive()) loadCfg();
+    });
+  }
+  listen(window, "dui-cfg-changed", () => { if (alive()) loadCfg(); });
   chrome.storage.onChanged.addListener((changes, area) => {
+    if (!alive()) return;
     if (area !== "sync" && area !== "local") return;
     if (duiChanged(changes, HL_KEY) || duiChanged(changes, FOLLOW_KEY) || duiChanged(changes, PMENU_KEY) || duiChanged(changes, PRIO_KEY) || duiChanged(changes, VIEW_KEY) || duiChanged(changes, QP_KEY)) loadCfg();
   });
@@ -731,7 +791,7 @@
   }
 
   // 캡처 단계에서 가로채 SvelteKit 라우터보다 먼저 처리한다
-  document.addEventListener("click", (e) => {
+  listen(document, "click", (e) => {
     if (pmenuEl && !pmenuEl.contains(e.target) && !(qpbTipEl && qpbTipEl.contains(e.target))) {
       const again = pmenuAnchor;
       closePmenu();
@@ -756,17 +816,17 @@
     e.stopPropagation();
     openPmenu(a);
   }, true);
-  document.addEventListener("keydown", (e) => {
+  listen(document, "keydown", (e) => {
     if (e.key === "Escape") {
       closePmenu();
       qpbCloseTip();
     }
   }, true);
-  window.addEventListener("scroll", () => {
+  listen(window, "scroll", () => {
     closePmenu();
     qpbCloseTip();
   }, true);
-  document.addEventListener("click", (e) => {
+  listen(document, "click", (e) => {
     if (qpbTipEl && !qpbTipEl.contains(e.target) && !(e.target.closest && e.target.closest("#dui-qpinfo, #dui-pminfo"))) qpbCloseTip();
   }, true);
 
@@ -816,7 +876,7 @@
     } catch (_) {}
   }
 
-  document.addEventListener("click", (e) => {
+  listen(document, "click", (e) => {
     if (!view.memberTab || mtabRestoring) return;
     const id = mtabId();
     if (!id) return;
@@ -824,7 +884,7 @@
     if (btn && btn.dataset.value) mtabSave(id, { tab: btn.dataset.value, y: window.scrollY });
   }, true);
 
-  window.addEventListener("scroll", () => {
+  listen(window, "scroll", () => {
     if (!view.memberTab || mtabRestoring) return;
     const id = mtabId();
     if (!id) return;
@@ -881,7 +941,7 @@
     step();
   }
 
-  window.addEventListener("popstate", () => {
+  listen(window, "popstate", () => {
     if (!view.memberTab) return;
     const oldRoot = mtabRoot();
     setTimeout(() => mtabRestore(oldRoot), 50);
@@ -1032,8 +1092,9 @@
   let dlgScroller = null;
   let dlgLastTop = 0;
 
-  window.addEventListener("scroll", (e) => {
-    if (!view.dlgScroll) return;
+  // Safari(WebKit)는 메모를 저장해도 목록 위치가 유지된다. Chrome·Edge·Firefox 만 0 으로 튄다 (2026-09-04 확인)
+  listen(window, "scroll", (e) => {
+    if (!view.dlgScroll || DUI_SYNC.enabled) return;
     const el = e.target;
     if (!el || el.nodeType !== 1 || !el.closest) return;
     if (el.tagName !== "DIV") return;
@@ -1049,8 +1110,8 @@
     dlgLastTop = el.scrollTop;
   }, { passive: true, capture: true });
 
-  document.addEventListener("click", (e) => {
-    if (!view.dlgScroll) return;
+  listen(document, "click", (e) => {
+    if (!view.dlgScroll || DUI_SYNC.enabled) return;
     const dlg = e.target.closest ? e.target.closest("[data-dialog-content]") : null;
     if (!dlg) return;
     const sc = dlgScroller;
@@ -1092,13 +1153,21 @@
     if (n && n.nodeType !== 1) n = n.parentElement;
     return !!(n && n.closest && n.closest("[data-dialog-content]"));
   }
-  new MutationObserver((muts) => {
+  // 변경 기록이 많으면(사이트 재렌더링) 다이얼로그 안 변경만일 리 없으니 훑지 않고 바로 예약한다
+  const domObserver = new MutationObserver((muts) => {
+    if (muts.length > 50) {
+      schedule();
+      return;
+    }
     for (const m of muts) {
       if (!inDialog(m.target)) {
         schedule();
         return;
       }
     }
-  }).observe(document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["class"] });
-  new MutationObserver(updateStyle).observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  });
+  domObserver.observe(document.documentElement, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ["class"] });
+  const themeObserver = new MutationObserver(() => { if (alive()) updateStyle(); });
+  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+  observers.push(domObserver, themeObserver);
 })();

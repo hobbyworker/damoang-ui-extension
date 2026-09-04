@@ -1,1 +1,7 @@
 .DS_Store
+xcuserdata/
+*.xcuserstate
+DerivedData/
+build/
+Signing.xcconfig
+.build/
