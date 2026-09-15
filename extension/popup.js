@@ -290,12 +290,17 @@ if (isIPad) {
   window.addEventListener("load", fitSheet);
 }
 document.documentElement.classList.add(sizeClass);
-// 1열에서는 다이얼로그가 다음 페이지로 열린다. 상단 바(‹ 제목)를 붙이고, 빈 영역 클릭으로 닫는
-// 배경 클릭 처리는 막는다 (페이지에는 배경이 없다). compact 와 iOS(iPad 팝오버 포함)에서는 열리며
-// 첫 입력칸에 가는 자동 포커스도 거둔다. iOS 는 포커스만으로 키보드나 select 피커를 띄우고 시트를 키운다
+// 1열에서 다이얼로그를 여는 방식. Safari 만 모달 대신 다음 페이지로 연다: 상단 바(‹ 제목)를 붙이고,
+// 빈 영역 클릭으로 닫는 배경 클릭 처리는 막는다 (페이지에는 배경이 없다). iOS 절반 시트 때문에 나온 방식이라
+// 다른 브라우저의 1열(데스크톱·Android)은 대화상자 그대로 — Edge Android 시트는 화면 대부분을 차지해 넉넉하다.
+// compact 와 iOS(iPad 팝오버 포함)에서는 열리며 첫 입력칸에 가는 자동 포커스도 거둔다. iOS 는 포커스만으로
+// 키보드나 select 피커를 띄우고 시트를 키운다
 const noAutoFocus = sizeClass === "compact" || isIOSDevice;
 const PAGE_TITLE = { "hl-dialog": "제목 강조", "follow-dialog": "사용자 강조" };
 const isCols1 = () => document.body.classList.contains("cols1");
+const pageMode = DUI_SYNC.enabled;
+document.body.classList.toggle("pagemode", pageMode);
+const isPageMode = () => pageMode && isCols1();
 function ensurePageBar(dialog) {
   if (dialog.querySelector(":scope > .cbar")) return;
   const bar = document.createElement("div");
@@ -312,14 +317,14 @@ function ensurePageBar(dialog) {
   title.textContent = PAGE_TITLE[dialog.id] || (h2 ? h2.textContent.trim() : "");
   bar.append(back, title);
   dialog.prepend(bar);
-  dialog.addEventListener("click", (e) => { if (e.target === dialog && isCols1()) e.stopImmediatePropagation(); }, true);
+  dialog.addEventListener("click", (e) => { if (e.target === dialog && isPageMode()) e.stopImmediatePropagation(); }, true);
 }
 {
   const showModal = HTMLDialogElement.prototype.showModal;
   HTMLDialogElement.prototype.showModal = function () {
-    if (isCols1()) ensurePageBar(this);
+    if (isPageMode()) ensurePageBar(this);
     showModal.call(this);
-    if (isCols1()) this.scrollTop = 0;
+    if (isPageMode()) this.scrollTop = 0;
     if (!noAutoFocus) return;
     const a = document.activeElement;
     if (a && a !== this && this.contains(a) && typeof a.blur === "function") a.blur();
@@ -584,9 +589,6 @@ const settingsDialog = document.getElementById("settings-dialog");
 const themeSelect = document.getElementById("theme-select");
 const layoutSelect = document.getElementById("layout-select");
 const debugSwitch = document.getElementById("debug-switch");
-const exportBtn = document.getElementById("export-btn");
-const importBtn = document.getElementById("import-btn");
-const importFile = document.getElementById("import-file");
 const ioMsg = document.getElementById("io-msg");
 const resetBtn = document.getElementById("reset-btn");
 const resetConfirmEl = document.getElementById("reset-confirm");
@@ -2774,91 +2776,18 @@ function setupImportExport() {
     document.getElementById("backup-note").textContent =
       "추가 기능의 설정은 iCloud로 기기 간 동기화됩니다. 백업 파일에는 이 설정이 담기며, 다른 종류의 브라우저로 옮기거나 만약을 대비해 보관할 때 사용합니다.";
   }
+  // 백업·복원과 설정 내용 편집은 모든 브라우저에서 전용 탭(backup.html)이 맡는다. 팝업에는 이동 버튼만 둔다.
   // Firefox 는 팝업에서 파일 창을 열면 팝업이 닫히고, macOS Safari 팝업은 blob 다운로드가 안 되어 그 주소로
-  // 이동해 버린다. Safari 는 iOS 까지 포함해 백업·복원을 전용 탭(backup.html)에서 하고, 팝업에는 이동 버튼만 둔다
-  const firefox = navigator.userAgent.includes("Firefox");
-  const useTab = firefox || DUI_SYNC.enabled;
-  const openBackupPage = () => {
-    chrome.tabs.create({ url: chrome.runtime.getURL("backup.html") });
-    window.close();
-  };
-  if (useTab) {
-    exportBtn.hidden = true;
-    importBtn.hidden = true;
-    const goBtn = document.getElementById("backup-go-btn");
-    goBtn.hidden = false;
-    goBtn.addEventListener("click", openBackupPage);
-  }
-  exportBtn.addEventListener("click", async () => {
-    if (useTab) return;
-    const data = {
-      app: "damoang-ui-extension",
-      schema: 1,
-      exportedAt: new Date().toISOString(),
-      highlight: hl,
-      member: follow,
-      pmenu: pmenu,
-      emprio: emPrio,
-      view: view,
-      qprofile: qp
-    };
-    const json = JSON.stringify(data, null, 2);
-    const d = new Date();
-    const pad = n => String(n).padStart(2, "0");
-    const name = "damoang-ui-extension-backup-" + d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + ".json";
-    // iOS 는 팝업 안 다운로드가 열리지 않아 공유 시트(파일에 저장)로
-    if (isIOS && navigator.canShare) {
-      const file = new File([json], name, { type: "application/json" });
-      if (navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({ files: [file] });
-          setIoMsg("백업 파일을 공유했습니다.");
-        } catch (e) {
-          if (!(e && e.name === "AbortError")) setIoMsg("백업 실패: " + (e && e.message ? e.message : e), true);
-        }
-        return;
-      }
-    }
-    const blob = new Blob([json], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = name;
-    document.body.append(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-    setIoMsg("백업 파일을 내려받았습니다.");
-  });
-  importBtn.addEventListener("click", () => {
-    if (useTab) return;
-    importFile.click();
-  });
-  importFile.addEventListener("change", async () => {
-    const file = importFile.files[0];
-    importFile.value = "";
-    if (!file) return;
+  // 이동해 버리는 제약이 계기였고, 0.7.0 부터 Chrome·Edge 도 같은 페이지를 쓴다
+  document.getElementById("backup-go-btn").addEventListener("click", async () => {
+    const url = chrome.runtime.getURL("backup.html");
     try {
-      const data = JSON.parse(await file.text());
-      if (!data || data.app !== "damoang-ui-extension") throw new Error("이 확장의 백업 파일이 아닙니다");
-      hl = normalizeHl(data.highlight);
-      follow = normalizeFollow(data.member);
-      pmenu = normalizePmenu(data.pmenu);
-      emPrio = normalizePrio(data.emprio);
-      view = normalizeView(data.view);
-      qp = normalizeQp(data.qprofile);
-      await duiWrite(VIEW_KEY, view);
-      await duiWrite(QP_KEY, qp);
-      await duiWrite(HL_KEY, hl);
-      await duiWrite(FOLLOW_KEY, follow);
-      await duiWrite(PMENU_KEY, pmenu);
-      await duiWrite(PRIO_KEY, emPrio);
-      setIoMsg("복원했습니다. 팝업을 다시 불러옵니다.");
-      setTimeout(() => location.reload(), 800);
+      await chrome.tabs.create({ url });
     } catch (e) {
-      setIoMsg("복원 실패: " + (e && e.message ? e.message : e), true);
+      window.open(url, "_blank");
     }
+    window.close();
   });
-
 }
 
 // iCloud 에서 당겨 와 바뀐 항목이 있으면 팝업을 다시 그린다. 입력 중이거나 다이얼로그가 열려 있으면 다음 기회에

@@ -29,6 +29,20 @@
 		D393F78A3047C1870041E46A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D393F74A3047C1870041E46A /* Assets.xcassets */; };
 		D393F78B3047C1870041E46A /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F74C3047C1870041E46A /* SafariWebExtensionHandler.swift */; };
 		D393F78C3047C1870041E46A /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F74C3047C1870041E46A /* SafariWebExtensionHandler.swift */; };
+		D393F7A0AAAA0003AAAA0003 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A0AAAA0002AAAA0002 /* AppIcon.icon */; };
+		D393F7A0AAAA0004AAAA0004 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A0AAAA0002AAAA0002 /* AppIcon.icon */; };
+		D393F7A0BBBB0012BBBB0012 /* DamoangUICore in Frameworks */ = {isa = PBXBuildFile; productRef = D393F7A0BBBB0011BBBB0011 /* DamoangUICore */; };
+		D393F7A0BBBB0014BBBB0014 /* DamoangUICore in Frameworks */ = {isa = PBXBuildFile; productRef = D393F7A0BBBB0013BBBB0013 /* DamoangUICore */; };
+		D393F7A0BBBB0016BBBB0016 /* DamoangUICore in Frameworks */ = {isa = PBXBuildFile; productRef = D393F7A0BBBB0015BBBB0015 /* DamoangUICore */; };
+		D393F7A0BBBB0018BBBB0018 /* DamoangUICore in Frameworks */ = {isa = PBXBuildFile; productRef = D393F7A0BBBB0017BBBB0017 /* DamoangUICore */; };
+		D393F7A0BBBB001ABBBB001A /* Presentation/PlatformServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB0019BBBB0019 /* Presentation/PlatformServices.swift */; };
+		D393F7A0BBBB001BBBBB001B /* Presentation/PlatformServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB0019BBBB0019 /* Presentation/PlatformServices.swift */; };
+		D393F7A0BBBB001DBBBB001D /* Presentation/ContainerPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB001CBBBB001C /* Presentation/ContainerPresenter.swift */; };
+		D393F7A0BBBB001EBBBB001E /* Presentation/ContainerPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB001CBBBB001C /* Presentation/ContainerPresenter.swift */; };
+		D393F7A0BBBB0020BBBB0020 /* Presentation/AppAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB001FBBBB001F /* Presentation/AppAssembly.swift */; };
+		D393F7A0BBBB0021BBBB0021 /* Presentation/AppAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB001FBBBB001F /* Presentation/AppAssembly.swift */; };
+		D393F7A0BBBB0023BBBB0023 /* NativeMessageCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB0022BBBB0022 /* NativeMessageCodec.swift */; };
+		D393F7A0BBBB0024BBBB0024 /* NativeMessageCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB0022BBBB0022 /* NativeMessageCodec.swift */; };
 		D393F7A83047C1880041E46A /* icons.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F79E3047C1880041E46A /* icons.js */; };
 		D393F7A93047C1880041E46A /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F79F3047C1880041E46A /* popup.js */; };
 		D393F7AA3047C1880041E46A /* backup.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A03047C1880041E46A /* backup.js */; };
@@ -47,20 +61,6 @@
 		D393F7B93047C1880041E46A /* common.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A53047C1880041E46A /* common.js */; };
 		D393F7BA3047C1880041E46A /* _locales in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A63047C1880041E46A /* _locales */; };
 		D393F7BB3047C1880041E46A /* content.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A73047C1880041E46A /* content.js */; };
-		D393F7A0AAAA0003AAAA0003 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A0AAAA0002AAAA0002 /* AppIcon.icon */; };
-		D393F7A0AAAA0004AAAA0004 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A0AAAA0002AAAA0002 /* AppIcon.icon */; };
-		D393F7A0BBBB0012BBBB0012 /* DamoangUICore in Frameworks */ = {isa = PBXBuildFile; productRef = D393F7A0BBBB0011BBBB0011 /* DamoangUICore */; };
-		D393F7A0BBBB0014BBBB0014 /* DamoangUICore in Frameworks */ = {isa = PBXBuildFile; productRef = D393F7A0BBBB0013BBBB0013 /* DamoangUICore */; };
-		D393F7A0BBBB0016BBBB0016 /* DamoangUICore in Frameworks */ = {isa = PBXBuildFile; productRef = D393F7A0BBBB0015BBBB0015 /* DamoangUICore */; };
-		D393F7A0BBBB0018BBBB0018 /* DamoangUICore in Frameworks */ = {isa = PBXBuildFile; productRef = D393F7A0BBBB0017BBBB0017 /* DamoangUICore */; };
-		D393F7A0BBBB001ABBBB001A /* PlatformServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB0019BBBB0019 /* PlatformServices.swift */; };
-		D393F7A0BBBB001BBBBB001B /* PlatformServices.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB0019BBBB0019 /* PlatformServices.swift */; };
-		D393F7A0BBBB001DBBBB001D /* ContainerPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB001CBBBB001C /* ContainerPresenter.swift */; };
-		D393F7A0BBBB001EBBBB001E /* ContainerPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB001CBBBB001C /* ContainerPresenter.swift */; };
-		D393F7A0BBBB0020BBBB0020 /* AppAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB001FBBBB001F /* AppAssembly.swift */; };
-		D393F7A0BBBB0021BBBB0021 /* AppAssembly.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB001FBBBB001F /* AppAssembly.swift */; };
-		D393F7A0BBBB0023BBBB0023 /* NativeMessageCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB0022BBBB0022 /* NativeMessageCodec.swift */; };
-		D393F7A0BBBB0024BBBB0024 /* NativeMessageCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB0022BBBB0022 /* NativeMessageCodec.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -130,6 +130,12 @@
 		D393F79E3047C1880041E46A /* icons.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = icons.js; path = ../../../extension/icons.js; sourceTree = "<group>"; };
 		D393F79F3047C1880041E46A /* popup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = popup.js; path = ../../../extension/popup.js; sourceTree = "<group>"; };
 		D393F7A03047C1880041E46A /* backup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = backup.js; path = ../../../extension/backup.js; sourceTree = "<group>"; };
+		D393F7A0AAAA0001AAAA0001 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
+		D393F7A0AAAA0002AAAA0002 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
+		D393F7A0BBBB0019BBBB0019 /* Presentation/PlatformServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentation/PlatformServices.swift; sourceTree = "<group>"; };
+		D393F7A0BBBB001CBBBB001C /* Presentation/ContainerPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentation/ContainerPresenter.swift; sourceTree = "<group>"; };
+		D393F7A0BBBB001FBBBB001F /* Presentation/AppAssembly.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Presentation/AppAssembly.swift; sourceTree = "<group>"; };
+		D393F7A0BBBB0022BBBB0022 /* NativeMessageCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeMessageCodec.swift; sourceTree = "<group>"; };
 		D393F7A13047C1880041E46A /* popup.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = popup.html; path = ../../../extension/popup.html; sourceTree = "<group>"; };
 		D393F7A23047C1880041E46A /* icons */ = {isa = PBXFileReference; lastKnownFileType = folder; name = icons; path = ../../../extension/icons; sourceTree = "<group>"; };
 		D393F7A33047C1880041E46A /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = ../../../extension/manifest.json; sourceTree = "<group>"; };
@@ -137,12 +143,6 @@
 		D393F7A53047C1880041E46A /* common.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = common.js; path = ../../../extension/common.js; sourceTree = "<group>"; };
 		D393F7A63047C1880041E46A /* _locales */ = {isa = PBXFileReference; lastKnownFileType = folder; name = _locales; path = ../../../extension/_locales; sourceTree = "<group>"; };
 		D393F7A73047C1880041E46A /* content.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = content.js; path = ../../../extension/content.js; sourceTree = "<group>"; };
-		D393F7A0AAAA0001AAAA0001 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
-		D393F7A0AAAA0002AAAA0002 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = folder.iconcomposer.icon; path = AppIcon.icon; sourceTree = "<group>"; };
-		D393F7A0BBBB0019BBBB0019 /* PlatformServices.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Presentation/PlatformServices.swift"; sourceTree = "<group>"; };
-		D393F7A0BBBB001CBBBB001C /* ContainerPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Presentation/ContainerPresenter.swift"; sourceTree = "<group>"; };
-		D393F7A0BBBB001FBBBB001F /* AppAssembly.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Presentation/AppAssembly.swift"; sourceTree = "<group>"; };
-		D393F7A0BBBB0022BBBB0022 /* NativeMessageCodec.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NativeMessageCodec.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -198,9 +198,9 @@
 		D393F7423047C1860041E46A /* Shared (App) */ = {
 			isa = PBXGroup;
 			children = (
-				D393F7A0BBBB001FBBBB001F /* AppAssembly.swift */,
-				D393F7A0BBBB001CBBBB001C /* ContainerPresenter.swift */,
-				D393F7A0BBBB0019BBBB0019 /* PlatformServices.swift */,
+				D393F7A0BBBB001FBBBB001F /* Presentation/AppAssembly.swift */,
+				D393F7A0BBBB001CBBBB001C /* Presentation/ContainerPresenter.swift */,
+				D393F7A0BBBB0019BBBB0019 /* Presentation/PlatformServices.swift */,
 				D393F7A0AAAA0002AAAA0002 /* AppIcon.icon */,
 				D393F7493047C1860041E46A /* ViewController.swift */,
 				D393F74A3047C1870041E46A /* Assets.xcassets */,
@@ -314,9 +314,6 @@
 			dependencies = (
 				D393F7723047C1870041E46A /* PBXTargetDependency */,
 			);
-			packageProductDependencies = (
-				D393F7A0BBBB0011BBBB0011 /* DamoangUICore */,
-			);
 			name = "Damoang UI Extension (iOS)";
 			packageProductDependencies = (
 			);
@@ -338,9 +335,6 @@
 			dependencies = (
 				D393F77C3047C1870041E46A /* PBXTargetDependency */,
 			);
-			packageProductDependencies = (
-				D393F7A0BBBB0013BBBB0013 /* DamoangUICore */,
-			);
 			name = "Damoang UI Extension (macOS)";
 			packageProductDependencies = (
 			);
@@ -361,9 +355,6 @@
 			);
 			dependencies = (
 			);
-			packageProductDependencies = (
-				D393F7A0BBBB0015BBBB0015 /* DamoangUICore */,
-			);
 			name = "Damoang UI Extension Extension (iOS)";
 			packageProductDependencies = (
 			);
@@ -383,9 +374,6 @@
 			buildRules = (
 			);
 			dependencies = (
-			);
-			packageProductDependencies = (
-				D393F7A0BBBB0017BBBB0017 /* DamoangUICore */,
 			);
 			name = "Damoang UI Extension Extension (macOS)";
 			packageProductDependencies = (
@@ -426,10 +414,10 @@
 				Base,
 			);
 			mainGroup = D393F73D3047C1860041E46A;
+			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				D393F7A0BBBB0010BBBB0010 /* XCLocalSwiftPackageReference "DamoangUICore" */,
 			);
-			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
 			productRefGroup = D393F7523047C1870041E46A /* Products */;
 			projectDirPath = "";
@@ -555,9 +543,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D393F7A0BBBB0020BBBB0020 /* AppAssembly.swift in Sources */,
-				D393F7A0BBBB001DBBBB001D /* ContainerPresenter.swift in Sources */,
-				D393F7A0BBBB001ABBBB001A /* PlatformServices.swift in Sources */,
+				D393F7A0BBBB0020BBBB0020 /* Presentation/AppAssembly.swift in Sources */,
+				D393F7A0BBBB001DBBBB001D /* Presentation/ContainerPresenter.swift in Sources */,
+				D393F7A0BBBB001ABBBB001A /* Presentation/PlatformServices.swift in Sources */,
 				D393F7873047C1870041E46A /* ViewController.swift in Sources */,
 				D393F7553047C1870041E46A /* AppDelegate.swift in Sources */,
 				D393F7573047C1870041E46A /* SceneDelegate.swift in Sources */,
@@ -568,9 +556,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D393F7A0BBBB0021BBBB0021 /* AppAssembly.swift in Sources */,
-				D393F7A0BBBB001EBBBB001E /* ContainerPresenter.swift in Sources */,
-				D393F7A0BBBB001BBBBB001B /* PlatformServices.swift in Sources */,
+				D393F7A0BBBB0021BBBB0021 /* Presentation/AppAssembly.swift in Sources */,
+				D393F7A0BBBB001EBBBB001E /* Presentation/ContainerPresenter.swift in Sources */,
+				D393F7A0BBBB001BBBBB001B /* Presentation/PlatformServices.swift in Sources */,
 				D393F7883047C1870041E46A /* ViewController.swift in Sources */,
 				D393F7663047C1870041E46A /* AppDelegate.swift in Sources */,
 			);
@@ -764,12 +752,12 @@
 		D393F7903047C1870041E46A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "iOS (Extension)/Sync.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				CODE_SIGN_ENTITLEMENTS = "iOS (Extension)/Sync.entitlements";
-				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 hobbyworker";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
@@ -799,12 +787,12 @@
 		D393F7913047C1870041E46A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "iOS (Extension)/Sync.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				GENERATE_INFOPLIST_FILE = YES;
-				CODE_SIGN_ENTITLEMENTS = "iOS (Extension)/Sync.entitlements";
-				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 hobbyworker";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
@@ -837,12 +825,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "iOS (App)/Sync.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				CODE_SIGN_ENTITLEMENTS = "iOS (App)/Sync.entitlements";
 				INFOPLIST_FILE = "iOS (App)/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -878,12 +867,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "iOS (App)/Sync.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				CODE_SIGN_ENTITLEMENTS = "iOS (App)/Sync.entitlements";
 				INFOPLIST_FILE = "iOS (App)/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UIMainStoryboardFile = Main;
@@ -918,15 +908,15 @@
 		D393F7973047C1870041E46A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "macOS (Extension)/Sync.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				CODE_SIGN_ENTITLEMENTS = "macOS (Extension)/Sync.entitlements";
 				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 hobbyworker";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -955,15 +945,15 @@
 		D393F7983047C1870041E46A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = "macOS (Extension)/Sync.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				CODE_SIGN_ENTITLEMENTS = "macOS (Extension)/Sync.entitlements";
 				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
-				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "© 2026 hobbyworker";
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -994,6 +984,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "macOS (App)/Sync.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
@@ -1001,10 +992,9 @@
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				CODE_SIGN_ENTITLEMENTS = "macOS (App)/Sync.entitlements";
 				INFOPLIST_FILE = "macOS (App)/Info.plist";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1037,6 +1027,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "macOS (App)/Sync.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_APP_SANDBOX = YES;
@@ -1044,10 +1035,9 @@
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				CODE_SIGN_ENTITLEMENTS = "macOS (App)/Sync.entitlements";
 				INFOPLIST_FILE = "macOS (App)/Info.plist";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -1124,6 +1114,7 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
 /* Begin XCLocalSwiftPackageReference section */
 		D393F7A0BBBB0010BBBB0010 /* XCLocalSwiftPackageReference "DamoangUICore" */ = {
 			isa = XCLocalSwiftPackageReference;

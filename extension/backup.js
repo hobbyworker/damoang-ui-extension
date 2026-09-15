@@ -1,6 +1,7 @@
-// 백업·복원 페이지. Firefox 는 팝업에서 파일 선택 창을 열면 팝업이 닫히고, macOS Safari 팝업은
-// 다운로드를 못 하므로 둘은 이 페이지를 새 탭으로 연다. 편집 영역에 설정 JSON 을 두어 복사·붙여넣기·
-// 편집이 되고, 적용할 때 형식을 검사한 뒤 원본 값을 그대로 저장한다. 세부 보정은 읽는 쪽 normalize 가 한다
+// 백업·복원 페이지. 모든 브라우저가 팝업의 이동 버튼으로 이 페이지를 새 탭으로 연다 (Firefox 는 팝업에서
+// 파일 선택 창을 열면 팝업이 닫히고, macOS Safari 팝업은 다운로드를 못 하는 제약이 계기). 편집 영역에 설정
+// JSON 을 두어 복사·붙여넣기·편집이 되고, 적용할 때 형식을 검사한 뒤 원본 값을 그대로 저장한다. 세부 보정은
+// 읽는 쪽 normalize 가 한다
 
 const RESTORE_KEYS = ["highlight", "member", "pmenu", "emprio", "view", "qprofile"];
 const META_KEYS = ["app", "schema", "exportedAt"];
@@ -195,7 +196,9 @@ exportBtn.addEventListener("click", async () => {
   a.click();
   a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-  setMsg("백업 파일을 내려받았습니다.", "ok");
+  // Android 브라우저는 blob 내려받기가 조용히 무시될 수 있다. 그때는 편집 영역의 복사 버튼이 우회로
+  const hint = /Android/.test(navigator.userAgent) ? " 내려받기가 열리지 않으면 아래 \"설정 내용 직접 보기·편집\"에서 [현재 설정 불러오기] 뒤 [복사]로 옮길 수 있습니다." : "";
+  setMsg("백업 파일을 내려받았습니다." + hint, "ok");
 });
 
 pickBtn.addEventListener("click", () => fileInput.click());
