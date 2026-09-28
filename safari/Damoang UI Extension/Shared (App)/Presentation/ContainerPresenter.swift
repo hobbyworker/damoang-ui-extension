@@ -54,7 +54,8 @@ final class ContainerPresenter {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self else { return }
             let sync = self.syncStatus.execute()
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
                 self.lastSync = sync
                 self.view?.render(ContainerPageState(platform: self.platform, extensionEnabled: nil, syncStatus: sync))
                 self.status.fetchIsEnabled { [weak self] enabled in
