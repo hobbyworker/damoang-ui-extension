@@ -6,7 +6,7 @@ async function native(message) {
   return browser.runtime.sendNativeMessage("application.id", message);
 }
 
-const SYNC_KEYS = ["highlight", "member", "pmenu", "emprio", "view", "qprofile"];
+const SYNC_KEYS = ["highlight", "member", "pmenu", "emprio", "view", "qprofile", "minfo"];
 
 // 내려받은 뒤, 클라우드에 없거나 로컬이 더 새것인 항목은 올린다. 설정은 바꿀 때만 올라가므로
 // 새 기기를 더했을 때 기존 기기의 오래된 설정이 넘어가지 않는 구멍을 여기서 메운다

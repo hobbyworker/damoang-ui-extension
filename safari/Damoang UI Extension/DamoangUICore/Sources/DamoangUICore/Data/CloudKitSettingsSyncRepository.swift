@@ -61,7 +61,7 @@ public final class CloudKitSettingsSyncRepository: SettingsSyncRepository {
             let record = CKRecord(recordType: Self.recordType, recordID: CKRecord.ID(recordName: Self.prefix + item.key))
             record["t"] = item.updatedAt as CKRecordValue
             record["deleted"] = (item.json == nil ? 1 : 0) as CKRecordValue
-            if let json = item.json { record["json"] = json as CKRecordValue }
+            record["json"] = item.json.map { $0 as CKRecordValue }
             return record
         }
         let op = CKModifyRecordsOperation(recordsToSave: records, recordIDsToDelete: nil)

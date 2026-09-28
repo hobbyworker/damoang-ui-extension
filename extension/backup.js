@@ -3,7 +3,7 @@
 // JSON 을 두어 복사·붙여넣기·편집이 되고, 적용할 때 형식을 검사한 뒤 원본 값을 그대로 저장한다. 세부 보정은
 // 읽는 쪽 normalize 가 한다
 
-const RESTORE_KEYS = ["highlight", "member", "pmenu", "emprio", "view", "qprofile"];
+const RESTORE_KEYS = ["highlight", "member", "pmenu", "emprio", "view", "qprofile", "minfo"];
 const META_KEYS = ["app", "schema", "exportedAt"];
 const MAX_ITEM = DUI_CHUNK * DUI_CHUNK_MAX;
 
@@ -67,6 +67,11 @@ const SHAPE = {
     if (v.first !== undefined && v.first !== "member" && v.first !== "title") err("emprio.first 는 member 또는 title 이어야 합니다");
   },
   view() {},
+  minfo(v, err) {
+    for (const k of ["newDays", "nickDays", "delPct", "cdelPct"]) {
+      if (v[k] !== undefined && typeof v[k] !== "number") err("minfo." + k + " 는 숫자여야 합니다");
+    }
+  },
   qprofile(v, err) {
     if (v.list !== undefined) {
       if (!Array.isArray(v.list)) return err("qprofile.list 는 배열이어야 합니다");

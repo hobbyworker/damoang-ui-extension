@@ -176,6 +176,20 @@
   /* 2열짜리 옵션 격자와 강조 관리 다이얼로그의 좌우 2단도 1열로 */
   body.cols1 .opt-grid { grid-template-columns: 1fr; }
   body.cols1 dialog { max-width: calc(100vw - 20px); }
+  /* 대화상자 모드의 1열: 관리 다이얼로그는 닫기 버튼 없이 배경 클릭으로 닫으므로 배경이 보이게 여백을 두고,
+     긴 다이얼로그는 안에서 스크롤한다 (팝업을 꽉 채워 닫을 방법이 안 보이던 문제, 2026-09-28) */
+  body.cols1:not(.pagemode) dialog {
+    box-sizing: border-box;
+    max-width: calc(100vw - 44px);
+    max-height: calc(100vh - 56px);
+  }
+  body.cols1:not(.pagemode) dialog:not(#hl-dialog):not(#follow-dialog) { overflow-y: auto; }
+  /* 2열(데스크톱)도 위아래 여백. compact(iOS 시트)는 자체 규칙이 있어 제외 */
+  html:not(.compact) body:not(.cols1) dialog {
+    box-sizing: border-box;
+    max-height: calc(100vh - 56px);
+  }
+  html:not(.compact) body:not(.cols1) dialog:not(#hl-dialog):not(#follow-dialog) { overflow-y: auto; }
   body.cols1 #hl-dialog,
   body.cols1 #follow-dialog {
     width: calc(100vw - 20px);
@@ -847,6 +861,11 @@
   }
   .opt-row input[type="number"] { width: 56px; text-align: right; }
   .opt-unit { margin-left: 4px; color: var(--muted); }
+  .mib-ctl { display: inline-flex; align-items: center; gap: 8px; }
+  .mib-lead { display: inline-flex; align-items: center; gap: 8px; }
+  .opt-row select.mib-color { padding: 3px 4px; font-size: 12px; }
+  .mib-preview { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0 12px; }
+  .mib-preview .mib { display: inline-block; padding: 0 6px; border-radius: 5px; font-size: 11px; line-height: 18px; font-weight: 600; white-space: nowrap; }
   /* 바로가기 옵션: 섹션 제목 + 2열 스위치. 섹션 사이는 구분선 */
   #shortcut-toggles {
     min-width: 300px;
@@ -1371,7 +1390,7 @@
               </span>
             </div>
             <div class="row" id="quick-row-qp">
-              <label>빠른 프로필 보기<span class="info" data-tip="등록한 회원의 프로필 페이지로 바로 이동합니다. 닉네임이나 아이디로 등록합니다."></span></label>
+              <label>빠른 프로필 보기<span class="info" data-tip="등록한 회원의 프로필 페이지로 바로 이동합니다. 닉네임이나 아이디로 등록합니다. 등록 목록은 이 확장에만 저장되며, 다모앙 서버에는 아무것도 저장하지 않습니다."></span></label>
               <span class="quick-btns"><span class="count" id="qp-count"></span><button id="qp-open-btn">열기</button></span>
             </div>
           </div>
@@ -1404,13 +1423,17 @@
                   <label>사용자 강조 그룹<span class="info" data-tip="특정 회원의 글을 게시판 목록에서 선, 배경색, 마크로 표시합니다. 닉네임으로 그룹을 만들고, 팔로우한 회원 전체에는 고정 항목의 스타일이 적용됩니다."></span></label>
                   <span class="quick-btns"><span class="count" id="follow-summary"></span><button id="follow-manage-btn">관리</button></span>
                 </div>
+                <div class="row">
+                  <label>작성자 배지<span class="info" data-tip="가입일, 닉네임 변경, 삭제율, 이용제한 같은 조건에 맞는 회원에게 배지를 붙입니다. 글 작성자는 글 본문 아래에, 댓글 작성자는 댓글 본문 아래에 표시합니다. 댓글 작성자는 공감, 답글, 닉네임을 누를 때 조회합니다. 회원 정보는 다모앙 프로필에서 읽기만 하며, 다모앙 서버에는 아무것도 저장하지 않습니다."></span></label>
+                  <span class="quick-btns"><span class="count" id="minfo-summary"></span><button id="minfo-manage-btn">관리</button></span>
+                </div>
               </div>
             </section>
             <section class="subgroup" id="sg-view">
               <div class="caption group-head" id="view-head"><span class="chev"></span>표시</div>
               <div class="rows">
                 <div class="row">
-                  <label>빠른 프로필 등록 버튼<span class="info" data-tip="회원 프로필 화면에 눈 모양 버튼을 추가합니다. 누르면 그 회원을 빠른 프로필 보기에 등록하거나 제거합니다."></span></label>
+                  <label>빠른 프로필 등록 버튼<span class="info" data-tip="회원 프로필 화면에 눈 모양 버튼을 추가합니다. 누르면 그 회원을 빠른 프로필 보기에 등록하거나 제거합니다. 등록 목록은 이 확장에만 저장되며, 다모앙 서버에는 아무것도 저장하지 않습니다."></span></label>
                   <span class="quick-btns"><span class="count" id="qpb-summary"></span><button id="qpb-manage-btn">관리</button></span>
                 </div>
                 <div class="row">
@@ -1420,6 +1443,14 @@
                 <div class="row">
                   <label>모던 목록 레이아웃<span class="info" data-tip="다모앙의 모던 목록 배치를 바꿉니다. 데스크톱은 다모앙 설정의 목록 스타일이 모던일 때, 좁은 화면에서는 항상 적용됩니다."></span></label>
                   <span class="quick-btns"><span class="count" id="ml-summary"></span><button id="ml-manage-btn">관리</button></span>
+                </div>
+                <div class="row">
+                  <label>글 작성자 정보 바로 표시<span class="info" data-tip="글 본문 아래 카드에 작성자의 프로필 정보(가입일, 접속일, 게시글·댓글 수, 닉네임 변경 이력, 이용제한 내역)를 보여줍니다. 회원 정보는 다모앙 프로필에서 읽기만 하며, 다모앙 서버에는 아무것도 저장하지 않습니다."></span></label>
+                  <span class="quick-btns"><span class="count" id="acard-summary"></span><button id="acard-manage-btn">관리</button></span>
+                </div>
+                <div class="row">
+                  <label>미니 프로필 표시<span class="info" data-tip="다모앙 회원 메뉴(프로필 보기~차단하기)가 뜨는 모든 곳에서 그 회원의 정보를 메뉴와 함께 보여줍니다. 회원 정보는 다모앙 프로필에서 읽기만 하며, 다모앙 서버에는 아무것도 저장하지 않습니다."></span></label>
+                  <span class="quick-btns"><span class="count" id="mipop-summary"></span><button id="mipop-manage-btn">관리</button></span>
                 </div>
               </div>
             </section>
@@ -1444,7 +1475,7 @@
               <div class="caption group-head" id="menu-head"><span class="chev"></span>메뉴</div>
               <div class="rows">
                 <div class="row">
-                  <label>프로필 메뉴<span class="info" data-tip="헤더와 사이드바의 프로필을 누르면 마이페이지로 이동하는 대신 포인트, 스크랩, 설정 같은 항목으로 바로 가는 메뉴를 엽니다."></span></label>
+                  <label>프로필 메뉴<span class="info" data-tip="헤더와 사이드바의 프로필을 누르면 마이페이지로 이동하는 대신 포인트, 스크랩, 설정 같은 항목으로 바로 가는 메뉴를 엽니다. 메뉴 설정은 이 확장에만 저장되며, 다모앙 서버에는 아무것도 저장하지 않습니다."></span></label>
                   <span class="quick-btns"><span class="count" id="pmenu-summary"></span><button id="pmenu-manage-btn">관리</button></span>
                 </div>
               </div>
@@ -1688,6 +1719,146 @@
       <span class="switch"><input type="checkbox" id="qpb-info-on"><span class="track"></span></span>
     </div>
     <div class="opt-note">기능 설명 버튼은 눈 모양 버튼 옆에 표시되고, 확장 기능임을 알려줍니다.</div>
+  </dialog>
+  <dialog id="minfo-dialog">
+    <h2>작성자 배지</h2>
+    <div class="opt-row">
+      <label for="minfo-on">글 작성자 배지 사용<span class="info" data-tip="글 작성자에게 조건에 맞는 배지를 글 본문 아래에 붙입니다."></span></label>
+      <span class="switch"><input type="checkbox" id="minfo-on"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <label for="minfo-comments">댓글 작성자 배지 사용<span class="info" data-tip="댓글의 공감, 답글, 닉네임을 누르면 그 작성자를 조회해 같은 작성자의 댓글 전부에 붙입니다. 누르는 동작은 그대로 진행됩니다. 글 작성자가 단 댓글도 이 스위치를 따릅니다."></span></label>
+      <span class="switch"><input type="checkbox" id="minfo-comments"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <label for="minfo-profile">프로필 배지 사용<span class="info" data-tip="회원 프로필 페이지의 머리 카드와 탭 카드 사이에 배지를 보여줍니다."></span></label>
+      <span class="switch"><input type="checkbox" id="minfo-profile"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <label for="minfo-mini">미니 프로필 배지 사용<span class="info" data-tip="미니 프로필 맨 위에 배지 줄을 보여줍니다."></span></label>
+      <span class="switch"><input type="checkbox" id="minfo-mini"><span class="track"></span></span>
+    </div>
+    <div class="opt-divider"></div>
+    <div class="opt-caption">배지 표시 (숫자 0 은 사용 안 함)</div>
+    <div class="opt-note mib-preview" id="minfo-preview"></div>
+    <div class="opt-row">
+      <span class="mib-lead"><select class="mib-color" id="minfo-c-new" title="배지 색"><option value="g">회색</option><option value="a">노랑</option><option value="r">빨강</option><option value="b">파랑</option><option value="e">초록</option><option value="p">보라</option></select><label for="minfo-new">가입 N일 이내</label></span>
+      <span class="mib-ctl"><input type="number" id="minfo-new" min="0" max="3650" step="1"><span class="opt-unit">일</span></span>
+    </div>
+    <div class="opt-row">
+      <span class="mib-lead"><select class="mib-color" id="minfo-c-nick" title="배지 색"><option value="g">회색</option><option value="a">노랑</option><option value="r">빨강</option><option value="b">파랑</option><option value="e">초록</option><option value="p">보라</option></select><label for="minfo-nick">닉네임 변경 N일 이내</label></span>
+      <span class="mib-ctl"><input type="number" id="minfo-nick" min="0" max="3650" step="1"><span class="opt-unit">일</span></span>
+    </div>
+    <div class="opt-row">
+      <span class="mib-lead"><select class="mib-color" id="minfo-c-del" title="배지 색"><option value="g">회색</option><option value="a">노랑</option><option value="r">빨강</option><option value="b">파랑</option><option value="e">초록</option><option value="p">보라</option></select><label for="minfo-del">글 삭제율 N% 이상<span class="info" data-tip="프로필의 게시글 삭제율과 같은 계산입니다."></span></label></span>
+      <span class="mib-ctl"><input type="number" id="minfo-del" min="0" max="100" step="1"><span class="opt-unit">%</span></span>
+    </div>
+    <div class="opt-row">
+      <span class="mib-lead"><select class="mib-color" id="minfo-c-cdel" title="배지 색"><option value="g">회색</option><option value="a">노랑</option><option value="r">빨강</option><option value="b">파랑</option><option value="e">초록</option><option value="p">보라</option></select><label for="minfo-cdel">댓글 삭제율 N% 이상<span class="info" data-tip="프로필의 댓글 삭제율과 같은 계산입니다."></span></label></span>
+      <span class="mib-ctl"><input type="number" id="minfo-cdel" min="0" max="100" step="1"><span class="opt-unit">%</span></span>
+    </div>
+    <div class="opt-row">
+      <span class="mib-lead"><select class="mib-color" id="minfo-c-noPost" title="배지 색"><option value="g">회색</option><option value="a">노랑</option><option value="r">빨강</option><option value="b">파랑</option><option value="e">초록</option><option value="p">보라</option></select><label for="minfo-nopost">글 없음<span class="info" data-tip="글을 한 번도 쓰지 않은 회원입니다. 썼다가 다 지운 회원은 삭제율 배지로 나타납니다."></span></label></span>
+      <span class="switch"><input type="checkbox" id="minfo-nopost"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <span class="mib-lead"><select class="mib-color" id="minfo-c-noComment" title="배지 색"><option value="g">회색</option><option value="a">노랑</option><option value="r">빨강</option><option value="b">파랑</option><option value="e">초록</option><option value="p">보라</option></select><label for="minfo-nocomment">댓글 없음<span class="info" data-tip="댓글을 한 번도 쓰지 않은 회원입니다."></span></label></span>
+      <span class="switch"><input type="checkbox" id="minfo-nocomment"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <span class="mib-lead"><select class="mib-color" id="minfo-c-disc" title="배지 색"><option value="g">회색</option><option value="a">노랑</option><option value="r">빨강</option><option value="b">파랑</option><option value="e">초록</option><option value="p">보라</option></select><label for="minfo-discnow">이용제한 중<span class="info" data-tip="지금 이용제한 기간인 회원입니다. 남은 일수 또는 영구로 표시합니다."></span></label></span>
+      <span class="switch"><input type="checkbox" id="minfo-discnow"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <span class="mib-lead"><select class="mib-color" id="minfo-c-left" title="배지 색"><option value="g">회색</option><option value="a">노랑</option><option value="r">빨강</option><option value="b">파랑</option><option value="e">초록</option><option value="p">보라</option></select><label for="minfo-left">탈퇴<span class="info" data-tip="탈퇴한 회원입니다. 탈퇴 회원은 프로필의 다른 정보가 비어 있어 이 배지만 붙습니다."></span></label></span>
+      <span class="switch"><input type="checkbox" id="minfo-left"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">회원 정보는 다모앙 프로필에서 읽으며, 이 확장은 아무것도 서버에 저장하지 않습니다.</div>
+    <div class="opt-divider"></div>
+    <div class="opt-row">
+      <label for="minfo-info">기능 설명 버튼 표시</label>
+      <span class="switch"><input type="checkbox" id="minfo-info"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">기능 설명 버튼은 배지 줄 끝에 표시되고, 확장 기능임을 알려줍니다.</div>
+  </dialog>
+  <dialog id="acard-dialog">
+    <h2>글 작성자 정보 바로 표시</h2>
+    <div class="opt-row">
+      <label for="acard-on">글 작성자 정보 바로 표시 사용</label>
+      <span class="switch"><input type="checkbox" id="acard-on"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">글 본문 아래에 작성자 정보 카드를 붙입니다. 회원 정보는 다모앙 프로필에서 읽습니다.</div>
+    <div class="opt-divider"></div>
+    <div class="opt-caption">표시할 내용</div>
+    <div class="opt-row">
+      <label for="acard-account">가입일 · 최종 접속 · 포인트 · 팔로워</label>
+      <span class="switch"><input type="checkbox" id="acard-account"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <label for="acard-activity">게시글 · 댓글</label>
+      <span class="switch"><input type="checkbox" id="acard-activity"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <label for="acard-rcmd">공감 · 신고</label>
+      <span class="switch"><input type="checkbox" id="acard-rcmd"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <label for="acard-nick">닉네임 변경 이력</label>
+      <span class="switch"><input type="checkbox" id="acard-nick"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <label for="acard-disc">이용제한 내역<span class="info" data-tip="현재 제한과 지난 내역, 전체 보기 링크. 탈퇴 회원은 프로필에 내역이 남지 않아 대신 이용제한 기록에서 아이디로 찾는 링크를 붙입니다."></span></label>
+      <span class="switch"><input type="checkbox" id="acard-disc"><span class="track"></span></span>
+    </div>
+    <div class="opt-divider"></div>
+    <div class="opt-row">
+      <label for="acard-info">기능 설명 버튼 표시</label>
+      <span class="switch"><input type="checkbox" id="acard-info"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">기능 설명 버튼은 카드 제목 옆에 표시되고, 확장 기능임을 알려줍니다.</div>
+  </dialog>
+  <dialog id="mipop-dialog">
+    <h2>미니 프로필 표시</h2>
+    <div class="opt-row">
+      <label for="mipop-on">미니 프로필 표시 사용</label>
+      <span class="switch"><input type="checkbox" id="mipop-on"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <label for="mipop-mode">방식</label>
+      <select id="mipop-mode">
+        <option value="direct">통합 표시</option>
+        <option value="menu">추가 표시</option>
+      </select>
+    </div>
+    <div class="opt-note" id="mipop-mode-note"></div>
+    <div class="opt-divider"></div>
+    <div class="opt-caption">보여줄 내용</div>
+    <div class="opt-row">
+      <label for="mipop-account">가입일 · 최종 접속 · 포인트 · 팔로워</label>
+      <span class="switch"><input type="checkbox" id="mipop-account"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <label for="mipop-activity">게시글 · 댓글</label>
+      <span class="switch"><input type="checkbox" id="mipop-activity"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <label for="mipop-rcmd">공감 · 신고</label>
+      <span class="switch"><input type="checkbox" id="mipop-rcmd"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <label for="mipop-nick">닉네임 변경 이력</label>
+      <span class="switch"><input type="checkbox" id="mipop-nick"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <label for="mipop-disc">이용제한 내역<span class="info" data-tip="현재 제한과 지난 내역, 전체 보기 링크. 탈퇴 회원은 프로필에 내역이 남지 않아 대신 이용제한 기록에서 아이디로 찾는 링크를 붙입니다."></span></label>
+      <span class="switch"><input type="checkbox" id="mipop-disc"><span class="track"></span></span>
+    </div>
+    <div class="opt-divider"></div>
+    <div class="opt-row">
+      <label for="mipop-info">기능 설명 버튼 표시</label>
+      <span class="switch"><input type="checkbox" id="mipop-info"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">기능 설명 버튼은 미니 프로필의 제목 옆에 표시되고, 확장 기능임을 알려줍니다.</div>
   </dialog>
   <dialog id="qp-dialog">
     <h2>빠른 프로필 보기</h2>

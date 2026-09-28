@@ -38,6 +38,9 @@ const SETTING_GROUPS = [
   ] },
   { id: "profile", title: "프로필 표시", fields: [
     { key: "hideMyProfile", label: "내 프로필 가리기", tip: "헤더와 사이드바에서 내 닉네임과 프로필 이미지를 숨깁니다" }
+  ] },
+  { id: "keys", title: "키보드 단축키", fields: [
+    { key: "enableKeyboardShortcuts", label: "글로벌 단축키 사용", tip: "글 목록에서 j/k(이동), f(새로고침), 숫자(즐겨찾기) 등 키보드 단축키를 사용합니다" }
   ] }
 ];
 const FIELDS = SETTING_GROUPS.flatMap(g => g.fields);
@@ -76,6 +79,18 @@ const PMENU_KEY = "pmenu";
 const QP_KEY = "qprofile";
 const QP_MAX = 30;
 let qp = { btn: true, info: true, list: [] };
+const MINFO_KEY = "minfo";
+// 배지 색. content.js 의 .dui-mib 색과 같은 값
+const MIB_TONES = ["g", "a", "r", "b", "e", "p"];
+const MIB_PALETTE = {
+  g: ["rgba(120,120,128,.16)", "#4b5563", "rgba(255,255,255,.12)", "#d1d5db"],
+  a: ["#fef3c7", "#92400e", "rgba(245,158,11,.22)", "#fcd34d"],
+  r: ["#fee2e2", "#b91c1c", "rgba(239,68,68,.22)", "#fca5a5"],
+  b: ["#dbeafe", "#1e40af", "rgba(59,130,246,.25)", "#93c5fd"],
+  e: ["#dcfce7", "#166534", "rgba(34,197,94,.22)", "#86efac"],
+  p: ["#ede9fe", "#5b21b6", "rgba(139,92,246,.25)", "#c4b5fd"]
+};
+let minfo = { on: true, comments: true, profile: true, mini: true, pop: true, popInfo: true, popMode: "direct", popShow: { account: true, activity: true, rcmd: true, nick: true, disc: true }, info: true, card: { on: true, info: true, show: { account: true, activity: true, rcmd: true, nick: true, disc: true } }, noPost: true, noComment: true, discNow: true, left: true, colors: { left: "r", new: "r", nick: "r", del: "r", cdel: "r", disc: "r", noPost: "r", noComment: "r" }, newDays: 100, nickDays: 30, delPct: 30, cdelPct: 30 };
 // 기본 켬. 메뉴 첫 항목이 마이페이지라 원래 이동을 잃지 않는다
 const PMENU_ITEMS = [
   { key: "points", label: "포인트" },
@@ -1708,6 +1723,212 @@ function setupView() {
   });
 }
 
+function normalizeMinfo(raw) {
+  const r = raw && typeof raw === "object" ? raw : {};
+  const num = (v, d, max) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.min(max, Math.max(0, Math.round(n))) : d;
+  };
+  const b = (v, d) => (typeof v === "boolean" ? v : d);
+  return {
+    on: b(r.on, true),
+    comments: b(r.comments, true),
+    profile: b(r.profile, true),
+    mini: b(r.mini, true),
+    pop: b(r.pop, true),
+    popInfo: b(r.popInfo, true),
+    popMode: r.popMode === "menu" ? "menu" : "direct",
+    popShow: (() => {
+      const o = r.popShow && typeof r.popShow === "object" ? r.popShow : {};
+      const out = {};
+      for (const k of ["account", "activity", "rcmd", "nick", "disc"]) out[k] = b(o[k], true);
+      return out;
+    })(),
+    info: b(r.info, true),
+    card: (() => {
+      const o = r.card && typeof r.card === "object" ? r.card : {};
+      const sh = o.show && typeof o.show === "object" ? o.show : {};
+      const show = {};
+      for (const k of ["account", "activity", "rcmd", "nick", "disc"]) show[k] = b(sh[k], true);
+      return { on: b(o.on, true), info: b(o.info, true), show };
+    })(),
+    noPost: b(r.noPost, true),
+    noComment: b(r.noComment, true),
+    discNow: b(r.discNow, true),
+    left: b(r.left, true),
+    colors: (() => {
+      const o = r.colors && typeof r.colors === "object" ? r.colors : {};
+      const out = {};
+      for (const [k, d] of [["left", "r"], ["new", "r"], ["nick", "r"], ["del", "r"], ["cdel", "r"], ["disc", "r"], ["noPost", "r"], ["noComment", "r"]]) out[k] = MIB_TONES.indexOf(o[k]) >= 0 ? o[k] : d;
+      return out;
+    })(),
+    newDays: num(r.newDays, 100, 3650),
+    nickDays: num(r.nickDays, 30, 3650),
+    delPct: num(r.delPct, 30, 100),
+    cdelPct: num(r.cdelPct, 30, 100)
+  };
+}
+
+function setupMinfo() {
+  const summary = document.getElementById("minfo-summary");
+  const dialog = document.getElementById("minfo-dialog");
+  const popSummary = document.getElementById("mipop-summary");
+  const popDialog = document.getElementById("mipop-dialog");
+  const sw = {
+    on: document.getElementById("minfo-on"),
+    comments: document.getElementById("minfo-comments"),
+    profile: document.getElementById("minfo-profile"),
+    mini: document.getElementById("minfo-mini"),
+    pop: document.getElementById("mipop-on"),
+    popInfo: document.getElementById("mipop-info"),
+    info: document.getElementById("minfo-info"),
+    noPost: document.getElementById("minfo-nopost"),
+    noComment: document.getElementById("minfo-nocomment"),
+    discNow: document.getElementById("minfo-discnow"),
+    left: document.getElementById("minfo-left")
+  };
+  const showSw = {};
+  for (const k of ["account", "activity", "rcmd", "nick", "disc"]) showSw[k] = document.getElementById("mipop-" + k);
+  const modeSel = document.getElementById("mipop-mode");
+  const cardSummary = document.getElementById("acard-summary");
+  const cardDialog = document.getElementById("acard-dialog");
+  const cardSw = {};
+  for (const k of ["on", "info"]) cardSw[k] = document.getElementById("acard-" + k);
+  const cardShowSw = {};
+  for (const k of ["account", "activity", "rcmd", "nick", "disc"]) cardShowSw[k] = document.getElementById("acard-" + k);
+  const colorSel = {};
+  for (const k of ["left", "new", "nick", "del", "cdel", "disc", "noPost", "noComment"]) colorSel[k] = document.getElementById("minfo-c-" + k);
+  const preview = document.getElementById("minfo-preview");
+  const PREVIEW = [["new", "가입 12일"], ["nick", "닉변경 3일"], ["del", "글 삭제율 40%"], ["cdel", "댓글 삭제율 35%"], ["noPost", "글 없음"], ["noComment", "댓글 없음"], ["disc", "이용제한 중 (5일 남음)"], ["left", "탈퇴"]];
+  const renderPreview = () => {
+    const dark = document.documentElement.dataset.theme === "dark" || (document.documentElement.dataset.theme !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+    preview.textContent = "";
+    for (const [k, text] of PREVIEW) {
+      const c = MIB_PALETTE[minfo.colors[k]] || MIB_PALETTE.g;
+      const s = document.createElement("span");
+      s.className = "mib";
+      s.textContent = text;
+      s.style.background = dark ? c[2] : c[0];
+      s.style.color = dark ? c[3] : c[1];
+      preview.append(s);
+    }
+  };
+  const nums = {
+    newDays: [document.getElementById("minfo-new"), 3650],
+    nickDays: [document.getElementById("minfo-nick"), 3650],
+    delPct: [document.getElementById("minfo-del"), 100],
+    cdelPct: [document.getElementById("minfo-cdel"), 100]
+  };
+  const render = () => {
+    const n = ["newDays", "nickDays", "delPct", "cdelPct"].filter(k => minfo[k] > 0).length + ["noPost", "noComment", "discNow", "left"].filter(k => minfo[k]).length;
+    const where = [minfo.on ? "글" : "", minfo.comments ? "댓글" : "", minfo.profile ? "프로필" : "", minfo.mini ? "미니" : ""].filter(Boolean).join(" · ");
+    summary.textContent = where ? where + (n ? " · 배지 " + n + "종" : "") : "꺼짐";
+    const menuMode = minfo.popMode === "menu";
+    const shown = Object.keys(showSw).filter(k => minfo.popShow[k]).length;
+    popSummary.textContent = minfo.pop ? "켜짐 · " + (menuMode ? "추가" : "통합") + " · 항목 " + shown + "개" : "꺼짐";
+    modeSel.value = minfo.popMode;
+    document.getElementById("mipop-mode-note").textContent = menuMode
+      ? "추가 표시: 다모앙 회원 메뉴(프로필 보기~차단하기)는 그대로 두고 맨 위에 '미니 프로필' 항목을 추가합니다. 그 항목을 누르면 그 메뉴 안에 미니 프로필이 펼쳐지고, 닉네임·아이디를 누르면 프로필로 이동합니다."
+      : "통합 표시: 닉네임을 누르면 열리는 다모앙 회원 메뉴 맨 위에 미니 프로필을 함께 보여줍니다. 메뉴 항목(프로필 보기~차단하기)은 그대로입니다.";
+    const cardShown = Object.keys(cardShowSw).filter(k => minfo.card.show[k]).length;
+    cardSummary.textContent = minfo.card.on ? "켜짐 · 항목 " + cardShown + "개" : "꺼짐";
+    for (const k of Object.keys(cardSw)) cardSw[k].checked = minfo.card[k];
+    for (const k of Object.keys(cardShowSw)) cardShowSw[k].checked = minfo.card.show[k];
+    for (const k of Object.keys(sw)) sw[k].checked = minfo[k];
+    for (const k of Object.keys(showSw)) showSw[k].checked = minfo.popShow[k];
+    for (const k of Object.keys(nums)) nums[k][0].value = String(minfo[k]);
+    for (const k of Object.keys(colorSel)) colorSel[k].value = minfo.colors[k];
+    renderPreview();
+  };
+  const save = () => duiWrite(MINFO_KEY, minfo).catch(e => setStatus("작성자 배지 설정 저장 실패: " + (e && e.message ? e.message : e)));
+  duiRead(MINFO_KEY).then(v => {
+    minfo = normalizeMinfo(v);
+    render();
+  });
+  document.getElementById("minfo-manage-btn").addEventListener("click", () => {
+    render();
+    dialog.showModal();
+  });
+  dialog.addEventListener("click", (e) => {
+    if (e.target === dialog) dialog.close();
+  });
+  document.getElementById("mipop-manage-btn").addEventListener("click", () => {
+    render();
+    popDialog.showModal();
+  });
+  popDialog.addEventListener("click", (e) => {
+    if (e.target === popDialog) popDialog.close();
+  });
+  document.getElementById("acard-manage-btn").addEventListener("click", () => {
+    render();
+    cardDialog.showModal();
+  });
+  cardDialog.addEventListener("click", (e) => {
+    if (e.target === cardDialog) cardDialog.close();
+  });
+  for (const k of Object.keys(cardSw)) {
+    cardSw[k].nextElementSibling.addEventListener("click", () => cardSw[k].click());
+    cardSw[k].addEventListener("change", () => {
+      minfo.card[k] = cardSw[k].checked;
+      save();
+      render();
+    });
+  }
+  for (const k of Object.keys(cardShowSw)) {
+    cardShowSw[k].nextElementSibling.addEventListener("click", () => cardShowSw[k].click());
+    cardShowSw[k].addEventListener("change", () => {
+      minfo.card.show[k] = cardShowSw[k].checked;
+      save();
+      render();
+    });
+  }
+  for (const k of Object.keys(colorSel)) {
+    colorSel[k].addEventListener("change", () => {
+      minfo.colors[k] = MIB_TONES.indexOf(colorSel[k].value) >= 0 ? colorSel[k].value : minfo.colors[k];
+      save();
+      render();
+    });
+  }
+  modeSel.addEventListener("change", () => {
+    minfo.popMode = modeSel.value === "menu" ? "menu" : "direct";
+    save();
+    render();
+  });
+  for (const k of Object.keys(showSw)) {
+    showSw[k].nextElementSibling.addEventListener("click", () => showSw[k].click());
+    showSw[k].addEventListener("change", () => {
+      minfo.popShow[k] = showSw[k].checked;
+      save();
+      render();
+    });
+  }
+  for (const k of Object.keys(sw)) {
+    sw[k].nextElementSibling.addEventListener("click", () => sw[k].click());
+    sw[k].addEventListener("change", () => {
+      minfo[k] = sw[k].checked;
+      save();
+      render();
+    });
+  }
+  for (const k of Object.keys(nums)) {
+    const [input, max] = nums[k];
+    input.addEventListener("change", () => {
+      const n = Number(input.value);
+      minfo[k] = Number.isFinite(n) ? Math.min(max, Math.max(0, Math.round(n))) : 0;
+      save();
+      render();
+    });
+  }
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "sync" && area !== "local") return;
+    if (!duiChanged(changes, MINFO_KEY)) return;
+    duiRead(MINFO_KEY).then(v => {
+      minfo = normalizeMinfo(v);
+      render();
+    });
+  });
+}
+
 function normalizePmenu(raw) {
   const r = raw && typeof raw === "object" ? raw : {};
   const valid = new Set(PMENU_ITEMS.map(i => i.key));
@@ -2417,7 +2638,7 @@ function setupReset() {
     resetHoldBtn.textContent = "지우는 중…";
     try {
       const resetT = Date.now();
-      await duiSyncPush(["highlight", "member", "pmenu", "emprio", "view", "qprofile"].map(key => ({ key, json: null, t: resetT })));
+      await duiSyncPush(["highlight", "member", "pmenu", "emprio", "view", "qprofile", "minfo"].map(key => ({ key, json: null, t: resetT })));
       await chrome.storage.sync.clear();
     } catch (_) {}
     try {
@@ -2898,6 +3119,7 @@ async function init() {
   setupPmenu();
   setupView();
   setupQp();
+  setupMinfo();
   setupFavCollapse();
   setupSectionCollapse();
   setupSections();
