@@ -1469,6 +1469,14 @@
                   <label for="view-dlog-switch">이용제한 기록 프로필 보기<span class="info" data-tip="이용제한 기록 목록에서 회원 아이디를 누르면 그 회원의 프로필로 이동합니다."></span></label>
                   <span class="switch"><input type="checkbox" id="view-dlog-switch"><span class="track"></span></span>
                 </div>
+                <div class="row">
+                  <label>탈퇴 회원 메모<span class="info" data-tip="다모앙은 탈퇴한 회원의 프로필을 보여 주지 않아 메모 버튼도 없습니다. 남긴 글이나 댓글이 없으면 메모할 곳이 없으므로 탈퇴 회원 프로필 화면에 메모 상자를 붙입니다. 이용제한 기록에서 아이디를 누르면 그 화면이 열립니다. 메모는 다모앙 회원메모에 저장되어 회원메모 관리에서도 보고 지울 수 있습니다."></span></label>
+                  <span class="quick-btns"><span class="count" id="lmemo-summary"></span><button id="lmemo-manage-btn">관리</button></span>
+                </div>
+                <div class="row">
+                  <label>프로필 검색 바로가기<span class="info" data-tip="다른 회원의 프로필 맨 아래에 그 회원의 아이디로 자유게시판 제목, 작성자, 댓글 작성자와 신고 누적 게시글, 소명게시판 작성자를 검색하는 버튼을 붙입니다. 탈퇴한 회원은 메모 상자 아래에 붙고 이용제한 열람 검색도 함께 보여 줍니다. 미리 조회하지 않으며, 다모앙 서버에는 아무것도 저장하지 않습니다."></span></label>
+                  <span class="quick-btns"><span class="count" id="idsearch-summary"></span><button id="idsearch-manage-btn">관리</button></span>
+                </div>
               </div>
             </section>
             <section class="subgroup" id="sg-menu">
@@ -1719,6 +1727,52 @@
       <span class="switch"><input type="checkbox" id="qpb-info-on"><span class="track"></span></span>
     </div>
     <div class="opt-note">기능 설명 버튼은 눈 모양 버튼 옆에 표시되고, 확장 기능임을 알려줍니다.</div>
+  </dialog>
+  <dialog id="lmemo-dialog">
+    <h2>탈퇴 회원 메모</h2>
+    <div class="opt-row">
+      <label for="lmemo-on">탈퇴 회원 메모 사용</label>
+      <span class="switch"><input type="checkbox" id="lmemo-on"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">탈퇴한 회원의 프로필 화면에서 '탈퇴한 회원입니다' 안내 아래에 추가됩니다.</div>
+    <div class="opt-divider"></div>
+    <div class="opt-row">
+      <label for="lmemo-info-on">기능 설명 버튼 표시</label>
+      <span class="switch"><input type="checkbox" id="lmemo-info-on"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">기능 설명 버튼은 메모 상자 제목 옆에 표시되고, 확장 기능임을 알려줍니다.</div>
+  </dialog>
+  <dialog id="idsearch-dialog">
+    <h2>프로필 검색 바로가기</h2>
+    <div class="opt-row">
+      <label for="idsearch-on">프로필 검색 바로가기 사용</label>
+      <span class="switch"><input type="checkbox" id="idsearch-on"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">다른 회원의 프로필 맨 아래에 추가됩니다. 탈퇴한 회원은 메모 상자 아래에 추가되고, 내 프로필에는 붙지 않습니다.</div>
+    <div class="opt-row">
+      <label for="idsearch-newtab">새 탭에서 열기<span class="info" data-tip="켜면 검색 결과를 새 탭에서 열어 보고 있던 프로필 화면이 그대로 남습니다. 끄면 지금 탭에서 이동합니다."></span></label>
+      <span class="switch"><input type="checkbox" id="idsearch-newtab"><span class="track"></span></span>
+    </div>
+    <div class="opt-caption">추가 표시</div>
+    <div class="opt-row">
+      <label for="idsearch-truth">신고 누적 게시글 작성자<span class="info" data-tip="신고 누적 게시글에서 이 회원이 작성자인 글을 검색하는 버튼입니다."></span></label>
+      <span class="switch"><input type="checkbox" id="idsearch-truth"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <label for="idsearch-claim">소명게시판 작성자<span class="info" data-tip="소명게시판에서 이 회원이 작성자인 글을 검색하는 버튼입니다."></span></label>
+      <span class="switch"><input type="checkbox" id="idsearch-claim"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <label for="idsearch-dlog">탈퇴자 이용제한 열람<span class="info" data-tip="탈퇴한 회원의 프로필에서만 이용제한 열람 검색 버튼을 함께 보여 줍니다. 탈퇴하면 프로필의 이용제한 내역도 볼 수 없기 때문입니다. 일반 회원은 프로필에 이용제한 내역이 있어 붙이지 않습니다."></span></label>
+      <span class="switch"><input type="checkbox" id="idsearch-dlog"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">자유게시판 제목, 작성자, 댓글 작성자 버튼은 항상 표시됩니다.</div>
+    <div class="opt-divider"></div>
+    <div class="opt-row">
+      <label for="idsearch-info-on">기능 설명 버튼 표시</label>
+      <span class="switch"><input type="checkbox" id="idsearch-info-on"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">기능 설명 버튼은 검색 상자 제목 옆에 표시되고, 확장 기능임을 알려줍니다.</div>
   </dialog>
   <dialog id="minfo-dialog">
     <h2>작성자 배지</h2>

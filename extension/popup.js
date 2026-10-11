@@ -69,7 +69,7 @@ const EXTRA_SUBGROUPS = [{ id: "em", title: "강조" }, { id: "view", title: "�
 
 // 표시 옵션. 목록 닉네임 칸 넓히기 등
 const VIEW_KEY = "view";
-let view = { cwide: false, mwide: false, memberTab: true, dlgScroll: true, dlog: true, mlayout: "default", mheart: "default", micon: false };
+let view = { cwide: false, mwide: false, memberTab: true, dlgScroll: true, dlog: true, leftMemo: true, leftMemoInfo: true, idSearch: true, idSearchInfo: true, idSearchNewTab: true, idSearchTruth: true, idSearchClaim: true, idSearchDlog: true, mlayout: "default", mheart: "default", micon: false };
 
 // 프로필 메뉴. 헤더·사이드바의 마이페이지 링크를 메뉴로 바꾼다 (content.js 가 처리).
 // 마이페이지 항목은 항상 표시라 목록에 없다
@@ -493,6 +493,20 @@ const clWideSwitch = document.getElementById("cl-wide-switch");
 const viewMemberTabSwitch = document.getElementById("view-membertab-switch");
 const viewDlgScrollSwitch = document.getElementById("view-dlgscroll-switch");
 const viewDlogSwitch = document.getElementById("view-dlog-switch");
+const lmemoSummary = document.getElementById("lmemo-summary");
+const lmemoManageBtn = document.getElementById("lmemo-manage-btn");
+const lmemoDialog = document.getElementById("lmemo-dialog");
+const lmemoOn = document.getElementById("lmemo-on");
+const lmemoInfoOn = document.getElementById("lmemo-info-on");
+const idSearchSummary = document.getElementById("idsearch-summary");
+const idSearchManageBtn = document.getElementById("idsearch-manage-btn");
+const idSearchDialog = document.getElementById("idsearch-dialog");
+const idSearchOn = document.getElementById("idsearch-on");
+const idSearchNewTab = document.getElementById("idsearch-newtab");
+const idSearchTruth = document.getElementById("idsearch-truth");
+const idSearchClaim = document.getElementById("idsearch-claim");
+const idSearchDlog = document.getElementById("idsearch-dlog");
+const idSearchInfoOn = document.getElementById("idsearch-info-on");
 const mlSummary = document.getElementById("ml-summary");
 const mlManageBtn = document.getElementById("ml-manage-btn");
 const mlDialog = document.getElementById("ml-dialog");
@@ -1575,6 +1589,14 @@ function normalizeView(raw) {
     memberTab: typeof r.memberTab === "boolean" ? r.memberTab : true,
     dlgScroll: typeof r.dlgScroll === "boolean" ? r.dlgScroll : true,
     dlog: typeof r.dlog === "boolean" ? r.dlog : true,
+    leftMemo: typeof r.leftMemo === "boolean" ? r.leftMemo : true,
+    leftMemoInfo: typeof r.leftMemoInfo === "boolean" ? r.leftMemoInfo : true,
+    idSearch: typeof r.idSearch === "boolean" ? r.idSearch : true,
+    idSearchInfo: typeof r.idSearchInfo === "boolean" ? r.idSearchInfo : true,
+    idSearchNewTab: typeof r.idSearchNewTab === "boolean" ? r.idSearchNewTab : true,
+    idSearchTruth: typeof r.idSearchTruth === "boolean" ? r.idSearchTruth : true,
+    idSearchClaim: typeof r.idSearchClaim === "boolean" ? r.idSearchClaim : true,
+    idSearchDlog: typeof r.idSearchDlog === "boolean" ? r.idSearchDlog : true,
     mlayout: r.mlayout === "l1" || r.mlayout === "l2" ? r.mlayout : "default",
     mheart: r.mheart === "desk" ? "desk" : "default",
     micon: !!r.micon
@@ -1649,6 +1671,20 @@ function setupView() {
     mlWideSwitch.checked = view.mwide;
     renderMlPreview();
   };
+  const renderLmemo = () => {
+    lmemoSummary.textContent = view.leftMemo ? "켜짐" : "꺼짐";
+    lmemoOn.checked = view.leftMemo;
+    lmemoInfoOn.checked = view.leftMemoInfo;
+  };
+  const renderIdSearch = () => {
+    idSearchSummary.textContent = view.idSearch ? "켜짐" : "꺼짐";
+    idSearchOn.checked = view.idSearch;
+    idSearchNewTab.checked = view.idSearchNewTab;
+    idSearchTruth.checked = view.idSearchTruth;
+    idSearchClaim.checked = view.idSearchClaim;
+    idSearchDlog.checked = view.idSearchDlog;
+    idSearchInfoOn.checked = view.idSearchInfo;
+  };
   const renderCl = () => {
     clSummary.textContent = view.cwide ? "닉네임 전체 표시" : "기본";
     clWideSwitch.checked = view.cwide;
@@ -1660,6 +1696,8 @@ function setupView() {
     // Safari(WebKit)는 사이트가 목록 위치를 유지하므로 옵션이 할 일이 없다 (2026-09-04 브라우저별 확인). 값은 그대로 두고 행만 숨긴다
     if (DUI_SYNC.enabled) document.getElementById("view-dlgscroll-row").style.display = "none";
     viewDlogSwitch.checked = view.dlog;
+    renderLmemo();
+    renderIdSearch();
     renderMl();
     renderCl();
   });
@@ -1678,6 +1716,36 @@ function setupView() {
     if (e.target === mlDialog) mlDialog.close();
   });
   const saveView = () => duiWrite(VIEW_KEY, view).catch(e => setStatus("표시 설정 저장 실패: " + (e && e.message ? e.message : e)));
+  idSearchManageBtn.addEventListener("click", () => {
+    renderIdSearch();
+    idSearchDialog.showModal();
+  });
+  idSearchDialog.addEventListener("click", (e) => {
+    if (e.target === idSearchDialog) idSearchDialog.close();
+  });
+  idSearchOn.nextElementSibling.addEventListener("click", () => idSearchOn.click());
+  idSearchOn.addEventListener("change", () => {
+    view.idSearch = idSearchOn.checked;
+    saveView();
+    renderIdSearch();
+  });
+  idSearchNewTab.nextElementSibling.addEventListener("click", () => idSearchNewTab.click());
+  idSearchNewTab.addEventListener("change", () => {
+    view.idSearchNewTab = idSearchNewTab.checked;
+    saveView();
+  });
+  for (const [input, key] of [[idSearchTruth, "idSearchTruth"], [idSearchClaim, "idSearchClaim"], [idSearchDlog, "idSearchDlog"]]) {
+    input.nextElementSibling.addEventListener("click", () => input.click());
+    input.addEventListener("change", () => {
+      view[key] = input.checked;
+      saveView();
+    });
+  }
+  idSearchInfoOn.nextElementSibling.addEventListener("click", () => idSearchInfoOn.click());
+  idSearchInfoOn.addEventListener("change", () => {
+    view.idSearchInfo = idSearchInfoOn.checked;
+    saveView();
+  });
   clWideSwitch.nextElementSibling.addEventListener("click", () => clWideSwitch.click());
   clWideSwitch.addEventListener("change", () => {
     view.cwide = clWideSwitch.checked;
@@ -1697,6 +1765,24 @@ function setupView() {
   viewDlogSwitch.nextElementSibling.addEventListener("click", () => viewDlogSwitch.click());
   viewDlogSwitch.addEventListener("change", () => {
     view.dlog = viewDlogSwitch.checked;
+    saveView();
+  });
+  lmemoManageBtn.addEventListener("click", () => {
+    renderLmemo();
+    lmemoDialog.showModal();
+  });
+  lmemoDialog.addEventListener("click", (e) => {
+    if (e.target === lmemoDialog) lmemoDialog.close();
+  });
+  lmemoOn.nextElementSibling.addEventListener("click", () => lmemoOn.click());
+  lmemoOn.addEventListener("change", () => {
+    view.leftMemo = lmemoOn.checked;
+    saveView();
+    renderLmemo();
+  });
+  lmemoInfoOn.nextElementSibling.addEventListener("click", () => lmemoInfoOn.click());
+  lmemoInfoOn.addEventListener("change", () => {
+    view.leftMemoInfo = lmemoInfoOn.checked;
     saveView();
   });
   mlLayoutSelect.addEventListener("change", () => {

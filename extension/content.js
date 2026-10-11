@@ -38,7 +38,7 @@
   let follow = null;
   let pmenu = { on: false };
   let prio = { first: "member" };
-  let view = { cwide: false, mwide: false, memberTab: true, dlgScroll: true, dlog: true };
+  let view = { cwide: false, mwide: false, memberTab: true, dlgScroll: true, dlog: true, leftMemo: true, leftMemoInfo: true, idSearch: true, idSearchInfo: true, idSearchNewTab: true, idSearchTruth: true, idSearchClaim: true, idSearchDlog: true };
   let qp = { btn: true, list: [] };
   let minfo = { on: true, comments: true, profile: true, mini: true, pop: true, popInfo: true, popMode: "direct", popShow: { account: true, activity: true, rcmd: true, nick: true, disc: true }, info: true, card: { on: true, info: true, show: { account: true, activity: true, rcmd: true, nick: true, disc: true } }, noPost: true, noComment: true, discNow: true, left: true, colors: { left: "r", new: "r", nick: "r", del: "r", cdel: "r", disc: "r", noPost: "r", noComment: "r" }, newDays: 100, nickDays: 30, delPct: 30, cdelPct: 30 };
   let following = null;
@@ -170,6 +170,14 @@
       memberTab: bool(r.memberTab, true),
       dlgScroll: bool(r.dlgScroll, true),
       dlog: bool(r.dlog, true),
+      leftMemo: bool(r.leftMemo, true),
+      leftMemoInfo: bool(r.leftMemoInfo, true),
+      idSearch: bool(r.idSearch, true),
+      idSearchInfo: bool(r.idSearchInfo, true),
+      idSearchNewTab: bool(r.idSearchNewTab, true),
+      idSearchTruth: bool(r.idSearchTruth, true),
+      idSearchClaim: bool(r.idSearchClaim, true),
+      idSearchDlog: bool(r.idSearchDlog, true),
       mlayout: r.mlayout === "l1" || r.mlayout === "l2" ? r.mlayout : "default",
       mheart: r.mheart === "desk" ? "desk" : "default",
       micon: bool(r.micon, false)
@@ -662,7 +670,7 @@
     if (!alive()) return;
     const steps = [[applyHighlight, "제목 강조 실패"], [applyFollow, "사용자 강조 실패"], [applyWideNick, "닉네임 표시 실패"],
       [qpbApply, "프로필 등록 버튼 실패"], [miApply, "작성자 배지 실패"], [miApplyProfile, "프로필 배지 실패"], [() => { applyHeartPill(); applyNickIcon(); }, "모바일 표시 옵션 실패"],
-      [applyDlog, "이용제한 기록 프로필 보기 실패"], [updateStyle, "스타일 갱신 실패"]];
+      [applyDlog, "이용제한 기록 프로필 보기 실패"], [applyLeftMemo, "탈퇴 회원 메모 실패"], [applyIdSearch, "프로필 검색 바로가기 실패"], [updateStyle, "스타일 갱신 실패"]];
     for (const [fn, msg] of steps) {
       try {
         fn();
@@ -691,7 +699,7 @@
     for (const o of observers) o.disconnect();
     observers.length = 0;
     if (!removeUi) return;
-    for (const id of ["dui-qpwrap", "dui-qptip", "dui-pmenu", "dui-qpbtn-style", "dui-pmenu-style", "dui-highlight-style", "dui-mipop", "dui-mimenu", "dui-micard", "dui-mipbadges", "dui-minfo-style"]) {
+    for (const id of ["dui-qpwrap", "dui-qptip", "dui-pmenu", "dui-qpbtn-style", "dui-pmenu-style", "dui-highlight-style", "dui-mipop", "dui-mimenu", "dui-micard", "dui-mipbadges", "dui-minfo-style", "dui-lmemo", "dui-idsearch", "dui-lmemo-style"]) {
       const el = document.getElementById(id);
       if (el) el.remove();
     }
@@ -2500,6 +2508,511 @@
     if (old) old.replaceWith(box);
     else first.after(box);
     qpbTipRebind(box, tipTitle);
+  }
+
+  // ---- 탈퇴 회원 메모 ----
+  // 탈퇴 회원 프로필에는 메모 버튼이 없어 남긴 글이나 댓글이 없으면 메모할 곳이 없다.
+  // 메모 API 는 아이디만 받고 탈퇴 회원도 저장된다. 메모가 없으면 GET 의 data 가 null 이고 저장은 POST
+  const LMEMO_COLORS = [
+    ["yellow", "노랑", "#ffe69c", "#664d03"],
+    ["green", "초록", "#d1e7dd", "#0f5132"],
+    ["purple", "보라", "#e2d9f3", "#432874"],
+    ["red", "빨강", "#f8d7da", "#dc3545"],
+    ["blue", "파랑", "#cfe2ff", "#084298"]
+  ];
+  const LMEMO_MAX = 250;
+  const LMEMO_TIP_TEXT = "다모앙 UI 확장이 추가한 메모 상자입니다. 탈퇴한 회원은 메모 버튼이 없어 여기서 다모앙 회원메모에 저장하고 지웁니다. 설정: 확장 팝업 › 추가 기능 › 편의성 › 탈퇴 회원 메모 [관리]";
+  const lmemoUrl = (id) => "/api/v1/members/" + encodeURIComponent(id) + "/memo";
+  let lmemoEl = null;
+  // 첫 줄 자유게시판은 항상, 둘째 줄은 옵션별. 이용제한 열람은 탈퇴 회원에게만 (일반 회원은 프로필에 이용제한 내역이 있다)
+  const IDSEARCH_FREE = [
+    { label: "자유게시판 제목", path: "/free?sfl=title&stx=" },
+    { label: "자유게시판 작성자", path: "/free?sfl=author&stx=" },
+    { label: "자유게시판 댓글 작성자", path: "/free?sfl=comment_author&stx=" }
+  ];
+  const IDSEARCH_MORE = [
+    { opt: "idSearchTruth", label: "신고 누적 게시글 작성자", path: "/truthroom?sfl=author&stx=" },
+    { opt: "idSearchClaim", label: "소명게시판 작성자", path: "/claim?sfl=author&stx=" },
+    { opt: "idSearchDlog", left: true, label: "이용제한 열람", path: "/disciplinelog?member_id=" }
+  ];
+  const IDSEARCH_TIP_TEXT = "다모앙 UI 확장이 추가한 검색 바로가기입니다. 이 회원의 아이디로 자유게시판 제목, 작성자, 댓글 작성자를 검색하고, 설정에 따라 신고 누적 게시글, 소명게시판 작성자와 탈퇴한 회원의 이용제한 열람도 검색합니다. 설정: 확장 팝업 › 추가 기능 › 편의성 › 프로필 검색 바로가기 [관리]";
+  let idSearchEl = null;
+
+  function ensureLmemoStyle() {
+    ensureMiStyle();
+    if (document.getElementById("dui-lmemo-style")) return;
+    const style = document.createElement("style");
+    style.id = "dui-lmemo-style";
+    style.textContent =
+      "#dui-lmemo,#dui-idsearch{margin:1rem 0 0;padding:14px 16px;border-radius:12px;background:var(--background,#fff);color:var(--foreground,#1c1c1e);" +
+      "border:1px solid rgba(0,0,0,.08);box-shadow:0 1px 2px rgba(0,0,0,.05);font-size:13px;line-height:1.5;text-align:left;word-break:keep-all;}" +
+      "#dui-lmemo .hd,#dui-idsearch .hd{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;}" +
+      "#dui-lmemo .hd b,#dui-idsearch .hd b{font-size:15px;font-weight:600;}" +
+      "#dui-lmemo .hd .id,#dui-idsearch .hd .id{font-size:12px;color:var(--muted-foreground,#6b7280);}" +
+      "#dui-lmemo .sub,#dui-idsearch .sub{margin:2px 0 0;color:var(--muted-foreground,#6b7280);}" +
+      "#dui-idsearch [hidden]{display:none!important;}" +
+      "#dui-idsearch .rows{display:flex;flex-direction:column;gap:8px;margin-top:12px;}" +
+      "#dui-idsearch .links{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;}" +
+      "#dui-idsearch .links a{display:inline-flex;align-items:center;height:32px;padding:0 12px;border:1px solid rgba(0,0,0,.15);border-radius:6px;" +
+      "background:var(--background,#fff);color:inherit;font-size:13px;font-weight:500;text-decoration:none;white-space:nowrap;}" +
+      "#dui-idsearch .links a:hover{background:rgba(0,0,0,.04);}" +
+      "#dui-lmemo .lb{display:block;margin:14px 0 6px;font-weight:500;}" +
+      "#dui-lmemo .n{font-weight:400;font-size:12px;color:var(--muted-foreground,#6b7280);}" +
+      "#dui-lmemo .colors{display:flex;flex-wrap:wrap;gap:8px;}" +
+      "#dui-lmemo .colors button{height:32px;margin:0;padding:0 10px;border:2px solid transparent;border-radius:6px;font:inherit;font-size:12px;font-weight:500;cursor:pointer;}" +
+      "#dui-lmemo input,#dui-lmemo textarea{box-sizing:border-box;display:block;width:100%;margin:0;padding:8px 12px;border:1px solid rgba(0,0,0,.15);" +
+      "border-radius:6px;background:transparent;color:inherit;font:inherit;font-size:14px;}" +
+      "#dui-lmemo textarea{min-height:64px;resize:vertical;}" +
+      "#dui-lmemo input:focus,#dui-lmemo textarea:focus{outline:2px solid rgba(59,130,246,.45);outline-offset:0;}" +
+      "#dui-lmemo .ft{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin-top:16px;padding-top:12px;border-top:1px solid rgba(0,0,0,.08);}" +
+      "#dui-lmemo .act{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px 12px;margin-left:auto;}" +
+      "#dui-lmemo .st{font-size:12.5px;color:var(--muted-foreground,#6b7280);text-align:right;}" +
+      "#dui-lmemo .st.err{color:#dc2626;}" +
+      "#dui-lmemo .st button{margin:0 0 0 6px;padding:0;border:0;background:none;color:inherit;font:inherit;text-decoration:underline;cursor:pointer;}" +
+      "#dui-lmemo [hidden]{display:none!important;}" +
+      "#dui-lmemo .pill{display:inline-block;max-width:100%;padding:2px 12px;border-radius:9999px;font-size:12px;font-weight:500;vertical-align:middle;}" +
+      "#dui-lmemo .tx,#dui-lmemo .dbox{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;}" +
+      "#dui-lmemo .dbox{padding:8px 12px;border:1px solid rgba(0,0,0,.1);border-radius:6px;background:rgba(0,0,0,.025);font-size:14px;}" +
+      "#dui-lmemo .pri,#dui-lmemo .sec{height:36px;margin:0;padding:0 16px;border:1px solid transparent;border-radius:6px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;}" +
+      "#dui-lmemo .pri{background:var(--primary,#18181b);color:var(--primary-foreground,#fff);}" +
+      "#dui-lmemo .sec{background:var(--background,#fff);color:inherit;border-color:rgba(0,0,0,.15);}" +
+      "#dui-lmemo .dng{height:32px;margin:0;padding:0 12px;border:0;border-radius:6px;background:#dc2626;color:#fff;font:inherit;font-size:14px;font-weight:500;cursor:pointer;}" +
+      "#dui-lmemo .pri:disabled,#dui-lmemo .sec:disabled,#dui-lmemo .dng:disabled{opacity:.5;cursor:default;}" +
+      "html.dui-dark #dui-lmemo,html.dui-dark #dui-idsearch{border-color:rgba(255,255,255,.12);}" +
+      "html.dui-dark #dui-idsearch .links a{border-color:rgba(255,255,255,.15);}" +
+      "html.dui-dark #dui-idsearch .links a:hover{background:rgba(255,255,255,.06);}" +
+      "html.dui-dark #dui-lmemo input,html.dui-dark #dui-lmemo textarea,html.dui-dark #dui-lmemo .sec{border-color:rgba(255,255,255,.15);}" +
+      "html.dui-dark #dui-lmemo .dbox{border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.04);}" +
+      "html.dui-dark #dui-lmemo .ft{border-color:rgba(255,255,255,.1);}" +
+      "html.dui-dark #dui-lmemo .st.err{color:#f87171;}" +
+      "html.dui-dark #dui-lmemo .dng{background:rgba(220,38,38,.6);}" +
+      "@media (max-width:767px){#dui-lmemo input,#dui-lmemo textarea{font-size:16px;}}";
+    document.documentElement.append(style);
+  }
+
+  // 탈퇴 안내 카드는 자리 잡기에만 쓴다. 탈퇴 여부는 프로필 데이터로 정한다
+  function lmemoCard() {
+    if (document.querySelector('[data-slot="card-content"] h1')) return null;
+    for (const c of document.querySelectorAll('[data-slot="card"]')) {
+      if (c.querySelector("h1")) continue;
+      const body = c.querySelector('[data-slot="card-content"]');
+      if (!body) continue;
+      for (const p of body.querySelectorAll(":scope > p")) {
+        if (p.textContent.includes("탈퇴")) return c;
+      }
+    }
+    return null;
+  }
+
+  // 탈퇴 회원 프로필의 아이디와 안내 카드. left 는 데이터가 아직 없으면 null (요청만 보낸다)
+  function leftTarget(on) {
+    let id = on ? mtabId() : "";
+    try { id = decodeURIComponent(id); } catch (_) {}
+    const card = id ? lmemoCard() : null;
+    if (!card) return { id, card: null, left: false };
+    const rec = miGet(id);
+    if (!rec) {
+      miRequest(id);
+      return { id, card, left: null };
+    }
+    return { id, card, left: !!(rec.p && rec.p.left) };
+  }
+
+  function leftInfoButton(text) {
+    const info = document.createElement("button");
+    info.type = "button";
+    info.className = "dui-mic-info";
+    info.title = "이 상자는 무엇인가요?";
+    info.append(duiIcon("pageInfo"));
+    info.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (qpbTipEl && qpbTipAnchor === info) qpbCloseTip();
+      else qpbOpenTip(info, text);
+    });
+    return info;
+  }
+
+  function applyLeftMemo() {
+    const t = leftTarget(view.leftMemo);
+    if (lmemoEl && lmemoEl.dataset.duiId !== t.id) {
+      lmemoEl.remove();
+      lmemoEl = null;
+    }
+    if (!t.card) {
+      if (lmemoEl) lmemoEl.remove();
+      return;
+    }
+    // 캐시가 만료돼 다시 받는 동안에는 입력 중인 상자를 그대로 둔다
+    if (t.left === null) return;
+    if (!t.left) {
+      if (lmemoEl) lmemoEl.remove();
+      lmemoEl = null;
+      return;
+    }
+    if (!lmemoEl) lmemoEl = lmemoBuild(t.id);
+    if (t.card.nextElementSibling !== lmemoEl) t.card.after(lmemoEl);
+    const info = lmemoEl.querySelector(".hd .dui-mic-info");
+    if (info && info.hidden === view.leftMemoInfo) {
+      info.hidden = !view.leftMemoInfo;
+      if (info.hidden && qpbTipAnchor === info) qpbCloseTip();
+    }
+  }
+
+  // 다른 회원 프로필이면 { key, id, left, after }. 데이터가 아직 없으면 { key, pending }.
+  // 내 프로필은 머리 카드에 팔로우, 쪽지 버튼 묶음이 없어 빠진다
+  function idSearchTarget() {
+    let key = mtabId();
+    try { key = decodeURIComponent(key); } catch (_) {}
+    if (!key) return null;
+    const head = document.querySelector('[data-slot="card"]:has([data-slot="card-content"] h1)');
+    const leftCard = head ? null : lmemoCard();
+    if (!leftCard && !(head && head.querySelector('[data-slot="card-content"] .ml-auto.flex'))) return null;
+    const rec = miGet(key);
+    if (!rec) {
+      miRequest(key);
+      return { key, pending: true };
+    }
+    const p = rec.p;
+    if (!p || !!p.left !== !!leftCard) return null;
+    const id = p.id || key;
+    if (leftCard) return { key, id, left: true, after: lmemoEl && lmemoEl.previousElementSibling === leftCard ? lmemoEl : leftCard };
+    let after = mtabRoot();
+    while (after && after.parentElement !== head.parentElement) after = after.parentElement;
+    return after ? { key, id, left: false, after } : null;
+  }
+
+  // 일반 프로필은 맨 아래, 탈퇴 회원은 메모 상자 아래. 링크만 두고 미리 조회하지 않는다. 기본은 새 탭으로 연다
+  function applyIdSearch() {
+    const t = view.idSearch ? idSearchTarget() : null;
+    if (!t || (t.pending && idSearchEl && idSearchEl.dataset.duiKey !== t.key)) {
+      if (idSearchEl) idSearchEl.remove();
+      idSearchEl = null;
+      return;
+    }
+    if (t.pending) return;
+    const more = IDSEARCH_MORE.filter(i => view[i.opt] && (!i.left || t.left));
+    const sig = t.id + ":" + more.map(i => i.opt).join(",") + ":" + view.idSearchInfo + ":" + view.idSearchNewTab;
+    if (!idSearchEl || idSearchEl.dataset.duiSig !== sig) {
+      const tipTitle = qpbTipIn(idSearchEl);
+      if (idSearchEl) idSearchEl.remove();
+      idSearchEl = idSearchBuild(t.id, more);
+      idSearchEl.dataset.duiKey = t.key;
+      idSearchEl.dataset.duiSig = sig;
+      idSearchEl.dataset.duiTip = tipTitle;
+    }
+    if (t.after.nextElementSibling !== idSearchEl) {
+      t.after.after(idSearchEl);
+      if (idSearchEl.dataset.duiTip) qpbTipRebind(idSearchEl, idSearchEl.dataset.duiTip);
+      idSearchEl.dataset.duiTip = "";
+    }
+  }
+
+  function idSearchBuild(id, more) {
+    ensureLmemoStyle();
+    const box = document.createElement("div");
+    box.id = "dui-idsearch";
+    const head = document.createElement("div");
+    head.className = "hd";
+    const title = document.createElement("b");
+    title.textContent = "검색 바로가기";
+    const idEl = document.createElement("span");
+    idEl.className = "id";
+    idEl.textContent = id;
+    head.append(title, idEl);
+    if (view.idSearchInfo) head.append(leftInfoButton(IDSEARCH_TIP_TEXT));
+    const sub = document.createElement("p");
+    sub.className = "sub";
+    sub.textContent = "이 회원의 아이디로 다모앙 검색을 엽니다.";
+    const rows = document.createElement("div");
+    rows.className = "rows";
+    for (const row of more.length ? [IDSEARCH_FREE, more] : [IDSEARCH_FREE]) {
+      const links = document.createElement("div");
+      links.className = "links";
+      for (const item of row) {
+        const a = document.createElement("a");
+        a.href = item.path + encodeURIComponent(id);
+        if (view.idSearchNewTab) {
+          a.target = "_blank";
+          a.rel = "noopener";
+        }
+        a.textContent = item.label;
+        links.append(a);
+      }
+      rows.append(links);
+    }
+    box.append(head, sub, rows);
+    return box;
+  }
+
+  // 사이트 메모 창처럼 저장된 메모가 있으면 읽기로 열고 편집을 눌러 고친다. 없으면 바로 편집.
+  // 삭제는 사이트처럼 두 번 눌러야 한다. 삭제 응답만으로는 지워졌는지 알 수 없어 다시 읽어 확인한다
+  function lmemoBuild(id) {
+    ensureLmemoStyle();
+    const el = (tag, cls, text) => {
+      const e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text) e.textContent = text;
+      return e;
+    };
+    const button = (cls, text) => {
+      const b = el("button", cls, text);
+      b.type = "button";
+      return b;
+    };
+    const colorOf = (v) => LMEMO_COLORS.find(c => c[0] === v) || LMEMO_COLORS[0];
+    const box = el("div");
+    box.id = "dui-lmemo";
+    box.dataset.duiId = id;
+
+    const head = el("div", "hd");
+    head.append(el("b", "", "회원 메모"), el("span", "id", id));
+    head.append(leftInfoButton(LMEMO_TIP_TEXT));
+
+    const read = el("div");
+    const pill = el("span", "pill");
+    const pillText = el("span", "tx");
+    pill.append(pillText);
+    const detailRead = el("div");
+    const detailBox = el("div", "dbox");
+    detailRead.append(el("div", "lb", "상세 메모"), detailBox);
+    read.append(el("div", "lb", "메모"), pill, detailRead);
+
+    let color = LMEMO_COLORS[0][0];
+    const colors = el("div", "colors");
+    const paint = () => {
+      for (const b of colors.children) b.style.borderColor = b.dataset.v === color ? b.style.color : "transparent";
+    };
+    const count = el("span", "n");
+    const lab1 = el("label", "lb");
+    lab1.htmlFor = "dui-lmemo-content";
+    lab1.append("메모 ", count);
+    const input = el("input");
+    input.id = "dui-lmemo-content";
+    input.type = "text";
+    input.maxLength = LMEMO_MAX;
+    input.placeholder = "배지에 표시될 짧은 메모";
+    const lab2 = el("label", "lb");
+    lab2.htmlFor = "dui-lmemo-detail";
+    lab2.append("상세 메모 ", el("span", "n", "(선택)"));
+    const detail = el("textarea");
+    detail.id = "dui-lmemo-detail";
+    detail.rows = 3;
+    detail.placeholder = "자세한 메모 내용 (선택사항)";
+    const form = el("div");
+    form.append(el("div", "lb", "배지 색상"), colors, lab1, input, lab2, detail);
+
+    const ft = el("div", "ft");
+    const remove = button("dng", "삭제");
+    const st = el("span", "st");
+    const cancel = button("sec", "취소");
+    const edit = button("pri", "편집");
+    const save = button("pri", "저장");
+    const act = el("span", "act");
+    act.append(st, cancel, edit, save);
+    ft.append(remove, act);
+
+    box.append(head, el("p", "sub", "이 회원에 대한 개인 메모를 작성합니다. 본인만 볼 수 있습니다."), read, form, ft);
+
+    let saved = null;
+    let mode = "edit";
+    let loading = true;
+    let failed = false;
+    let busy = false;
+    let armed = 0;
+    const reason = (e) => (e && e.message ? e.message : String(e));
+    const readJson = async (r) => {
+      try { return JSON.parse(await r.text()); } catch (_) { return null; }
+    };
+    const httpError = (r, j) => new Error((j && (j.message || (j.error && j.error.message))) || "HTTP " + r.status);
+    const disarm = () => {
+      clearTimeout(armed);
+      armed = 0;
+      remove.textContent = "삭제";
+    };
+    const status = (text, err, retry) => {
+      st.textContent = text;
+      st.classList.toggle("err", !!err);
+      if (retry) {
+        const b = button("", "다시 시도");
+        b.addEventListener("click", load);
+        st.append(b);
+      }
+    };
+    // 불러오는 중이거나 실패하면 기존 메모를 모르므로 읽기·편집 모두 감춘다
+    const refresh = () => {
+      const ready = !loading && !failed;
+      read.hidden = !ready || mode !== "read";
+      form.hidden = !ready || mode !== "edit";
+      edit.hidden = read.hidden;
+      save.hidden = form.hidden;
+      cancel.hidden = form.hidden || !saved;
+      remove.hidden = !ready || !saved;
+      remove.disabled = busy;
+      const c = input.value.trim();
+      count.textContent = "(" + input.value.length + "/" + LMEMO_MAX + ")";
+      const same = saved && saved.content === c && saved.detail === detail.value.trim() && saved.color === color;
+      save.disabled = busy || !c || !!same;
+      cancel.disabled = busy;
+    };
+    const showSaved = () => {
+      const [, , bg, fg] = colorOf(saved.color);
+      pill.style.backgroundColor = bg;
+      pill.style.color = fg;
+      pillText.textContent = saved.content;
+      detailBox.textContent = saved.detail;
+      detailRead.hidden = !saved.detail;
+    };
+    const fillForm = () => {
+      input.value = saved ? saved.content : "";
+      detail.value = saved ? saved.detail : "";
+      color = saved ? saved.color : LMEMO_COLORS[0][0];
+      paint();
+    };
+    const changed = () => {
+      disarm();
+      if (!busy && !failed) status("");
+      refresh();
+    };
+    input.addEventListener("input", changed);
+    detail.addEventListener("input", changed);
+
+    for (const [v, label, bg, fg] of LMEMO_COLORS) {
+      const b = button("", label);
+      b.dataset.v = v;
+      b.style.backgroundColor = bg;
+      b.style.color = fg;
+      b.addEventListener("click", () => {
+        color = v;
+        paint();
+        changed();
+      });
+      colors.append(b);
+    }
+
+    edit.addEventListener("click", () => {
+      disarm();
+      fillForm();
+      mode = "edit";
+      status("");
+      refresh();
+    });
+    cancel.addEventListener("click", () => {
+      if (busy || !saved) return;
+      disarm();
+      fillForm();
+      mode = "read";
+      status("");
+      refresh();
+    });
+
+    function load() {
+      loading = true;
+      failed = false;
+      status("불러오는 중…");
+      refresh();
+      fetch(lmemoUrl(id), { credentials: "same-origin" })
+        .then(async (r) => {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return JSON.parse(await r.text());
+        })
+        .then((j) => {
+          if (!j || j.success !== true) throw new Error("응답 형식이 다릅니다");
+          const d = j.data && typeof j.data === "object" ? j.data : null;
+          saved = d ? { content: String(d.content || ""), detail: String(d.memo_detail || ""), color: colorOf(d.color)[0] } : null;
+          if (saved) showSaved();
+          fillForm();
+          mode = saved ? "read" : "edit";
+          loading = false;
+          status("");
+          refresh();
+        })
+        .catch((e) => {
+          loading = false;
+          failed = true;
+          status("메모를 불러오지 못했습니다 (" + reason(e) + ")", true, true);
+          refresh();
+        });
+    }
+
+    save.addEventListener("click", () => {
+      const body = { target_id: id, content: input.value.trim(), memo_detail: detail.value.trim(), color };
+      if (!body.content || busy) return;
+      busy = true;
+      status("저장 중…");
+      refresh();
+      fetch(lmemoUrl(id), {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      })
+        .then(async (r) => {
+          const j = await readJson(r);
+          if (!r.ok) throw httpError(r, j);
+          return j;
+        })
+        .then((j) => {
+          // 메서드가 틀리면 200 에 빈 메모(id 0)가 온다
+          const d = j && j.success === true && j.data && typeof j.data === "object" ? j.data : null;
+          if (!d || !d.id) throw new Error("서버가 저장하지 않았습니다");
+          saved = { content: body.content, detail: body.memo_detail, color: body.color };
+          showSaved();
+          fillForm();
+          mode = "read";
+          busy = false;
+          status("저장했습니다");
+          refresh();
+        })
+        .catch((e) => {
+          busy = false;
+          status("저장하지 못했습니다 (" + reason(e) + ")", true);
+          refresh();
+        });
+    });
+
+    remove.addEventListener("click", () => {
+      if (busy || !saved) return;
+      if (!armed) {
+        remove.textContent = "한 번 더 눌러 삭제";
+        armed = setTimeout(disarm, 5000);
+        return;
+      }
+      disarm();
+      remove.textContent = "삭제 중...";
+      busy = true;
+      status("");
+      refresh();
+      fetch(lmemoUrl(id), { method: "DELETE", credentials: "same-origin" })
+        .then(async (r) => {
+          const j = await readJson(r);
+          if (!r.ok) throw httpError(r, j);
+          if (!j || j.success !== true) throw new Error("응답 형식이 다릅니다");
+          return fetch(lmemoUrl(id), { credentials: "same-origin" });
+        })
+        .then(async (r) => {
+          const j = await readJson(r);
+          if (!r.ok) throw httpError(r, j);
+          if (!j || j.success !== true || j.data) throw new Error("서버가 삭제하지 않았습니다");
+          saved = null;
+          fillForm();
+          mode = "edit";
+          busy = false;
+          remove.textContent = "삭제";
+          status("삭제했습니다");
+          refresh();
+        })
+        .catch((e) => {
+          busy = false;
+          remove.textContent = "삭제";
+          status("삭제하지 못했습니다 (" + reason(e) + ")", true);
+          refresh();
+        });
+    });
+
+    paint();
+    load();
+    return box;
   }
 
   // 댓글의 배지 줄. 본문(.comment-body)을 감싼 div 바로 뒤에 둔다 (댓글 목록은 평면이라 항목당 하나)
