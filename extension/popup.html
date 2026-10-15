@@ -189,6 +189,31 @@
     box-sizing: border-box;
     max-height: calc(100vh - 56px);
   }
+  /* iOS 팝오버(iPad, 펼친 iPhone Duo)의 2열: 팝오버 안에서 vh 가 작게 잡혀 다이얼로그가 한 줄로 눌린다.
+     popup.js 가 잰 팝업 높이(--popup-h)와 고정 폭을 기준으로 잡는다 */
+  html.ios:not(.compact) body:not(.cols1) dialog {
+    max-height: calc(var(--popup-h, 560px) - 56px);
+    max-width: calc(var(--popup-w, 520px) - 20px);
+  }
+  /* iOS 키보드가 떠 있는 동안(html.kb, popup.js): 다이얼로그를 보이는 영역(visualViewport) 위쪽에 붙이고 그 높이로
+     제한한다. 키보드 아래로 내려간 다이얼로그는 안쪽 스크롤로도 입력칸이 안 보인다 (2026-10-15 Duo 가로) */
+  html.ios.kb body:not(.cols1) dialog[open] {
+    top: var(--vv-top, 0px);
+    bottom: auto;
+    margin-top: 8px;
+    max-height: calc(var(--vv-h, 100vh) - 16px);
+  }
+  html.ios.kb body.cols1.pagemode dialog[open] {
+    top: var(--vv-top, 0px) !important;
+    bottom: auto !important;
+    height: var(--vv-h, 100%) !important;
+  }
+  /* 보이는 영역이 몇 줄도 안 될 때(html.kb-tight): 상단 바와 드로어 버튼을 접어 입력칸 한 줄이라도 보이게 */
+  html.ios.kb.kb-tight body.cols1.pagemode dialog[open] { padding-top: 4px; }
+  html.ios.kb.kb-tight body.cols1.pagemode dialog[open] > .cbar,
+  html.ios.kb.kb-tight body.cols1.pagemode dialog[open] .side-toggle { display: none; }
+  html.ios.kb.kb-tight body.cols1.pagemode #hl-dialog[open],
+  html.ios.kb.kb-tight body.cols1.pagemode #follow-dialog[open] { padding-top: 4px; }
   html:not(.compact) body:not(.cols1) dialog:not(#hl-dialog):not(#follow-dialog) { overflow-y: auto; }
   body.cols1 #hl-dialog,
   body.cols1 #follow-dialog {
@@ -372,18 +397,18 @@
     width: auto;
     height: 100dvh;
   }
-  /* iPad 의 1열은 시트에서 팝오버로 바뀌는 순간 팝오버로 측정된다. 팝오버 크기는 문서 고유 크기를
-     따르므로 고유 크기가 뷰포트(100dvh, html 폭)에만 의존하면 작은 초기 크기에 갇힌다. 하한은 html 에 둔다.
-     body 는 iPhone 과 같이 뷰포트 높이라 시트에서는 하단 정보 줄이 시트 바닥에 붙고 안쪽만 스크롤한다.
+  /* iOS 의 1열은 시트에서 팝오버로 바뀌는 순간(iPad, 펼친 iPhone Duo) 팝오버로 측정된다. 팝오버 크기는 문서
+     고유 크기를 따르므로 고유 크기가 뷰포트(100dvh, html 폭)에만 의존하면 작은 초기 크기에 갇힌다. 하한은 html 에 둔다.
+     body 는 뷰포트 높이라 시트에서는 하단 정보 줄이 시트 바닥에 붙고 안쪽만 스크롤한다.
      2열로 바뀌면 다시 재므로 하한은 접힘만 막을 만큼이면 된다 */
-  html.ipad.compact {
+  html.ios.compact {
     min-width: 360px;
     min-height: 420px;
     overflow: hidden;
   }
   /* body 는 뷰포트에 고정한다. 하한 때문에 문서(html)가 시트보다 커지면 리로드·포커스 같은 프로그램
      스크롤이 문서를 내려 body 가 위로 밀리고, overflow hidden 이 뷰포트에 전파돼 되돌릴 수도 없다 */
-  html.ipad.compact body.cols1 {
+  html.ios.compact body.cols1 {
     position: fixed;
     inset: 0;
     width: auto;
@@ -893,6 +918,17 @@
     margin-top: 8px;
   }
   .opt-btns button { flex: 1; }
+  #notice-dialog { width: 360px; }
+  .notice-row { display: flex; align-items: baseline; gap: 8px; width: 100%; margin: 0; padding: 8px 6px; border: 0; border-top: 1px solid var(--divider); border-radius: 0; background: none; color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
+  .notice-row:first-child { border-top: 0; }
+  .notice-row:hover { background: var(--selected); }
+  .notice-row .notice-title { flex: 1; min-width: 0; }
+  .notice-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; }
+  .notice-title { font-weight: 600; }
+  .notice-date { font-size: 11px; color: var(--muted); white-space: nowrap; }
+  .notice-new { font-size: 10px; font-weight: 600; color: var(--track-on); border: 1px solid var(--track-on); border-radius: 4px; padding: 0 4px; white-space: nowrap; }
+  .notice-body { margin-top: 8px; white-space: pre-wrap; word-break: keep-all; overflow-wrap: anywhere; line-height: 1.5; }
+  #notice-dialog .opt-btns { margin-top: 14px; }
   .opt-note {
     margin-top: 8px;
     max-width: 240px;
@@ -1598,6 +1634,12 @@
       </div>
     </div>
     <div class="opt-divider"></div>
+    <div class="opt-caption">공지사항</div>
+    <div class="opt-note">확장의 변경 사항을 알립니다. 공지는 확장 안에 담겨 있어 네트워크 요청이 없고, 안 읽은 공지는 팝업을 열 때 한 번 보여 줍니다.</div>
+    <div class="opt-btns">
+      <button id="notice-open-btn">보기</button>
+    </div>
+    <div class="opt-divider"></div>
     <div class="opt-caption">추가 기능 백업 및 복원</div>
     <div class="opt-note" id="backup-note">추가 기능의 설정은 브라우저 계정으로 기기 간 동기화됩니다. 백업 파일에는 이 설정이 담기며, 다른 종류의 브라우저로 옮기거나 만약을 대비해 보관할 때 사용합니다.</div>
     <div class="opt-btns">
@@ -1741,6 +1783,15 @@
       <span class="switch"><input type="checkbox" id="lmemo-info-on"><span class="track"></span></span>
     </div>
     <div class="opt-note">기능 설명 버튼은 메모 상자 제목 옆에 표시되고, 확장 기능임을 알려줍니다.</div>
+  </dialog>
+  <dialog id="notice-dialog">
+    <h2>공지사항</h2>
+    <div id="notice-list"></div>
+    <div id="notice-detail" hidden></div>
+    <div class="opt-btns">
+      <button id="notice-back-btn" hidden>목록</button>
+      <button id="notice-close-btn">확인</button>
+    </div>
   </dialog>
   <dialog id="idsearch-dialog">
     <h2>프로필 검색 바로가기</h2>
@@ -2158,6 +2209,7 @@
   </dialog>
   <script src="common.js"></script>
 <script src="icons.js"></script>
+<script src="notices.js"></script>
 <script src="popup.js"></script>
 </body>
 </html>

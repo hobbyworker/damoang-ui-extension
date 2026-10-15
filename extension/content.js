@@ -2820,7 +2820,12 @@
     let failed = false;
     let busy = false;
     let armed = 0;
-    const reason = (e) => (e && e.message ? e.message : String(e));
+    // 다모앙이 기능을 막거나 응답을 바꿔도 상자 안 문구로만 알리고 화면은 그대로 둔다
+    const reason = (e) => {
+      if (e instanceof SyntaxError) return "응답 형식이 다릅니다";
+      if (e instanceof TypeError) return "네트워크 오류";
+      return e && e.message ? e.message : String(e);
+    };
     const readJson = async (r) => {
       try { return JSON.parse(await r.text()); } catch (_) { return null; }
     };
@@ -2913,13 +2918,15 @@
       refresh();
       fetch(lmemoUrl(id), { credentials: "same-origin" })
         .then(async (r) => {
-          if (!r.ok) throw new Error("HTTP " + r.status);
-          return JSON.parse(await r.text());
+          const j = await readJson(r);
+          if (!r.ok) throw httpError(r, j);
+          if (!j || j.success !== true) throw new Error("응답 형식이 다릅니다");
+          return j;
         })
         .then((j) => {
-          if (!j || j.success !== true) throw new Error("응답 형식이 다릅니다");
-          const d = j.data && typeof j.data === "object" ? j.data : null;
-          saved = d ? { content: String(d.content || ""), detail: String(d.memo_detail || ""), color: colorOf(d.color)[0] } : null;
+          // 메모 글자가 없는 응답은 메모 없음으로 본다
+          const d = j.data && typeof j.data === "object" && String(j.data.content || "").trim() ? j.data : null;
+          saved = d ? { content: String(d.content).trim(), detail: String(d.memo_detail || ""), color: colorOf(d.color)[0] } : null;
           if (saved) showSaved();
           fillForm();
           mode = saved ? "read" : "edit";
@@ -2954,7 +2961,8 @@
         })
         .then((j) => {
           // 메서드가 틀리면 200 에 빈 메모(id 0)가 온다
-          const d = j && j.success === true && j.data && typeof j.data === "object" ? j.data : null;
+          if (!j) throw new Error("응답 형식이 다릅니다");
+          const d = j.success === true && j.data && typeof j.data === "object" ? j.data : null;
           if (!d || !d.id) throw new Error("서버가 저장하지 않았습니다");
           saved = { content: body.content, detail: body.memo_detail, color: body.color };
           showSaved();
@@ -2988,12 +2996,24 @@
           const j = await readJson(r);
           if (!r.ok) throw httpError(r, j);
           if (!j || j.success !== true) throw new Error("응답 형식이 다릅니다");
-          return fetch(lmemoUrl(id), { credentials: "same-origin" });
-        })
-        .then(async (r) => {
-          const j = await readJson(r);
-          if (!r.ok) throw httpError(r, j);
-          if (!j || j.success !== true || j.data) throw new Error("서버가 삭제하지 않았습니다");
+          // 확인 요청이 막히면 지워졌는지 알 수 없다. 상태를 바꾸지 않고 새로고침을 권한다
+          let v = null;
+          let why = "";
+          try {
+            const rv = await fetch(lmemoUrl(id), { credentials: "same-origin" });
+            v = await readJson(rv);
+            if (!rv.ok) why = httpError(rv, v).message;
+          } catch (e) {
+            why = reason(e);
+          }
+          if (why || !v || v.success !== true) {
+            busy = false;
+            remove.textContent = "삭제";
+            status("삭제 요청은 보냈지만 결과를 확인하지 못했습니다 (" + (why || "응답 형식이 다릅니다") + "). 새로고침해 확인하세요", true);
+            refresh();
+            return;
+          }
+          if (v.data && typeof v.data === "object" && String(v.data.content || "").trim()) throw new Error("서버가 삭제하지 않았습니다");
           saved = null;
           fillForm();
           mode = "edit";

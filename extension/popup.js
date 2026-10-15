@@ -203,12 +203,12 @@ let sizeClass = /Android|iPhone|iPod/.test(navigator.userAgent) ? "compact" : "r
 // iOS Safari 는 팝업을 시트(iPhone, 좁은 iPad 창)나 팝오버(넓은 iPad 창)로 연다. CSS 가 이 클래스로 구분한다
 const isIOSDevice = /iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1);
 if (isIOSDevice) document.documentElement.classList.add("ios");
-// iPad 는 창이 넓으면 팝오버, 좁으면 시트로 열리고 열린 채로도 서로 바뀐다. 시트는 창 전체 폭으로
-// 펼쳐지므로 호스트 폭(outerWidth) = Safari 창 폭이고, 팝오버는 내용 크기 상자라 창보다 좁다.
+// iOS 는 창이 넓으면 팝오버, 좁으면 시트로 열리고 열린 채로도 서로 바뀐다 (iPad, 펼친 iPhone Duo).
+// 시트는 창 전체 폭으로 펼쳐지므로 호스트 폭(outerWidth) = Safari 창 폭이고, 팝오버는 내용 크기 상자라 창보다 좁다.
 // 창 폭은 팝업이 볼 수 없어 damoang 탭에서 읽는다. 문서 크기나 호스트 높이로 판정하면 되먹이거나
-// 인셋에 흔들린다 (2026-09-03 시행착오)
-const isIPad = isIOSDevice && sizeClass === "regular";
-const ipadState = { winW: 0 };
+// 인셋에 흔들린다 (2026-09-03 시행착오). iPhone 도 같은 판정을 거친다: 일반 iPhone 은 늘 시트라 compact 로 남고,
+// 펼친 Duo 는 팝오버라 regular 로 넘어간다 (iPhone 전용 경로로 두면 팝오버가 내용 폭까지 접힌다, 2026-10-14)
+const ipadState = { winW: 0, winH: 0 };
 function applySizeClass(next) {
   if (next === sizeClass) return;
   document.documentElement.classList.remove(sizeClass);
@@ -219,8 +219,7 @@ function applySizeClass(next) {
     applyLayout();
   }
 }
-if (isIPad) {
-  document.documentElement.classList.add("ipad");
+if (isIOSDevice) {
   let pending = 0;
   let pendingCls = "";
   let decided = false;
@@ -233,35 +232,86 @@ if (isIPad) {
     const want = sizeClass === "compact" && window.outerWidth ? window.outerWidth + "px" : "";
     if (document.documentElement.style.width !== want) document.documentElement.style.width = want;
   };
+  // 팝오버(2열)는 창 높이가 낮으면(펼친 iPhone Duo) 560px 가 바닥에서 잘린다. 잰 창 높이에서 Safari 상단 바와
+  // 팝오버 여백을 뺀 만큼으로 줄이고, 다이얼로그가 쓸 높이도 같은 값으로 알린다 (팝오버 안에서 vh 는 믿을 수 없다)
+  // 시트(접힘)와 팝오버(펼침)를 오가면 viewport 의 device-width 가 시트 폭에 머문 채 팝오버가 그 레이아웃을
+  // 늘려 그려 글자가 커지고 터치가 어긋난다 (2026-10-14 Duo 접었다 펼치기 반복). 표시 방식이 바뀔 때 content 를
+  // 바꿔 Safari 가 viewport 를 다시 계산하게 한다. 팝오버는 body 폭 520 에 맞춘다
+  const viewportMeta = document.querySelector('meta[name="viewport"]');
+  const syncViewport = () => {
+    if (!viewportMeta) return;
+    const want = sizeClass === "regular" ? "width=520, initial-scale=1" : "width=device-width, initial-scale=1";
+    if (viewportMeta.getAttribute("content") !== want) viewportMeta.setAttribute("content", want);
+  };
+  // 틀이 바뀌는 순간(회전, 접기·펼치기)에는 한 번 본래 크기로 되돌려 Safari 가 팝오버를 다시 재게 한다.
+  // 그 뒤에도 틀이 작으면 다음 apply 가 다시 맞춘다 (틀 = 내용 크기라 줄여 둔 채로는 다시 커질 기회가 없다)
+  let frameReset = false;
+  const fitPopover = () => {
+    syncViewport();
+    const root = document.documentElement.style;
+    if (sizeClass !== "regular") {
+      document.body.style.height = "";
+      document.body.style.width = "";
+      root.removeProperty("--popup-h");
+      root.removeProperty("--popup-w");
+      return;
+    }
+    let h = ipadState.winH ? Math.max(420, Math.min(560, ipadState.winH - 120)) : 560;
+    let w = 520;
+    // 접었다 펼치기를 반복하면 Safari 가 팝오버 틀을 잰 높이보다 낮게 두고 다시 재지 않는다 (2026-10-14 Duo 측정:
+    // 틀 501 에 body 549 → 바닥이 잘리고 문서가 스크롤돼 터치가 어긋남). 세로로 펼친 Duo 는 화면 폭 때문에
+    // 틀을 520 보다 좁게 준다(2026-10-15, 오른쪽이 잘림). 틀이 작으면 거기에 맞춘다. 420·360 아래는 틀이 아직
+    // 안 잡힌 초기값일 수 있어 무시한다 (문서 크기가 뷰포트를 따라가면 접히는 함정)
+    // 키보드가 떠 있는 동안(html.kb)은 틀이 잠시 줄어든 것이라 맞추지 않는다. 여기서 줄이면 키보드가 내려간 뒤에도
+    // 팝오버가 작은 채로 남는다 (2026-10-15 펼친 Duo 세로: 키보드 전후 다이얼로그 높이가 달라짐)
+    if (frameReset) {
+      frameReset = false;
+    } else if (!document.documentElement.classList.contains("kb")) {
+      if (window.innerHeight >= 420 && window.innerHeight < h) h = window.innerHeight;
+      if (window.innerWidth >= 360 && window.innerWidth < w) w = window.innerWidth;
+    }
+    const ph = h + "px";
+    const pw = w + "px";
+    if (document.body.style.height !== ph) document.body.style.height = ph;
+    if (document.body.style.width !== pw) document.body.style.width = pw;
+    if (root.getPropertyValue("--popup-h") !== ph) root.setProperty("--popup-h", ph);
+    if (root.getPropertyValue("--popup-w") !== pw) root.setProperty("--popup-w", pw);
+  };
   // 창 폭. 같은 창의 damoang 탭에서 outerWidth(탭의 호스트 = Safari 창)를 읽는다. 없으면 확장 API 값
   const measureWindow = async () => {
     try {
       const [tab] = await chrome.tabs.query({ url: "https://damoang.net/*", currentWindow: true });
       if (tab) {
         const r = await Promise.race([
-          chrome.scripting.executeScript({ target: { tabId: tab.id }, func: () => window.outerWidth || window.innerWidth }),
+          chrome.scripting.executeScript({ target: { tabId: tab.id }, func: () => ({ w: window.outerWidth || window.innerWidth, h: window.outerHeight || window.innerHeight }) }),
           new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 1500))
         ]);
         const v = r && r[0] && r[0].result;
-        if (v > 0) return { w: v };
+        if (v && v.w > 0) return { w: v.w, h: v.h > 0 ? v.h : 0 };
       }
     } catch (e) { /* 탭 없음, 주입 실패 */ }
     try {
       if (chrome.windows && chrome.windows.getCurrent) {
         const w = await chrome.windows.getCurrent();
-        if (w && w.width > 0) return { w: w.width };
+        if (w && w.width > 0) return { w: w.width, h: w.height > 0 ? w.height : 0 };
       }
     } catch (e) { /* 미지원 */ }
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tab && tab.width > 0) return { w: tab.width };
+      if (tab && tab.width > 0) return { w: tab.width, h: tab.height > 0 ? tab.height : 0 };
     } catch (e) { /* 미지원 */ }
     return null;
   };
+  // 팝오버는 내용 폭(360~520)이라 창보다 한참 좁다. 시트는 창 폭과 같아야 하지만 인셋만큼 어긋날 수 있어
+  // 여유를 둔다 (iPhone 시트가 regular 로 잘못 넘어가지 않게)
+  // 가로로 눕힌 iPhone 은 창보다 좁은 시트로 열려 폭 규칙만으로는 팝오버로 오인된다 (2026-10-15 17e 가로 → 2열로
+  // 바뀌며 잘림). 창이 낮으면 팝오버가 들어갈 자리가 없으니 시트로 본다 (iPhone 가로 ≤ 430, 펼친 Duo 626, iPad ≥ 744)
   const classify = () => {
     const hostW = window.outerWidth;
     if (!hostW || !ipadState.winW) return "";
-    return Math.abs(hostW - ipadState.winW) <= 1 ? "compact" : "regular";
+    if (hostW >= ipadState.winW - 40) return "compact";
+    if (ipadState.winH && ipadState.winH < 500) return "compact";
+    return "regular";
   };
   const apply = (why, now) => {
     const cls = classify();
@@ -270,11 +320,13 @@ if (isIPad) {
     if (!cls || cls === sizeClass) {
       if (pending) { clearTimeout(pending); pending = 0; }
       fitSheet();
+      fitPopover();
       return;
     }
     if (now || first) {
       applySizeClass(cls);
       fitSheet();
+      fitPopover();
       return;
     }
     // 전환 애니메이션 중에는 값이 흔들리므로 잠시 같은 값이 유지될 때 바꾼다
@@ -294,12 +346,15 @@ if (isIPad) {
       measuredAt = t;
       const m = await measureWindow();
       measuring = false;
-      if (m) ipadState.winW = m.w;
+      if (m) {
+        ipadState.winW = m.w;
+        if (m.h) ipadState.winH = m.h;
+      }
     }
     apply(why);
   };
   decide("init");
-  window.addEventListener("resize", () => decide("rs"));
+  window.addEventListener("resize", () => { frameReset = true; decide("rs"); });
   if (window.visualViewport) window.visualViewport.addEventListener("resize", () => decide("vv"));
   setInterval(() => decide("poll"), 500);
   window.addEventListener("load", fitSheet);
@@ -352,7 +407,7 @@ const focusIfRegular = (el) => { if (!noAutoFocus) el.focus(); };
   const isField = (el) => !!el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT");
   let fieldAt = 0;
   const unshift = () => {
-    if (sizeClass !== "compact") return;
+    if (sizeClass !== "compact" && !isIOSDevice) return;
     if (isField(document.activeElement)) return;
     if (Date.now() - fieldAt > 1500) return;
     window.scrollTo(0, 0);
@@ -361,6 +416,44 @@ const focusIfRegular = (el) => { if (!noAutoFocus) el.focus(); };
   document.addEventListener("focusin", (e) => { if (isField(e.target)) fieldAt = Date.now(); });
   document.addEventListener("focusout", (e) => { if (isField(e.target)) { fieldAt = Date.now(); setTimeout(unshift, 50); } });
   if (window.visualViewport) window.visualViewport.addEventListener("resize", () => { if (fieldAt) setTimeout(unshift, 50); });
+  // iOS 키보드: 다이얼로그가 레이아웃 뷰포트 기준으로 놓여 키보드 아래로 내려가면 안쪽 스크롤로도 입력칸에 못 닿는다
+  // (2026-10-15 Duo 가로·펼친 가로). 입력칸에 포커스가 있는 동안 html.kb 를 붙이고 보이는 영역(visualViewport)을
+  // CSS 변수로 알려 다이얼로그를 그 안에 둔다
+  if (isIOSDevice) {
+    const root = document.documentElement;
+    const vv = window.visualViewport;
+    const updateVV = () => {
+      if (!vv) return;
+      root.style.setProperty("--vv-h", Math.round(vv.height) + "px");
+      root.style.setProperty("--vv-top", Math.round(vv.offsetTop) + "px");
+      // 가로 SE 처럼 키보드 위에 몇 줄도 안 남으면 페이지 상단 바까지 접어 입력칸 자리를 낸다
+      root.classList.toggle("kb-tight", vv.height < 160);
+    };
+    // 키보드가 다 올라온 뒤 입력칸을 보이는 영역 가운데로 끌어온다. 포커스 시점의 자동 스크롤은 키보드 전 크기
+    // 기준이라 키보드 밑에 남는다 (2026-10-15 접은 Duo 가로)
+    let reveal = 0;
+    const revealField = () => {
+      clearTimeout(reveal);
+      reveal = setTimeout(() => {
+        const el = document.activeElement;
+        if (root.classList.contains("kb") && isField(el)) el.scrollIntoView({ block: "center", inline: "nearest" });
+      }, 80);
+    };
+    if (vv) {
+      vv.addEventListener("resize", () => { updateVV(); revealField(); });
+      vv.addEventListener("scroll", updateVV);
+      updateVV();
+    }
+    document.addEventListener("focusin", (e) => {
+      if (!isField(e.target)) return;
+      updateVV();
+      root.classList.add("kb");
+    });
+    document.addEventListener("focusout", (e) => {
+      if (!isField(e.target)) return;
+      setTimeout(() => { if (!isField(document.activeElement)) root.classList.remove("kb"); }, 100);
+    });
+  }
 }
 const isIOS = document.documentElement.classList.contains("ios");
 let popupLayout = localStorage.getItem("popup-layout");
@@ -3107,6 +3200,103 @@ async function syncFromCloud() {
   location.reload();
 }
 
+// 공지. notices.js 의 목록을 최신순으로 보여 주고, 안 읽은 최신 공지가 있으면 팝업을 열 때 그 내용을 한 번 띄운다.
+// 목록에서 항목을 누르면 내용, [목록] 으로 돌아온다. 읽음 표시는 닫을 때 최신 id 를 기기별 localStorage 에 둔다 (백업·동기화 대상 아님)
+const NOTICE_READ_KEY = "notice-read";
+function setupNotices() {
+  const list = typeof DUI_NOTICES !== "undefined" && Array.isArray(DUI_NOTICES) ? DUI_NOTICES : [];
+  const dialog = document.getElementById("notice-dialog");
+  const listEl = document.getElementById("notice-list");
+  const detailEl = document.getElementById("notice-detail");
+  const backBtn = document.getElementById("notice-back-btn");
+  const closeBtn = document.getElementById("notice-close-btn");
+  const unreadCount = () => {
+    const idx = list.findIndex(n => n.id === (localStorage.getItem(NOTICE_READ_KEY) || ""));
+    return idx < 0 ? list.length : idx;
+  };
+  const newMark = () => {
+    const mark = document.createElement("span");
+    mark.className = "notice-new";
+    mark.textContent = "새 공지";
+    return mark;
+  };
+  const showList = () => {
+    const unread = unreadCount();
+    listEl.textContent = "";
+    if (!list.length) {
+      const p = document.createElement("div");
+      p.className = "opt-note";
+      p.textContent = "공지가 없습니다.";
+      listEl.append(p);
+    }
+    list.forEach((n, i) => {
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "notice-row";
+      const title = document.createElement("span");
+      title.className = "notice-title";
+      title.textContent = n.title;
+      const date = document.createElement("span");
+      date.className = "notice-date";
+      date.textContent = n.date;
+      row.append(title);
+      if (i < unread) row.append(newMark());
+      row.append(date);
+      row.addEventListener("click", () => showDetail(i));
+      listEl.append(row);
+    });
+    listEl.hidden = false;
+    detailEl.hidden = true;
+    backBtn.hidden = true;
+    closeBtn.textContent = "닫기";
+  };
+  const showDetail = (i) => {
+    const n = list[i];
+    detailEl.textContent = "";
+    const head = document.createElement("div");
+    head.className = "notice-head";
+    const title = document.createElement("span");
+    title.className = "notice-title";
+    title.textContent = n.title;
+    const date = document.createElement("span");
+    date.className = "notice-date";
+    date.textContent = n.date;
+    head.append(title, date);
+    if (i < unreadCount()) head.append(newMark());
+    const body = document.createElement("div");
+    body.className = "notice-body";
+    body.textContent = n.body;
+    detailEl.append(head, body);
+    listEl.hidden = true;
+    detailEl.hidden = false;
+    backBtn.hidden = false;
+    closeBtn.textContent = "확인";
+  };
+  // close 이벤트는 비동기라 버튼·배경 클릭은 바로 표시한다. Escape 와 페이지 모드의 뒤로는 close 이벤트가 맡는다
+  const markRead = () => {
+    if (list.length) localStorage.setItem(NOTICE_READ_KEY, list[0].id);
+  };
+  dialog.addEventListener("close", markRead);
+  dialog.addEventListener("click", (e) => {
+    if (e.target !== dialog) return;
+    markRead();
+    dialog.close();
+  });
+  closeBtn.addEventListener("click", () => {
+    markRead();
+    dialog.close();
+  });
+  backBtn.addEventListener("click", showList);
+  document.getElementById("notice-open-btn").addEventListener("click", () => {
+    showList();
+    dialog.showModal();
+  });
+  if (unreadCount() > 0) {
+    showDetail(0);
+    dialog.showModal();
+  }
+}
+
 async function init() {
   syncFromCloud();
   if (DUI_SYNC.enabled) {
@@ -3211,6 +3401,11 @@ async function init() {
   setupSections();
   setupScrollMemory();
   setupExtra();
+  try {
+    setupNotices();
+  } catch (e) {
+    console.warn("[다모앙UI] 공지 표시 실패", e);
+  }
   const cached = loadCache();
   dbg("cache", cached);
   if (cached.settings) fillRows(cached.settings);

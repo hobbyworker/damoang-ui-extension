@@ -44,6 +44,7 @@
 		D393F7A0BBBB0023BBBB0023 /* NativeMessageCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB0022BBBB0022 /* NativeMessageCodec.swift */; };
 		D393F7A0BBBB0024BBBB0024 /* NativeMessageCodec.swift in Sources */ = {isa = PBXBuildFile; fileRef = D393F7A0BBBB0022BBBB0022 /* NativeMessageCodec.swift */; };
 		D393F7A83047C1880041E46A /* icons.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F79E3047C1880041E46A /* icons.js */; };
+		D393F7C23047C1880041E46A /* notices.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F7C13047C1880041E46A /* notices.js */; };
 		D393F7A93047C1880041E46A /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F79F3047C1880041E46A /* popup.js */; };
 		D393F7AA3047C1880041E46A /* backup.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A03047C1880041E46A /* backup.js */; };
 		D393F7AB3047C1880041E46A /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A13047C1880041E46A /* popup.html */; };
@@ -53,6 +54,7 @@
 		D393F7B03047C1880041E46A /* _locales in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A63047C1880041E46A /* _locales */; };
 		D393F7B13047C1880041E46A /* content.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A73047C1880041E46A /* content.js */; };
 		D393F7B23047C1880041E46A /* icons.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F79E3047C1880041E46A /* icons.js */; };
+		D393F7C33047C1880041E46A /* notices.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F7C13047C1880041E46A /* notices.js */; };
 		D393F7B33047C1880041E46A /* popup.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F79F3047C1880041E46A /* popup.js */; };
 		D393F7B43047C1880041E46A /* backup.js in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A03047C1880041E46A /* backup.js */; };
 		D393F7B53047C1880041E46A /* popup.html in Resources */ = {isa = PBXBuildFile; fileRef = D393F7A13047C1880041E46A /* popup.html */; };
@@ -128,6 +130,7 @@
 		D393F7793047C1870041E46A /* Damoang UI Extension Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Damoang UI Extension Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D393F77E3047C1870041E46A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D393F79E3047C1880041E46A /* icons.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = icons.js; path = ../../../extension/icons.js; sourceTree = "<group>"; };
+		D393F7C13047C1880041E46A /* notices.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = notices.js; path = ../../../extension/notices.js; sourceTree = "<group>"; };
 		D393F79F3047C1880041E46A /* popup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = popup.js; path = ../../../extension/popup.js; sourceTree = "<group>"; };
 		D393F7A03047C1880041E46A /* backup.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = backup.js; path = ../../../extension/backup.js; sourceTree = "<group>"; };
 		D393F7A0AAAA0001AAAA0001 /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
@@ -283,6 +286,7 @@
 			isa = PBXGroup;
 			children = (
 				D393F79E3047C1880041E46A /* icons.js */,
+				D393F7C13047C1880041E46A /* notices.js */,
 				D393F79F3047C1880041E46A /* popup.js */,
 				D393F7A03047C1880041E46A /* backup.js */,
 				D393F7A13047C1880041E46A /* popup.html */,
@@ -469,6 +473,7 @@
 				D393F7B43047C1880041E46A /* backup.js in Resources */,
 				D393F7B53047C1880041E46A /* popup.html in Resources */,
 				D393F7B23047C1880041E46A /* icons.js in Resources */,
+				D393F7C33047C1880041E46A /* notices.js in Resources */,
 				D393F7BB3047C1880041E46A /* content.js in Resources */,
 				D393F7B63047C1880041E46A /* icons in Resources */,
 				D393F7B93047C1880041E46A /* common.js in Resources */,
@@ -485,6 +490,7 @@
 				D393F7AA3047C1880041E46A /* backup.js in Resources */,
 				D393F7AB3047C1880041E46A /* popup.html in Resources */,
 				D393F7A83047C1880041E46A /* icons.js in Resources */,
+				D393F7C23047C1880041E46A /* notices.js in Resources */,
 				D393F7B13047C1880041E46A /* content.js in Resources */,
 				D393F7AC3047C1880041E46A /* icons in Resources */,
 				D393F7AF3047C1880041E46A /* common.js in Resources */,
@@ -754,7 +760,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "iOS (Extension)/Sync.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
@@ -766,7 +772,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.9.0;
+				MARKETING_VERSION = 0.9.1;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
@@ -789,7 +795,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "iOS (Extension)/Sync.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
@@ -801,7 +807,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
-				MARKETING_VERSION = 0.9.0;
+				MARKETING_VERSION = 0.9.1;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
@@ -827,7 +833,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "iOS (App)/Sync.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "iOS (App)/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
@@ -842,7 +848,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.0;
+				MARKETING_VERSION = 0.9.1;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
@@ -869,7 +875,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "iOS (App)/Sync.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "iOS (App)/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "다모앙 UI 확장";
@@ -884,7 +890,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.0;
+				MARKETING_VERSION = 0.9.1;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
@@ -910,7 +916,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "macOS (Extension)/Sync.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -925,7 +931,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.2;
-				MARKETING_VERSION = 0.9.0;
+				MARKETING_VERSION = 0.9.1;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
@@ -947,7 +953,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = "macOS (Extension)/Sync.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
@@ -962,7 +968,7 @@
 					"@executable_path/../../../../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.2;
-				MARKETING_VERSION = 0.9.0;
+				MARKETING_VERSION = 0.9.1;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
@@ -986,7 +992,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "macOS (App)/Sync.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -1002,7 +1008,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.2;
-				MARKETING_VERSION = 0.9.0;
+				MARKETING_VERSION = 0.9.1;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
@@ -1029,7 +1035,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = "macOS (App)/Sync.entitlements";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 3;
+				CURRENT_PROJECT_VERSION = 4;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -1045,7 +1051,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 14.2;
-				MARKETING_VERSION = 0.9.0;
+				MARKETING_VERSION = 0.9.1;
 				OTHER_LDFLAGS = (
 					"-framework",
 					SafariServices,
