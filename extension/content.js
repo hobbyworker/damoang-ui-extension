@@ -19,6 +19,7 @@
   const VIEW_KEY = "view";
   const QP_KEY = "qprofile";
   const MINFO_KEY = "minfo";
+  const SHOT_KEY = "shot";
   // 배지 색 (회색·노랑·빨강·파랑·초록·보라)
   const MIB_TONES = ["g", "a", "r", "b", "e", "p"];
   const PREFIX = "dui-hl-";
@@ -32,15 +33,17 @@
   // 댓글 작성자도 같은 드롭다운 버튼. 답글 대상 표시(→ 닉네임)는 span 이라 안 걸린다
   const COMMENT_SEL = "li.comment-item";
   const COMMENT_AUTHOR_SEL = "button[data-dropdown-menu-trigger]";
+  const IMGPV_DELAYS = [150, 300, 500, 1000];
   const hasHighlight = "highlights" in CSS;
 
   let hl = { groups: [] };
   let follow = null;
   let pmenu = { on: false };
   let prio = { first: "member" };
-  let view = { cwide: false, mwide: false, memberTab: true, dlgScroll: true, dlog: true, leftMemo: true, leftMemoInfo: true, idSearch: true, idSearchInfo: true, idSearchNewTab: true, idSearchTruth: true, idSearchClaim: true, idSearchDlog: true };
+  let view = { cwide: false, mwide: false, memberTab: true, dlgScroll: true, dlog: true, menuCmt: true, menuCmtInfo: true, lgLeftMemo: false, listMemo: true, listMemoInfo: true, listMemoNarrowOn: false, imgPreview: true, imgPreviewRaw: false, imgPreviewDelay: 300, imgPreviewBrand: true, imgPreviewAdult: false, imgPreviewMode: "both", imgPreviewNarrowOn: false, idSearch: true, idSearchInfo: true, idSearchNewTab: true, idSearchTruth: true, idSearchClaim: true, idSearchLeftTitle: true, lgIdSearchLeft: false };
   let qp = { btn: true, list: [] };
-  let minfo = { on: true, comments: true, profile: true, mini: true, pop: true, popInfo: true, popMode: "direct", popShow: { account: true, activity: true, rcmd: true, nick: true, disc: true }, info: true, card: { on: true, info: true, show: { account: true, activity: true, rcmd: true, nick: true, disc: true } }, noPost: true, noComment: true, discNow: true, left: true, colors: { left: "r", new: "r", nick: "r", del: "r", cdel: "r", disc: "r", noPost: "r", noComment: "r" }, newDays: 100, nickDays: 30, delPct: 30, cdelPct: 30 };
+  let shot = { on: false, hideHl: false, hideMember: false };
+  let minfo = { on: true, comments: true, profile: true, mini: true, pop: true, popInfo: true, popMode: "direct", popShow: { account: true, activity: true, rcmd: true, nick: true, disc: true }, info: true, card: { on: true, info: true, show: { account: true, activity: true, rcmd: true, nick: true, disc: true } }, noPost: true, noComment: true, discNow: true, left: true, colors: { left: "r", new: "r", nick: "r", del: "r", cdel: "r", disc: "r", noPost: "r", noComment: "r" }, newDays: 100, nickDays: 30, delPct: 30, cdelPct: 30, lgCardLeft: false, lgPopLeft: false };
   let following = null;
   let followLoading = false;
   let timer = null;
@@ -102,6 +105,11 @@
     return { first: raw && raw.first === "title" ? "title" : "member" };
   }
 
+  function normalizeShot(raw) {
+    const r = raw && typeof raw === "object" ? raw : {};
+    return { on: !!r.on, hideHl: !!r.hideHl, hideMember: !!r.hideMember };
+  }
+
   function normalizeQp(raw) {
     const r = raw && typeof raw === "object" ? raw : {};
     const src = Array.isArray(r.list) ? r.list : [];
@@ -158,7 +166,9 @@
       newDays: num(r.newDays, 100, 3650),
       nickDays: num(r.nickDays, 30, 3650),
       delPct: num(r.delPct, 30, 100),
-      cdelPct: num(r.cdelPct, 30, 100)
+      cdelPct: num(r.cdelPct, 30, 100),
+      lgCardLeft: bool(r.lgCardLeft, false),
+      lgPopLeft: bool(r.lgPopLeft, false)
     };
   }
 
@@ -170,14 +180,26 @@
       memberTab: bool(r.memberTab, true),
       dlgScroll: bool(r.dlgScroll, true),
       dlog: bool(r.dlog, true),
-      leftMemo: bool(r.leftMemo, true),
-      leftMemoInfo: bool(r.leftMemoInfo, true),
+      menuCmt: bool(r.menuCmt, true),
+      menuCmtInfo: bool(r.menuCmtInfo, true),
+      lgLeftMemo: bool(r.lgLeftMemo, false),
+      listMemo: bool(r.listMemo, true),
+      listMemoInfo: bool(r.listMemoInfo, true),
+      listMemoNarrowOn: bool(r.listMemoNarrowOn, false),
+      imgPreview: bool(r.imgPreview, true),
+      imgPreviewRaw: bool(r.imgPreviewRaw, false),
+      imgPreviewDelay: IMGPV_DELAYS.indexOf(Number(r.imgPreviewDelay)) >= 0 ? Number(r.imgPreviewDelay) : 300,
+      imgPreviewBrand: bool(r.imgPreviewBrand, true),
+      imgPreviewAdult: bool(r.imgPreviewAdult, false),
+      imgPreviewMode: r.imgPreviewMode === "click" || r.imgPreviewMode === "hover" ? r.imgPreviewMode : "both",
+      imgPreviewNarrowOn: bool(r.imgPreviewNarrowOn, false),
       idSearch: bool(r.idSearch, true),
       idSearchInfo: bool(r.idSearchInfo, true),
       idSearchNewTab: bool(r.idSearchNewTab, true),
       idSearchTruth: bool(r.idSearchTruth, true),
       idSearchClaim: bool(r.idSearchClaim, true),
-      idSearchDlog: bool(r.idSearchDlog, true),
+      idSearchLeftTitle: bool(r.idSearchLeftTitle, true),
+      lgIdSearchLeft: bool(r.lgIdSearchLeft, false),
       mlayout: r.mlayout === "l1" || r.mlayout === "l2" ? r.mlayout : "default",
       mheart: r.mheart === "desk" ? "desk" : "default",
       micon: bool(r.micon, false)
@@ -209,21 +231,33 @@
   }
 
   function hlRowActive(g) {
-    return g.on && g.keywords.length > 0 && (g.line.on || g.bg.on || g.mark.on);
+    return !shotHides("hl") && g.on && g.keywords.length > 0 && (g.line.on || g.bg.on || g.mark.on);
   }
 
   function groupsActive() {
-    return !!follow && follow.groups.some(g => styleOn(g.style) && g.members.length);
+    return !shotHides("member") && !!follow && follow.groups.some(g => styleOn(g.style) && g.members.length);
   }
 
   function followActive() {
-    return !!follow && styleOn(follow.follow);
+    return !shotHides("member") && !!follow && styleOn(follow.follow);
+  }
+
+  // 스크린샷 모드가 켜져 있으면 강조 설정과 무관하게 효과를 내지 않는다 (설정은 그대로, 2026-10-19 사용자).
+  // 켜기 버튼이 둔 표시와 함께, 사이트의 설정 사본에서 메모 가리기가 실제로 켜져 있는지도 본다 —
+  // 다른 데서 메모 설정을 되돌렸는데 표시만 남아 강조가 계속 꺼져 있지 않게
+  function shotHides(kind) {
+    if (!shot.on || !(kind === "hl" ? shot.hideHl : shot.hideMember)) return false;
+    try {
+      const c = JSON.parse(localStorage.getItem("angple_ui_settings"));
+      if (c && typeof c === "object" && ("hideMemo" in c || "hideMemoInList" in c)) return !!c.hideMemo && !!c.hideMemoInList;
+    } catch (_) {}
+    return true;
   }
 
   // 닉네임 -> 붙일 클래스와 댓글 적용 여부. 그룹이 먼저, 나머지 팔로우 회원은 팔로우 스타일
   function buildNickMap() {
     const map = new Map();
-    if (!follow) return map;
+    if (!follow || shotHides("member")) return map;
     const taken = new Set();
     follow.groups.forEach((g, i) => {
       for (const nick of g.members) {
@@ -344,7 +378,7 @@
           + TITLE + "{order:2;flex:1 1 0;min-width:0;}"
           + TIME + "{order:5;}"
           + VIEWS + "{order:6;}"
-          + MEMO + "{order:8;margin-left:auto;pointer-events:none;}"
+          + MEMO + "{order:8;margin-left:auto;}"
           + MEMO + ".memo-badge--expand{max-width:none !important;}"
           + NICK + "{order:9;min-width:0;}"
           + CONTENT + ":not(:has(.memo-badge)) > .mobile-meta > span:nth-of-type(4){margin-left:auto;}";
@@ -481,7 +515,7 @@
     const dark = isDark();
     let css = "";
     hl.groups.forEach((g, i) => {
-      if (!g.on || !g.pen.on || !g.keywords.length) return;
+      if (shotHides("hl") || !g.on || !g.pen.on || !g.keywords.length) return;
       css += "::highlight(" + PREFIX + i + "){background-color:" + (dark ? g.pen.darkColor : g.pen.lightColor) + ";}";
     });
     // 클래식 닉네임 전체 표시: 넘치는 행에만 붙는 클래스. 그 행의 제목 칸만 양보한다.
@@ -552,7 +586,7 @@
     const jobs = [];
     hl.groups.forEach((g, i) => {
       const rowClass = hlRowActive(g) ? HLROW_PREFIX + "g" + i : "";
-      const pen = hasHighlight && g.on && g.pen.on;
+      const pen = hasHighlight && !shotHides("hl") && g.on && g.pen.on;
       const re = g.on && (pen || rowClass) ? buildRegex(g) : null;
       if (re) jobs.push({ re, pen, rowClass, hl: pen ? new Highlight() : null, name: PREFIX + i });
     });
@@ -666,11 +700,18 @@
     }
   }
 
+  let shotSig = "";
   function apply() {
     if (!alive()) return;
+    // 스크린샷 모드의 효과가 바뀌면 제목 강조 캐시를 버린다 (사이트 설정 사본이 바뀌어도 우리 저장소는 그대로라)
+    const sig = String(shotHides("hl")) + String(shotHides("member"));
+    if (sig !== shotSig) {
+      shotSig = sig;
+      hlRev += 1;
+    }
     const steps = [[applyHighlight, "제목 강조 실패"], [applyFollow, "사용자 강조 실패"], [applyWideNick, "닉네임 표시 실패"],
       [qpbApply, "프로필 등록 버튼 실패"], [miApply, "작성자 배지 실패"], [miApplyProfile, "프로필 배지 실패"], [() => { applyHeartPill(); applyNickIcon(); }, "모바일 표시 옵션 실패"],
-      [applyDlog, "이용제한 기록 프로필 보기 실패"], [applyLeftMemo, "탈퇴 회원 메모 실패"], [applyIdSearch, "프로필 검색 바로가기 실패"], [updateStyle, "스타일 갱신 실패"]];
+      [applyDlog, "이용제한 기록 프로필 보기 실패"], [applyLeftMemo, "탈퇴 회원 메모 실패"], [applyListMemo, "목록 메모 바로 표시 실패"], [applyImgPreview, "목록 이미지 미리보기 실패"], [applyIdSearch, "프로필 검색 바로가기 실패"], [updateStyle, "스타일 갱신 실패"]];
     for (const [fn, msg] of steps) {
       try {
         fn();
@@ -699,10 +740,11 @@
     for (const o of observers) o.disconnect();
     observers.length = 0;
     if (!removeUi) return;
-    for (const id of ["dui-qpwrap", "dui-qptip", "dui-pmenu", "dui-qpbtn-style", "dui-pmenu-style", "dui-highlight-style", "dui-mipop", "dui-mimenu", "dui-micard", "dui-mipbadges", "dui-minfo-style", "dui-lmemo", "dui-idsearch", "dui-lmemo-style"]) {
+    for (const id of ["dui-qpwrap", "dui-qptip", "dui-pmenu", "dui-qpbtn-style", "dui-pmenu-style", "dui-highlight-style", "dui-mipop", "dui-mimenu", "dui-micard", "dui-mipbadges", "dui-minfo-style", "dui-lmemo", "dui-lmemo-dlg", "dui-idsearch", "dui-lmemo-style", "dui-imgpv", "dui-imgpv-style"]) {
       const el = document.getElementById(id);
       if (el) el.remove();
     }
+    document.documentElement.classList.remove("dui-listmemo", "dui-imgpv", "dui-imgpv-n");
   }
   function schedule() {
     if (!alive()) return;
@@ -713,6 +755,7 @@
   async function loadCfg() {
     hl = normalizeHl(await duiRead(HL_KEY));
     hlRev += 1;
+    shot = normalizeShot(await duiRead(SHOT_KEY));
     follow = normalizeFollow(await duiRead(FOLLOW_KEY));
     pmenu = normalizePmenu(await duiRead(PMENU_KEY));
     prio = normalizePrio(await duiRead(PRIO_KEY));
@@ -755,7 +798,7 @@
   chrome.storage.onChanged.addListener((changes, area) => {
     if (!alive()) return;
     if (area !== "sync" && area !== "local") return;
-    if (duiChanged(changes, HL_KEY) || duiChanged(changes, FOLLOW_KEY) || duiChanged(changes, PMENU_KEY) || duiChanged(changes, PRIO_KEY) || duiChanged(changes, VIEW_KEY) || duiChanged(changes, QP_KEY) || duiChanged(changes, MINFO_KEY)) loadCfg();
+    if (duiChanged(changes, HL_KEY) || duiChanged(changes, FOLLOW_KEY) || duiChanged(changes, PMENU_KEY) || duiChanged(changes, PRIO_KEY) || duiChanged(changes, VIEW_KEY) || duiChanged(changes, QP_KEY) || duiChanged(changes, MINFO_KEY) || duiChanged(changes, SHOT_KEY)) loadCfg();
   });
 
   // ---- 프로필 메뉴 ----
@@ -877,9 +920,9 @@
     const r = anchor.getBoundingClientRect();
     const mw = pmenuEl.offsetWidth;
     const mh = pmenuEl.offsetHeight;
-    let left = Math.min(r.left, window.innerWidth - mw - 8);
+    let left = Math.min(r.left, viewW() - mw - 8);
     let top = r.bottom + 6;
-    if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 6);
+    if (top + mh > viewH() - 8) top = Math.max(8, r.top - mh - 6);
     pmenuEl.style.left = Math.max(8, left) + "px";
     pmenuEl.style.top = top + "px";
     pmenuAnchor = anchor;
@@ -928,7 +971,9 @@
     }
     if (e.key === "Escape") {
       // 다모앙 메뉴 안에 들어간 팝업은 메뉴와 함께 닫히므로 사이트의 Escape 처리를 막지 않는다
-      if (miMenuEl) e.stopImmediatePropagation();
+      if (miMenuEl || lmemoDlg) e.stopImmediatePropagation();
+      lmemoCloseDialog();
+      imgpvClose();
       closePmenu();
       qpbCloseTip();
       miCloseMiniMenu();
@@ -937,6 +982,7 @@
   }, true);
   listen(window, "scroll", (e) => {
     closePmenu();
+    imgpvClose();
     qpbFollowTip();
     // 팝업 안쪽 스크롤은 유지한다. 연 직후의 스크롤(다이얼로그 포커스 이동 등)도 무시한다
     // 우리 메뉴는 다모앙 메뉴처럼 닉을 따라간다
@@ -1135,8 +1181,12 @@
 
   // 띄울 수 있는 범위. 사이트 다이얼로그 안이면 그 상자 안 — 상자 밖으로 나간 부분은 보이긴 해도 클릭이 전혀 안 먹는다
   // (2026-09-27 사용자 확인: 공감 목록 상자 밖으로 나간 미니 프로필의 링크·항목이 전부 무반응, 안에 들어오면 정상)
+  // 스크롤바를 뺀 화면 크기. innerWidth 는 세로 스크롤바까지 넣어 오른쪽 끝이 스크롤바 밑으로 들어간다
+  function viewW() { return document.documentElement.clientWidth || window.innerWidth; }
+  function viewH() { return document.documentElement.clientHeight || window.innerHeight; }
+
   function miBoundsOf(host) {
-    const b = { left: 8, top: 8, right: window.innerWidth - 8, bottom: window.innerHeight - 8 };
+    const b = { left: 8, top: 8, right: viewW() - 8, bottom: viewH() - 8 };
     if (host && host !== document.body) {
       const r = host.getBoundingClientRect();
       b.left = Math.max(b.left, r.left + 4);
@@ -1275,7 +1325,7 @@
   // 응답 형식이 바뀌거나 네트워크가 막히면 잠시 쉰다. 안 그러면 DOM 변화마다 다시 요청한다
   const MINFO_FAIL_TTL = 10 * 60 * 1000;
   // 캐시 레코드 형식 번호. 축약 형식이 바뀌면 올려서 옛 캐시를 버린다
-  const MINFO_CACHE_V = 1;
+  const MINFO_CACHE_V = 2;
   const MINFO_SS = "dui-minfo:";
   const MINFO_TRIGGER_SEL = "button[data-dropdown-menu-trigger], .comment-good-group button, button:has(svg.lucide-reply)";
   // 루트 레이아웃(토큰 포함, 큼)만 빼고 나머지 노드를 요청한다. 1 을 넉넉히 두면 라우트 깊이에 상관없이 페이지 노드가 포함된다
@@ -1353,6 +1403,12 @@
       followers: num(p.follower_count),
       following: num(p.following_count),
       left: !!p.is_left,
+      // 탈퇴 회원은 값이 빠지거나 0 으로 온다. 실제로 온 항목만 그리려고 따로 적어 둔다
+      has: {
+        account: typeof p.mb_datetime === "string" && /^[1-9]/.test(p.mb_datetime),
+        stats: [st.total_post_count, st.total_comment_count, st.total_rcmd_count, st.total_singo_count].some(v => typeof v === "number" && v > 0),
+        level: typeof p.as_level === "number" && p.as_level > 0
+      },
       disc: disc(p.discipline),
       discHist: (Array.isArray(p.discipline_history) ? p.discipline_history : []).map(disc).filter(Boolean).slice(0, 100),
       nickHist: (Array.isArray(p.nick_history) ? p.nick_history : []).map(h => (h && typeof h === "object"
@@ -1441,7 +1497,7 @@
     fetch(location.pathname.replace(/\/$/, "") + MINFO_PAGE_QUERY, { credentials: "same-origin" })
       .then(async (r) => {
         if (!r.ok) throw new Error("HTTP " + r.status);
-        return miParsePage(await r.text());
+        return miParsePage(await miFirstLine(r));
       })
       .then((pg) => {
         pg.pathId = pid;
@@ -1553,6 +1609,17 @@
     return left > 0 ? left : 0;
   }
 
+  // 제한 기간 중에 주의를 더 받으면 최근 기록(discipline)이 주의가 된다.
+  // 내역 전체에서 아직 끝나지 않은 제한 중 가장 늦게 끝나는 것을 고른다 (영구가 우선). 없으면 null
+  function miDiscActive(p) {
+    let best = null;
+    for (const d of [p.disc].concat(Array.isArray(p.discHist) ? p.discHist : [])) {
+      const left = miDiscLeft(d);
+      if (left > 0 && (!best || left > best.left)) best = { d, left };
+    }
+    return best;
+  }
+
   // 사이트의 이용제한 기록 표기: 영구 / N일 / 주의
   function miDiscLabel(h) {
     return miDiscPermanent(h) ? "영구" : h.period > 0 ? h.period + "일" : "주의";
@@ -1590,8 +1657,8 @@
     if (minfo.noPost && p.posts === 0) out.push(["글 없음", c.noPost]);
     if (minfo.noComment && p.comments === 0) out.push(["댓글 없음", c.noComment]);
     // 배지는 지금 제한 중일 때만. 지난 내역은 요약 줄에만 둔다 (클리앙도 현재 제한만 배지, 횟수 배지는 과함 — 2026-09-22 사용자)
-    const left = miDiscLeft(p.disc);
-    if (minfo.discNow && left > 0) out.push(["이용제한 중 (" + (left === Infinity ? "영구" : left + "일 남음") + ")", c.disc]);
+    const act = miDiscActive(p);
+    if (minfo.discNow && act) out.push(["이용제한 중 (" + (act.left === Infinity ? "영구" : act.left + "일 남음") + ")", c.disc]);
     return out;
   }
 
@@ -1661,12 +1728,13 @@
       "#dui-mipop .m{color:#9ca3af;}" +
       "#dui-mipop .bd{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:0 0 8px;padding-bottom:8px;border-bottom:1px solid rgba(0,0,0,.08);}" +
       "html.dui-dark #dui-mipop .bd{border-color:rgba(255,255,255,.1);}" +
+      "#dui-mipop .bd:last-child,#dui-mipop .hd:last-child{margin-bottom:0;padding-bottom:0;border-bottom:0;}" +
       "#dui-mipop .bd .dui-mib{font-size:12px;line-height:20px;padding:0 8px;border-radius:6px;cursor:default;}" +
       "#dui-mipop a{color:#1a73e8;text-decoration:underline;cursor:pointer;}" +
       "html.dui-dark #dui-mipop{border-color:rgba(255,255,255,.1);}" +
       "html.dui-dark #dui-mipop a{color:#8ab4f8;}" +
       "html.dui-dark #dui-mipop .t a{color:inherit;}" +
-      "[data-dui-qp2]:hover,[data-dui-qp2]:focus{background:var(--accent,rgba(0,0,0,.06));outline:none;}" +
+      "[data-dui-qp2]:hover,[data-dui-qp2]:focus,[data-dui-cmt]:hover,[data-dui-cmt]:focus{background:var(--accent,rgba(0,0,0,.06));outline:none;}" +
       "[data-dui-qp2]>svg{width:14px;height:14px;flex:none;}" +
       // 다모앙 메뉴가 없는 곳에 띄우는 메뉴. 모양은 다모앙 메뉴의 클래스로 그리고 아래는 그 클래스가 안 먹을 때의 안전망
       "#dui-mimenu-wrap{position:fixed;left:0;top:0;z-index:2147483000;min-width:max-content;pointer-events:auto;}" +
@@ -1677,6 +1745,12 @@
       "[data-dropdown-menu-content].dui-mi-cols,[data-dui-menu].dui-mi-cols{display:grid;position:relative;grid-template-columns:1fr 1fr;grid-auto-flow:column;" +
       "grid-template-rows:auto repeat(var(--dui-rows,4),auto);column-gap:12px;}" +
       ".dui-mi-cols>#dui-mipop{grid-row:1;grid-column:1/-1;}" +
+      // 게시판 내 댓글 검색에 기능 설명 버튼이 붙으면 두 열을 반반으로 둔 채 메뉴를 조금 넓힌다.
+      // 그만큼 넓힐 수 없는 좁은 화면에서만 왼쪽 열을 내용만큼 쓴다. 다모앙 기본 메뉴는 고정 폭(w-40)을 푼다
+      "[data-dropdown-menu-content].dui-mi-host:has([data-dui-cmt] .dui-mic-info){width:min(384px,calc(100vw - 16px))!important;}" +
+      "@media (max-width:399px){[data-dropdown-menu-content].dui-mi-cols:has([data-dui-cmt] .dui-mic-info){grid-template-columns:auto 1fr;}}" +
+      "[data-dropdown-menu-content]:not(.dui-mi-host):has([data-dui-cmt]){width:auto;min-width:10rem;}" +
+      ".dui-mi-cols:has(>#dui-mipop[hidden]){grid-template-rows:repeat(var(--dui-rows,4),auto);}" +
       ".dui-mi-cols>[data-dropdown-menu-separator]{visibility:hidden;height:0;margin:0;}" +
       ".dui-mi-cols>.dui-col2{border-left:1px solid rgba(0,0,0,.1);margin-left:-6px;padding-left:13px;border-top-left-radius:0;border-bottom-left-radius:0;}" +
       "html.dui-dark .dui-mi-cols>.dui-col2{border-color:rgba(255,255,255,.14);}" +
@@ -1735,9 +1809,10 @@
   function miListUrl() {
     return location.pathname + location.search;
   }
+  // 사이트가 현재 페이지 표시용으로 ?page= 를 붙이는 행이 있어 쿼리를 떼고 본다
   function miListRowId(btn) {
     const a = btn.closest("a.post-row");
-    const m = a ? /\/(\d+)\/?$/.exec(a.getAttribute("href") || "") : null;
+    const m = a ? /\/(\d+)\/?$/.exec((a.getAttribute("href") || "").split(/[?#]/)[0]) : null;
     return m ? m[1] : "";
   }
   function miScanPosts(v, out, depth) {
@@ -1749,6 +1824,24 @@
     if (typeof v.author_id === "string" && v.author_id && (typeof v.id === "number" || typeof v.id === "string")) out.set(String(v.id), v.author_id);
     for (const k in v) miScanPosts(v[k], out, depth + 1);
   }
+  // __data.json 은 첫 줄이 본문이고 뒤에 streamed chunk(광고 목록 등)가 더 올 수 있다. 첫 줄만 쓰는 곳은 거기서 끊는다
+  async function miFirstLine(r) {
+    if (!r.body || typeof r.body.getReader !== "function") return (await r.text()).split("\n")[0];
+    const reader = r.body.getReader();
+    const dec = new TextDecoder();
+    let buf = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (value) buf += dec.decode(value, { stream: true });
+      const i = buf.indexOf("\n");
+      if (i >= 0) {
+        reader.cancel().catch(() => {});
+        return buf.slice(0, i);
+      }
+      if (done) return buf;
+    }
+  }
+
   function miLoadList() {
     const url = miListUrl();
     if ((miList && miList.url === url) || miListPending === url) return;
@@ -1758,10 +1851,10 @@
     fetch(dataUrl, { credentials: "same-origin" })
       .then((r) => {
         if (!r.ok) throw new Error("HTTP " + r.status);
-        return r.text();
+        return miFirstLine(r);
       })
       .then((text) => {
-        const j = JSON.parse(text.split("\n")[0]);
+        const j = JSON.parse(text);
         const byPost = new Map();
         for (const n of Array.isArray(j.nodes) ? j.nodes : []) {
           if (n && n.type === "data" && Array.isArray(n.data)) miScanPosts(unflatten(n.data), byPost, 0);
@@ -1788,6 +1881,7 @@
     const nick = miNickOf(btn);
     const tipTitle = qpbTipIn(pop);
     pop.textContent = "";
+    pop.hidden = false;
     const el = (tag, cls, text) => {
       const e = document.createElement(tag);
       if (cls) e.className = cls;
@@ -1818,41 +1912,50 @@
     }
     const head = el("div", "h", "미니 프로필");
     if (minfo.popInfo) head.append(infoBtn("이 팝업은 무엇인가요?", minfo.popMode === "menu" ? MINFO_POP_TIP_TEXT2 : MINFO_POP_TIP_TEXT));
-    pop.append(head);
-    if (!rec) {
-      const st = miPageState();
-      const waiting = (miPopKey && miPending.has(miPopKey)) || (!miPopKey && (st === "pending" || st === "idle" || miListPending === miListUrl()));
-      pop.append(el("div", "t", nick));
-      pop.append(el("div", "r m", waiting ? "불러오는 중…" : "회원 정보를 가져오지 못했습니다"));
-    } else if (!rec.p) {
-      pop.append(el("div", "t", nick));
-      pop.append(el("div", "r m", "회원 정보를 찾을 수 없습니다 (닉네임이 바뀌었거나 탈퇴한 회원)"));
+    // 탈퇴 회원의 정보는 레거시 기능을 켰을 때만. 배지 줄은 그대로.
+    // 미니 프로필 항목을 골라 메뉴 항목이 감춰진 경우에는 빈 메뉴가 되지 않게 머리와 안내를 남긴다
+    const leftOff = !!(rec && rec.p && rec.p.left && !minfo.lgPopLeft);
+    const only = !!(pop.parentElement && pop.parentElement.classList.contains("dui-mi-only"));
+    if (leftOff && only) {
+      pop.append(head);
+      if (!topBadges.length) pop.append(el("div", "r m", "탈퇴한 회원입니다"));
+    } else if (leftOff) {
+      pop.hidden = !topBadges.length;
     } else {
-      const p = rec.p;
-      const t = el("div", "t");
-      const a = el("a", "", p.nick || nick);
-      const path = "/member/" + (p.id || encodeURIComponent(nick));
-      a.href = path;
-      a.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const host = miHostOf(a);
-        miClosePop();
-        goTo(path, host);
-      });
-      const show = minfo.popShow;
-      if (p.id) a.append(el("span", "id", "(" + p.id + ")"));
-      t.append(a);
-      if (!p.left) t.append(el("span", "lv", "Lv." + p.level));
-      // 닉 줄(과 옛 닉 안내)은 가로줄로 나눈다
-      const hd = el("div", "hd");
-      hd.append(t);
-      // 글에 보이는 닉과 현재 닉이 다르면 알려 준다
-      if (p.nick && nick && p.nick !== nick) hd.append(el("div", "r m", "이 글에서는 " + nick));
-      pop.append(hd);
-      for (const l of miLines(p, show, true)) pop.append(miLineEl(l, "r"));
-      const leftLine = show.disc ? miLeftLine(p) : null;
-      if (leftLine) pop.append(miLineEl(leftLine, "r"));
+      pop.append(head);
+      if (!rec) {
+        const st = miPageState();
+        const waiting = (miPopKey && miPending.has(miPopKey)) || (!miPopKey && (st === "pending" || st === "idle" || miListPending === miListUrl()));
+        pop.append(el("div", "t", nick));
+        pop.append(el("div", "r m", waiting ? "불러오는 중…" : "회원 정보를 가져오지 못했습니다"));
+      } else if (!rec.p) {
+        pop.append(el("div", "t", nick));
+        pop.append(el("div", "r m", "회원 정보를 찾을 수 없습니다 (닉네임이 바뀌었거나 탈퇴한 회원)"));
+      } else {
+        const p = rec.p;
+        const t = el("div", "t");
+        const a = el("a", "", p.nick || nick);
+        const path = "/member/" + (p.id || encodeURIComponent(nick));
+        a.href = path;
+        a.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const host = miHostOf(a);
+          miClosePop();
+          goTo(path, host);
+        });
+        const show = minfo.popShow;
+        if (p.id) a.append(el("span", "id", "(" + p.id + ")"));
+        t.append(a);
+        if (!p.left || (p.has && p.has.level)) t.append(el("span", "lv", "Lv." + p.level));
+        // 닉 줄(과 옛 닉 안내)은 가로줄로 나눈다
+        const hd = el("div", "hd");
+        hd.append(t);
+        // 글에 보이는 닉과 현재 닉이 다르면 알려 준다
+        if (p.nick && nick && p.nick !== nick) hd.append(el("div", "r m", "이 글에서는 " + nick));
+        pop.append(hd);
+        for (const l of miLines(p, show, true)) pop.append(miLineEl(l, "r"));
+      }
     }
     const host = pop.closest("[data-dui-menu]");
     if (host && host.duiPlace) host.duiPlace();
@@ -2142,6 +2245,151 @@
     miQp2Poll = setTimeout(poll, 0);
   }
 
+  // ---- 게시판 내 댓글 검색 ----
+  // 다모앙 회원 메뉴의 '게시판 내 검색'(작성자 검색)을 '게시판 내 글 검색' 으로 바꾸고 바로 아래에 댓글 작성자 검색을 넣는다.
+  // 주소는 지금 게시판에 sfl=comment_id. 미니 프로필 설정과 무관하게 동작한다
+  const CMT_SITE_LABEL = "게시판 내 검색";
+  const CMT_POST_LABEL = "게시판 내 글 검색";
+  const CMT_LABEL = "게시판 내 댓글 검색";
+  const CMT_TIP_TEXT = "다모앙 UI 확장이 추가한 메뉴 항목입니다. 이 회원이 지금 게시판에 단 댓글을 아이디로 찾습니다. 같은 메뉴의 '게시판 내 검색'은 글을 찾는 기능이라 '게시판 내 글 검색'으로 이름을 바꿨습니다. 설정: 확장 팝업 › 추가 기능 › 편의성 › 게시판 내 댓글 검색 [관리]";
+  const cmtBtn = new WeakMap();
+  let cmtPoll = 0;
+  let cmtObs = null;
+
+  function cmtBoard() {
+    const m = /^\/([A-Za-z0-9_-]+)(?:\/\d+)?\/?$/.exec(location.pathname);
+    return m && !MINFO_NOT_BOARD.test(m[1]) ? m[1] : "";
+  }
+
+  // 글자 노드만 바꿔 아이콘은 그대로 둔다
+  function cmtRelabel(el, from, to) {
+    const w = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) {
+      if (n.nodeValue.includes(from)) {
+        n.nodeValue = n.nodeValue.replace(from, to);
+        return;
+      }
+    }
+  }
+
+  // 사이트 항목을 통째로 복제해 모양을 맞춘다. data-dropdown-menu-item 은 남겨 방향키 이동에 포함되게 한다
+  function cmtFix(c) {
+    if (!view.menuCmt) return;
+    const site = [...c.querySelectorAll(MI_MENU_ITEM_SEL)].find((it) => {
+      if (it.hasAttribute("data-dui-cmt")) return false;
+      const t = it.textContent.trim();
+      return t === CMT_SITE_LABEL || t === CMT_POST_LABEL;
+    });
+    if (!site) return;
+    if (site.textContent.trim() === CMT_SITE_LABEL) cmtRelabel(site, CMT_SITE_LABEL, CMT_POST_LABEL);
+    if (c.querySelector("[data-dui-cmt]")) return;
+    ensureMiStyle();
+    const it = site.cloneNode(true);
+    for (const a of ["id", "aria-disabled", "data-disabled", "data-highlighted"]) it.removeAttribute(a);
+    it.setAttribute("data-dui-cmt", "");
+    cmtRelabel(it, CMT_POST_LABEL, CMT_LABEL);
+    const old = it.querySelector("svg");
+    if (old) {
+      const icon = duiIcon("message");
+      const cls = old.getAttribute("class");
+      if (cls) icon.setAttribute("class", cls);
+      old.replaceWith(icon);
+    }
+    if (view.menuCmtInfo) {
+      const info = leftInfoButton(CMT_TIP_TEXT);
+      info.title = "이 항목은 무엇인가요?";
+      it.append(info);
+    }
+    site.after(it);
+  }
+
+  function cmtAttach(c, btn) {
+    cmtBtn.set(c, btn);
+    cmtFix(c);
+    if (cmtObs) cmtObs.disconnect();
+    // 항목이 늦게 그려지거나 메뉴가 다시 그려져 빠지면 다시 넣는다
+    cmtObs = new MutationObserver(() => {
+      if (!c.isConnected) {
+        cmtObs.disconnect();
+        cmtObs = null;
+        return;
+      }
+      cmtFix(c);
+    });
+    cmtObs.observe(c, { childList: true, subtree: true, characterData: true });
+  }
+
+  function cmtWatch(btn) {
+    if (!view.menuCmt || !cmtBoard()) return;
+    clearTimeout(cmtPoll);
+    const t0 = performance.now();
+    const poll = () => {
+      const c = document.querySelector(MI_MENU_SEL);
+      if (c && !c.contains(btn)) {
+        if (cmtBtn.get(c) !== btn) cmtAttach(c, btn);
+        return;
+      }
+      if (performance.now() - t0 < 500) cmtPoll = setTimeout(poll, 16);
+    };
+    cmtPoll = setTimeout(poll, 0);
+  }
+
+  // 아이디는 미니 프로필과 같은 경로로 구한다: 글·목록 데이터에 있으면 그것, 없으면 닉으로 프로필을 조회
+  function cmtGo(it) {
+    const c = it.closest("[data-dropdown-menu-content]");
+    const btn = c ? cmtBtn.get(c) : null;
+    const board = cmtBoard();
+    if (c) miMenuEscape(c);
+    if (!btn || !board) return;
+    const nick = miNickOf(btn);
+    const go = (id) => goTo("/" + board + "?sfl=comment_id&stx=" + encodeURIComponent(id));
+    const t0 = Date.now();
+    let asked = false;
+    const step = () => {
+      const key = miKeyForTrigger(btn);
+      if (key && key !== nick) return go(key);
+      if (key === nick) {
+        const rec = miGet(nick);
+        if (rec) return go(rec.p && rec.p.id ? rec.p.id : nick);
+        const failedAt = miFail.get(nick);
+        if (asked && failedAt && failedAt >= t0) return go(nick);
+        if (!asked) {
+          asked = true;
+          miRequest(nick);
+        }
+      }
+      if (Date.now() - t0 > 5000) return go(nick);
+      setTimeout(step, 100);
+    };
+    step();
+  }
+
+  listen(document, "pointerdown", (e) => {
+    const btn = view.menuCmt ? miNickTrigger(e.target) : null;
+    if (btn) cmtWatch(btn);
+  }, true);
+  listen(document, "keydown", (e) => {
+    if (!view.menuCmt || (e.key !== "Enter" && e.key !== " " && e.key !== "ArrowDown")) return;
+    const it = e.target && e.target.closest ? e.target.closest("[data-dui-cmt]") : null;
+    if (it) {
+      if (e.key === "ArrowDown") return;
+      e.preventDefault();
+      e.stopPropagation();
+      cmtGo(it);
+      return;
+    }
+    const btn = miNickTrigger(e.target);
+    if (btn) cmtWatch(btn);
+  }, true);
+  listen(document, "click", (e) => {
+    const it = e.target && e.target.closest ? e.target.closest("[data-dui-cmt]") : null;
+    // 항목 안의 기능 설명 버튼은 말풍선만 연다
+    if (!it || e.target.closest(".dui-mic-info")) return;
+    e.preventDefault();
+    e.stopPropagation();
+    cmtGo(it);
+  }, true);
+
   // 통합 표시: 열린 다모앙 메뉴 맨 위에 미니 프로필 블록을 넣는다. 메뉴가 닫히면 블록도 같이 사라진다.
   // key 를 주면 그 아이디로 조회한다 (공감 목록 — 링크의 아이디).
   // only: 추가 표시에서 '미니 프로필' 항목을 고른 경우 — 메뉴 항목은 감추고 블록만 보인다 (2026-09-28 사용자, 통합 표시와 같으면 이상함).
@@ -2248,14 +2496,8 @@
     if (btn) miQp2Watch(btn);
   }, true);
 
-  // 이용제한 기록 검색 주소. 탈퇴한 회원은 프로필에 제재 내역이 없어 기록 목록에서 아이디로 찾는다
+  // 이용제한 기록의 회원별 목록 주소
   const MINFO_DLOG_SEARCH = "/disciplinelog?member_id=";
-
-  // 탈퇴 회원에게 붙는 줄. 이용제한 내역 항목이 켜진 곳(카드·프로필 팝업)에 붙는다
-  function miLeftLine(p) {
-    if (!p.left || !p.id) return null;
-    return [["b", "이용제한 내역"], " — ", ["a", "이용제한 기록에서 찾기", MINFO_DLOG_SEARCH + encodeURIComponent(p.id), ""]];
-  }
 
   function miSummary(p) {
     return "가입 " + (p.reg ? miFmtDate(p.reg) : "?") + " · 게시글 " + p.posts + " · 댓글 " + p.comments;
@@ -2266,7 +2508,7 @@
   // show: 줄 선택 { account, activity, rcmd, nick, disc }. 없으면 전부.
   // split: 항목마다 줄을 나눈다 (좁은 프로필 팝업, 2026-09-24 사용자). 카드는 " | " 로 한 줄에 잇는다
   function miLines(p, show, split) {
-    if (p.left) return [];
+    const has = (k) => !p.left || !!(p.has && p.has[k]);
     const on = (k) => !show || show[k] !== false;
     const n = (v) => v.toLocaleString();
     const pct = (del, total) => (total > 0 ? Math.round(del / total * 100) : 0);
@@ -2282,14 +2524,14 @@
       items.forEach((it, i) => { if (i) l.push(SEP); l.push(...it); });
       lines.push(l);
     };
-    if (on("account")) push([
+    if (on("account") && has("account")) push([
       ["가입 ", ["b", p.reg ? miFmtDate(p.reg) : "?"], " (" + p.regDays + "일)"],
       ["최종 접속 ", ["b", p.login ? miFmtDate(p.login) : "?"]],
       ["포인트 ", ["b", n(p.point)]],
       ["팔로워 ", ["b", n(p.followers)], " · 팔로잉 ", ["b", n(p.following)]]
     ]);
     // 게시글·댓글(activity)과 공감·신고(rcmd)는 따로 켜고 끄며 줄도 따로 (2026-09-24 사용자)
-    if (on("activity")) {
+    if (on("activity") && has("stats")) {
       const items = [
         ["게시글 ", ["b", n(p.posts)], " (삭제 " + n(p.delPosts) + " · 삭제율 " + pct(p.delPosts, p.posts) + "%)"],
         ["댓글 ", ["b", n(p.comments)], " (삭제 " + n(p.delComments) + " · 삭제율 " + pct(p.delComments, p.comments) + "%)"]
@@ -2297,19 +2539,20 @@
       if (p.adminPosts || p.adminComments) items.push(["관리자·글작성자 삭제 (게시글 " + n(p.adminPosts) + " · 댓글 " + n(p.adminComments) + ")"]);
       push(items);
     }
-    if (on("rcmd")) lines.push(["공감 ", ["b", n(p.rcmd)], " · 신고 ", ["b", n(p.singo)]]);
+    if (on("rcmd") && has("stats")) lines.push(["공감 ", ["b", n(p.rcmd)], " · 신고 ", ["b", n(p.singo)]]);
     if (on("nick") && p.nickHist.length) {
       // 횟수는 적지 않는다 (이용제한 내역과 같은 이유)
       const l = [["b", "닉네임 변경"]];
       p.nickHist.forEach((h, i) => { l.push((i ? " · " : " — ") + miFmtDate(h.at) + " " + h.old + " → " + h.nw); });
       lines.push(l);
     }
-    const left = miDiscLeft(p.disc);
+    const act = miDiscActive(p);
+    const left = act ? act.left : 0;
     if (on("disc") && (left > 0 || p.discHist.length)) {
       // 횟수는 적지 않는다. 프로필의 내역이 전체인지 확인되지 않았다.
       // 제한 중이면 그 부분만 굵게, 색은 내역 항목과 같은 기준 (2026-09-24 사용자)
       const l = left > 0
-        ? [["s", "이용제한 중 (" + (left === Infinity ? "영구, " : p.disc.period + "일, ") + miFmtDate(p.disc.from) + " 부터" + (left === Infinity ? "" : ", " + left + "일 남음") + ")", miDiscClass(p.disc) + " dui-mic-now"], p.discHist.length ? " · 내역" : ""]
+        ? [["s", "이용제한 중 (" + (left === Infinity ? "영구, " : act.d.period + "일, ") + miFmtDate(act.d.from) + " 부터" + (left === Infinity ? "" : ", " + left + "일 남음") + ")", miDiscClass(act.d) + " dui-mic-now"], p.discHist.length ? " · 내역" : ""]
         : [["b", "이용제한 내역"]];
       // 전부 나열한다 (요약해서 줄이지 않기로 함, 2026-09-22 사용자)
       p.discHist.forEach((h, i) => {
@@ -2388,8 +2631,8 @@
     const p = rec ? rec.p : null;
     const old = document.getElementById("dui-micard");
     const badges = p && minfo.on ? miBadges(p) : [];
-    // 탈퇴 회원의 정보는 이용제한 기록 찾기 링크뿐이다
-    const lines = !!p && minfo.card.on && (!p.left || minfo.card.show.disc);
+    // 탈퇴 회원의 정보는 레거시 기능을 켰을 때만. 배지 줄은 그대로
+    const lines = !!p && minfo.card.on && (!p.left || minfo.lgCardLeft);
     if (!badges.length && !lines) {
       if (old) old.remove();
       return;
@@ -2441,12 +2684,10 @@
       if (p.id) nickEl.append(el("span", "dui-mic-id", "(" + p.id + ")"));
       const who = el("span", "dui-mic-who");
       who.append(nickEl);
-      if (!p.left) who.append(el("span", "dui-mic-lv", "Lv." + p.level));
+      if (!p.left || (p.has && p.has.level)) who.append(el("span", "dui-mic-lv", "Lv." + p.level));
       head.append(who);
       body.append(head);
       for (const l of miLines(p, minfo.card.show)) body.append(miLineEl(l, "dui-mic-line"));
-      const leftLine = minfo.card.show.disc ? miLeftLine(p) : null;
-      if (leftLine) body.append(miLineEl(leftLine, "dui-mic-line"));
       card.append(body);
     }
     const tipTitle = qpbTipIn(old);
@@ -2521,21 +2762,28 @@
     ["blue", "파랑", "#cfe2ff", "#084298"]
   ];
   const LMEMO_MAX = 250;
-  const LMEMO_TIP_TEXT = "다모앙 UI 확장이 추가한 메모 상자입니다. 탈퇴한 회원은 메모 버튼이 없어 여기서 다모앙 회원메모에 저장하고 지웁니다. 설정: 확장 팝업 › 추가 기능 › 편의성 › 탈퇴 회원 메모 [관리]";
+  const LMEMO_TIP_TEXT = "다모앙 UI 확장이 추가한 메모 상자입니다. 탈퇴한 회원의 메모를 여기서 다모앙 회원메모에 저장하고 지웁니다. 설정: 확장 팝업 › 설정 › 레거시 기능 [관리] › 탈퇴 회원 메모";
   const lmemoUrl = (id) => "/api/v1/members/" + encodeURIComponent(id) + "/memo";
   let lmemoEl = null;
-  // 첫 줄 자유게시판은 항상, 둘째 줄은 옵션별. 이용제한 열람은 탈퇴 회원에게만 (일반 회원은 프로필에 이용제한 내역이 있다)
+  let lmemoDlg = null;
+  let lmemoSeq = 0;
+  // 첫 줄 자유게시판은 항상, 둘째 줄은 옵션별. 이용제한 열람은 탈퇴 회원에게만 (일반 회원은 프로필에 이용제한 내역이 있다).
+  // 탈퇴 회원 프로필은 레거시 기능을 켰을 때만
+  // 박제 글은 제목에 닉네임이나 아이디를 적는다. 다모앙 검색에 OR 가 없어 제목 검색을 둘로 나눈다
   const IDSEARCH_FREE = [
-    { label: "자유게시판 제목", path: "/free?sfl=title&stx=" },
-    { label: "자유게시판 작성자", path: "/free?sfl=author&stx=" },
-    { label: "자유게시판 댓글 작성자", path: "/free?sfl=comment_author&stx=" }
+    { label: "자유게시판 제목(닉네임)", path: "/free?sfl=title&stx=", title: true, nick: true },
+    { label: "자유게시판 제목(아이디)", path: "/free?sfl=title&stx=", title: true },
+    { label: "자유게시판 작성자", path: "/free?sfl=author_id&stx=" },
+    { label: "자유게시판 댓글 작성자", path: "/free?sfl=comment_id&stx=" }
   ];
   const IDSEARCH_MORE = [
-    { opt: "idSearchTruth", label: "신고 누적 게시글 작성자", path: "/truthroom?sfl=author&stx=" },
-    { opt: "idSearchClaim", label: "소명게시판 작성자", path: "/claim?sfl=author&stx=" },
-    { opt: "idSearchDlog", left: true, label: "이용제한 열람", path: "/disciplinelog?member_id=" }
+    { opt: "idSearchTruth", label: "신고 누적 게시글 작성자", path: "/truthroom?sfl=author_id&stx=" },
+    { opt: "idSearchClaim", label: "소명게시판 작성자", path: "/claim?sfl=author_id&stx=" },
+    { left: true, label: "이용제한 열람", path: "/disciplinelog?member_id=" }
   ];
-  const IDSEARCH_TIP_TEXT = "다모앙 UI 확장이 추가한 검색 바로가기입니다. 이 회원의 아이디로 자유게시판 제목, 작성자, 댓글 작성자를 검색하고, 설정에 따라 신고 누적 게시글, 소명게시판 작성자와 탈퇴한 회원의 이용제한 열람도 검색합니다. 설정: 확장 팝업 › 추가 기능 › 편의성 › 프로필 검색 바로가기 [관리]";
+  const IDSEARCH_TIP_TEXT = "다모앙 UI 확장이 추가한 검색 바로가기입니다. 이 회원의 닉네임과 아이디로 자유게시판 제목을, 아이디로 자유게시판 작성자와 댓글 작성자를 검색하고, 설정에 따라 신고 누적 게시글, 소명게시판 작성자도 검색합니다. 설정: 확장 팝업 › 추가 기능 › 편의성 › 프로필 검색 바로가기 [관리]";
+  const IDSEARCH_LEFT_TITLE_TIP_TEXT = "다모앙 UI 확장이 추가한 검색 바로가기입니다. 탈퇴한 회원의 아이디로 자유게시판 제목을 검색합니다. 설정: 확장 팝업 › 추가 기능 › 편의성 › 프로필 검색 바로가기 [관리]";
+  const IDSEARCH_LEFT_TIP_TEXT = "다모앙 UI 확장이 추가한 검색 바로가기입니다. 탈퇴한 회원의 아이디로 자유게시판, 신고 누적 게시글, 소명게시판과 이용제한 열람을 검색합니다. 설정: 확장 팝업 › 설정 › 레거시 기능 [관리] › 프로필 검색 바로가기";
   let idSearchEl = null;
 
   function ensureLmemoStyle() {
@@ -2544,49 +2792,60 @@
     const style = document.createElement("style");
     style.id = "dui-lmemo-style";
     style.textContent =
-      "#dui-lmemo,#dui-idsearch{margin:1rem 0 0;padding:14px 16px;border-radius:12px;background:var(--background,#fff);color:var(--foreground,#1c1c1e);" +
+      ".dui-lmemo,#dui-idsearch{margin:1rem 0 0;padding:14px 16px;border-radius:12px;background:var(--background,#fff);color:var(--foreground,#1c1c1e);" +
       "border:1px solid rgba(0,0,0,.08);box-shadow:0 1px 2px rgba(0,0,0,.05);font-size:13px;line-height:1.5;text-align:left;word-break:keep-all;}" +
-      "#dui-lmemo .hd,#dui-idsearch .hd{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;}" +
-      "#dui-lmemo .hd b,#dui-idsearch .hd b{font-size:15px;font-weight:600;}" +
-      "#dui-lmemo .hd .id,#dui-idsearch .hd .id{font-size:12px;color:var(--muted-foreground,#6b7280);}" +
-      "#dui-lmemo .sub,#dui-idsearch .sub{margin:2px 0 0;color:var(--muted-foreground,#6b7280);}" +
+      ".dui-lmemo .hd,#dui-idsearch .hd{display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;}" +
+      ".dui-lmemo .hd b,#dui-idsearch .hd b{font-size:15px;font-weight:600;}" +
+      ".dui-lmemo .hd .id,#dui-idsearch .hd .id{font-size:12px;color:var(--muted-foreground,#6b7280);}" +
+      ".dui-lmemo .sub,#dui-idsearch .sub{margin:2px 0 0;color:var(--muted-foreground,#6b7280);}" +
       "#dui-idsearch [hidden]{display:none!important;}" +
-      "#dui-idsearch .rows{display:flex;flex-direction:column;gap:8px;margin-top:12px;}" +
+      "#dui-idsearch .rows{display:flex;flex-direction:column;gap:8px;margin-top:12px;container-type:inline-size;}" +
       "#dui-idsearch .links{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;}" +
-      "#dui-idsearch .links a{display:inline-flex;align-items:center;height:32px;padding:0 12px;border:1px solid rgba(0,0,0,.15);border-radius:6px;" +
-      "background:var(--background,#fff);color:inherit;font-size:13px;font-weight:500;text-decoration:none;white-space:nowrap;}" +
+      // 버튼 폭을 고정해 줄마다 같은 크기로 선다. 상자 폭에 따라 한 줄에 4칸, 좁으면 2칸. 넘치는 글자는 버튼 안에서 줄바꿈
+      "#dui-idsearch .links a{box-sizing:border-box;flex:0 0 min(184px,calc((100% - 24px) / 4 - .5px));display:inline-flex;align-items:center;justify-content:center;" +
+      "min-height:32px;padding:5px 8px;border:1px solid rgba(0,0,0,.15);border-radius:6px;text-align:center;line-height:1.3;word-break:keep-all;" +
+      "background:var(--background,#fff);color:inherit;font-size:13px;font-weight:500;text-decoration:none;}" +
+      "@container (max-width:599px){#dui-idsearch .links a{flex-basis:min(200px,calc((100% - 8px) / 2 - .5px));}}" +
       "#dui-idsearch .links a:hover{background:rgba(0,0,0,.04);}" +
-      "#dui-lmemo .lb{display:block;margin:14px 0 6px;font-weight:500;}" +
-      "#dui-lmemo .n{font-weight:400;font-size:12px;color:var(--muted-foreground,#6b7280);}" +
-      "#dui-lmemo .colors{display:flex;flex-wrap:wrap;gap:8px;}" +
-      "#dui-lmemo .colors button{height:32px;margin:0;padding:0 10px;border:2px solid transparent;border-radius:6px;font:inherit;font-size:12px;font-weight:500;cursor:pointer;}" +
-      "#dui-lmemo input,#dui-lmemo textarea{box-sizing:border-box;display:block;width:100%;margin:0;padding:8px 12px;border:1px solid rgba(0,0,0,.15);" +
+      ".dui-lmemo .lb{display:block;margin:14px 0 6px;font-weight:500;}" +
+      ".dui-lmemo .n{font-weight:400;font-size:12px;color:var(--muted-foreground,#6b7280);}" +
+      ".dui-lmemo .colors{display:flex;flex-wrap:wrap;gap:8px;}" +
+      ".dui-lmemo .colors button{height:32px;margin:0;padding:0 10px;border:2px solid transparent;border-radius:6px;font:inherit;font-size:12px;font-weight:500;cursor:pointer;}" +
+      ".dui-lmemo input,.dui-lmemo textarea{box-sizing:border-box;display:block;width:100%;margin:0;padding:8px 12px;border:1px solid rgba(0,0,0,.15);" +
       "border-radius:6px;background:transparent;color:inherit;font:inherit;font-size:14px;}" +
-      "#dui-lmemo textarea{min-height:64px;resize:vertical;}" +
-      "#dui-lmemo input:focus,#dui-lmemo textarea:focus{outline:2px solid rgba(59,130,246,.45);outline-offset:0;}" +
-      "#dui-lmemo .ft{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin-top:16px;padding-top:12px;border-top:1px solid rgba(0,0,0,.08);}" +
-      "#dui-lmemo .act{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px 12px;margin-left:auto;}" +
-      "#dui-lmemo .st{font-size:12.5px;color:var(--muted-foreground,#6b7280);text-align:right;}" +
-      "#dui-lmemo .st.err{color:#dc2626;}" +
-      "#dui-lmemo .st button{margin:0 0 0 6px;padding:0;border:0;background:none;color:inherit;font:inherit;text-decoration:underline;cursor:pointer;}" +
-      "#dui-lmemo [hidden]{display:none!important;}" +
-      "#dui-lmemo .pill{display:inline-block;max-width:100%;padding:2px 12px;border-radius:9999px;font-size:12px;font-weight:500;vertical-align:middle;}" +
-      "#dui-lmemo .tx,#dui-lmemo .dbox{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;}" +
-      "#dui-lmemo .dbox{padding:8px 12px;border:1px solid rgba(0,0,0,.1);border-radius:6px;background:rgba(0,0,0,.025);font-size:14px;}" +
-      "#dui-lmemo .pri,#dui-lmemo .sec{height:36px;margin:0;padding:0 16px;border:1px solid transparent;border-radius:6px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;}" +
-      "#dui-lmemo .pri{background:var(--primary,#18181b);color:var(--primary-foreground,#fff);}" +
-      "#dui-lmemo .sec{background:var(--background,#fff);color:inherit;border-color:rgba(0,0,0,.15);}" +
-      "#dui-lmemo .dng{height:32px;margin:0;padding:0 12px;border:0;border-radius:6px;background:#dc2626;color:#fff;font:inherit;font-size:14px;font-weight:500;cursor:pointer;}" +
-      "#dui-lmemo .pri:disabled,#dui-lmemo .sec:disabled,#dui-lmemo .dng:disabled{opacity:.5;cursor:default;}" +
-      "html.dui-dark #dui-lmemo,html.dui-dark #dui-idsearch{border-color:rgba(255,255,255,.12);}" +
+      ".dui-lmemo textarea{min-height:64px;resize:vertical;}" +
+      ".dui-lmemo input:focus,.dui-lmemo textarea:focus{outline:2px solid rgba(59,130,246,.45);outline-offset:0;}" +
+      ".dui-lmemo .ft{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin-top:16px;padding-top:12px;border-top:1px solid rgba(0,0,0,.08);}" +
+      ".dui-lmemo .act{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px 12px;margin-left:auto;}" +
+      ".dui-lmemo .st{font-size:12.5px;color:var(--muted-foreground,#6b7280);text-align:right;}" +
+      ".dui-lmemo .st.err{color:#dc2626;}" +
+      ".dui-lmemo .st button{margin:0 0 0 6px;padding:0;border:0;background:none;color:inherit;font:inherit;text-decoration:underline;cursor:pointer;}" +
+      ".dui-lmemo [hidden]{display:none!important;}" +
+      ".dui-lmemo .pill{display:inline-block;max-width:100%;padding:2px 12px;border-radius:9999px;font-size:12px;font-weight:500;vertical-align:middle;}" +
+      ".dui-lmemo .tx,.dui-lmemo .dbox{white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-word;}" +
+      ".dui-lmemo .dbox{padding:8px 12px;border:1px solid rgba(0,0,0,.1);border-radius:6px;background:rgba(0,0,0,.025);font-size:14px;}" +
+      ".dui-lmemo .pri,.dui-lmemo .sec{height:36px;margin:0;padding:0 16px;border:1px solid transparent;border-radius:6px;font:inherit;font-size:14px;font-weight:500;cursor:pointer;}" +
+      ".dui-lmemo .pri{background:var(--primary,#18181b);color:var(--primary-foreground,#fff);}" +
+      ".dui-lmemo .sec{background:var(--background,#fff);color:inherit;border-color:rgba(0,0,0,.15);}" +
+      ".dui-lmemo .dng{height:32px;margin:0;padding:0 12px;border:0;border-radius:6px;background:#dc2626;color:#fff;font:inherit;font-size:14px;font-weight:500;cursor:pointer;}" +
+      ".dui-lmemo .pri:disabled,.dui-lmemo .sec:disabled,.dui-lmemo .dng:disabled{opacity:.5;cursor:default;}" +
+      "html.dui-dark .dui-lmemo,html.dui-dark #dui-idsearch{border-color:rgba(255,255,255,.12);}" +
       "html.dui-dark #dui-idsearch .links a{border-color:rgba(255,255,255,.15);}" +
       "html.dui-dark #dui-idsearch .links a:hover{background:rgba(255,255,255,.06);}" +
-      "html.dui-dark #dui-lmemo input,html.dui-dark #dui-lmemo textarea,html.dui-dark #dui-lmemo .sec{border-color:rgba(255,255,255,.15);}" +
-      "html.dui-dark #dui-lmemo .dbox{border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.04);}" +
-      "html.dui-dark #dui-lmemo .ft{border-color:rgba(255,255,255,.1);}" +
-      "html.dui-dark #dui-lmemo .st.err{color:#f87171;}" +
-      "html.dui-dark #dui-lmemo .dng{background:rgba(220,38,38,.6);}" +
-      "@media (max-width:767px){#dui-lmemo input,#dui-lmemo textarea{font-size:16px;}}";
+      "html.dui-dark .dui-lmemo input,html.dui-dark .dui-lmemo textarea,html.dui-dark .dui-lmemo .sec{border-color:rgba(255,255,255,.15);}" +
+      "html.dui-dark .dui-lmemo .dbox{border-color:rgba(255,255,255,.12);background:rgba(255,255,255,.04);}" +
+      ".dui-lmemo .dbox a{color:#2563eb;text-decoration:underline;text-underline-offset:2px;}" +
+      "html.dui-dark .dui-lmemo .dbox a{color:#60a5fa;}" +
+      "html.dui-dark .dui-lmemo .ft{border-color:rgba(255,255,255,.1);}" +
+      "html.dui-dark .dui-lmemo .st.err{color:#f87171;}" +
+      "html.dui-dark .dui-lmemo .dng{background:rgba(220,38,38,.6);}" +
+      ".dui-lmemo .sub.err{color:#dc2626;}" +
+      "html.dui-listmemo a.post-row .memo-badge{cursor:pointer;}" +
+      "#dui-lmemo-dlg{position:fixed;inset:0;z-index:2147482000;display:flex;align-items:center;justify-content:center;padding:16px;" +
+      "background:rgba(0,0,0,.5);pointer-events:auto;overscroll-behavior:contain;}" +
+      "#dui-lmemo-dlg .dui-lmemo{margin:0;width:min(480px,100%);max-height:100%;overflow:auto;box-shadow:0 10px 30px rgba(0,0,0,.25);}" +
+      "html.dui-dark .dui-lmemo .sub.err{color:#f87171;}" +
+      "@media (max-width:767px){.dui-lmemo input,.dui-lmemo textarea{font-size:16px;}}";
     document.documentElement.append(style);
   }
 
@@ -2634,7 +2893,7 @@
   }
 
   function applyLeftMemo() {
-    const t = leftTarget(view.leftMemo);
+    const t = leftTarget(view.lgLeftMemo);
     if (lmemoEl && lmemoEl.dataset.duiId !== t.id) {
       lmemoEl.remove();
       lmemoEl = null;
@@ -2652,11 +2911,6 @@
     }
     if (!lmemoEl) lmemoEl = lmemoBuild(t.id);
     if (t.card.nextElementSibling !== lmemoEl) t.card.after(lmemoEl);
-    const info = lmemoEl.querySelector(".hd .dui-mic-info");
-    if (info && info.hidden === view.leftMemoInfo) {
-      info.hidden = !view.leftMemoInfo;
-      if (info.hidden && qpbTipAnchor === info) qpbCloseTip();
-    }
   }
 
   // 다른 회원 프로필이면 { key, id, left, after }. 데이터가 아직 없으면 { key, pending }.
@@ -2667,6 +2921,8 @@
     if (!key) return null;
     const head = document.querySelector('[data-slot="card"]:has([data-slot="card-content"] h1)');
     const leftCard = head ? null : lmemoCard();
+    // 탈퇴 회원은 기본으로 자유게시판 제목 검색만, 레거시 기능을 켜면 모든 버튼
+    if (leftCard && !view.lgIdSearchLeft && !view.idSearchLeftTitle) return null;
     if (!leftCard && !(head && head.querySelector('[data-slot="card-content"] .ml-auto.flex'))) return null;
     const rec = miGet(key);
     if (!rec) {
@@ -2676,10 +2932,12 @@
     const p = rec.p;
     if (!p || !!p.left !== !!leftCard) return null;
     const id = p.id || key;
-    if (leftCard) return { key, id, left: true, after: lmemoEl && lmemoEl.previousElementSibling === leftCard ? lmemoEl : leftCard };
+    // 탈퇴 회원은 닉이 비어 온다. 프로필을 닉 주소로 열었으면 그 닉을 쓴다
+    const nick = p.nick || (key !== id ? key : "");
+    if (leftCard) return { key, id, nick, left: true, full: view.lgIdSearchLeft, after: lmemoEl && lmemoEl.previousElementSibling === leftCard ? lmemoEl : leftCard };
     let after = mtabRoot();
     while (after && after.parentElement !== head.parentElement) after = after.parentElement;
-    return after ? { key, id, left: false, after } : null;
+    return after ? { key, id, nick, left: false, full: true, after } : null;
   }
 
   // 일반 프로필은 맨 아래, 탈퇴 회원은 메모 상자 아래. 링크만 두고 미리 조회하지 않는다. 기본은 새 탭으로 연다
@@ -2691,12 +2949,13 @@
       return;
     }
     if (t.pending) return;
-    const more = IDSEARCH_MORE.filter(i => view[i.opt] && (!i.left || t.left));
-    const sig = t.id + ":" + more.map(i => i.opt).join(",") + ":" + view.idSearchInfo + ":" + view.idSearchNewTab;
+    const first = IDSEARCH_FREE.filter(i => (t.full || i.title) && (!i.nick || (t.nick && t.nick !== t.id)));
+    const more = t.full ? IDSEARCH_MORE.filter(i => (!i.opt || view[i.opt]) && (!i.left || t.left)) : [];
+    const sig = t.id + ":" + t.nick + ":" + t.left + ":" + t.full + ":" + first.concat(more).map(i => i.label).join(",") + ":" + view.idSearchInfo + ":" + view.idSearchNewTab;
     if (!idSearchEl || idSearchEl.dataset.duiSig !== sig) {
       const tipTitle = qpbTipIn(idSearchEl);
       if (idSearchEl) idSearchEl.remove();
-      idSearchEl = idSearchBuild(t.id, more);
+      idSearchEl = idSearchBuild(t, first, more);
       idSearchEl.dataset.duiKey = t.key;
       idSearchEl.dataset.duiSig = sig;
       idSearchEl.dataset.duiTip = tipTitle;
@@ -2708,7 +2967,7 @@
     }
   }
 
-  function idSearchBuild(id, more) {
+  function idSearchBuild(t, first, more) {
     ensureLmemoStyle();
     const box = document.createElement("div");
     box.id = "dui-idsearch";
@@ -2718,20 +2977,20 @@
     title.textContent = "검색 바로가기";
     const idEl = document.createElement("span");
     idEl.className = "id";
-    idEl.textContent = id;
+    idEl.textContent = t.id;
     head.append(title, idEl);
-    if (view.idSearchInfo) head.append(leftInfoButton(IDSEARCH_TIP_TEXT));
+    if (view.idSearchInfo) head.append(leftInfoButton(!t.left ? IDSEARCH_TIP_TEXT : t.full ? IDSEARCH_LEFT_TIP_TEXT : IDSEARCH_LEFT_TITLE_TIP_TEXT));
     const sub = document.createElement("p");
     sub.className = "sub";
-    sub.textContent = "이 회원의 아이디로 다모앙 검색을 엽니다.";
+    sub.textContent = first.some(i => i.nick) ? "이 회원의 닉네임과 아이디로 다모앙 검색을 엽니다." : "이 회원의 아이디로 다모앙 검색을 엽니다.";
     const rows = document.createElement("div");
     rows.className = "rows";
-    for (const row of more.length ? [IDSEARCH_FREE, more] : [IDSEARCH_FREE]) {
+    for (const row of more.length ? [first, more] : [first]) {
       const links = document.createElement("div");
       links.className = "links";
       for (const item of row) {
         const a = document.createElement("a");
-        a.href = item.path + encodeURIComponent(id);
+        a.href = item.path + encodeURIComponent(item.nick ? t.nick : t.id);
         if (view.idSearchNewTab) {
           a.target = "_blank";
           a.rel = "noopener";
@@ -2745,9 +3004,46 @@
     return box;
   }
 
+  // 상세 메모의 http(s) 주소는 다모앙 메모 창처럼 누르면 이동하는 링크로 그린다.
+  // 문장 끝 구두점과 짝이 없는 닫는 괄호는 주소에 넣지 않는다
+  const LMEMO_URL_RE = /https?:\/\/[^\s<>"']+/g;
+  function lmemoLinkify(box, text) {
+    box.textContent = "";
+    const count = (str, ch) => str.split(ch).length - 1;
+    let last = 0;
+    for (const m of text.matchAll(LMEMO_URL_RE)) {
+      let url = m[0];
+      for (;;) {
+        const ch = url.slice(-1);
+        if (/[.,;:!?]/.test(ch)) url = url.slice(0, -1);
+        else if (ch === ")" && count(url, "(") < count(url, ")")) url = url.slice(0, -1);
+        else if (ch === "]" && count(url, "[") < count(url, "]")) url = url.slice(0, -1);
+        else break;
+      }
+      let href = "";
+      try {
+        const u = new URL(url);
+        if (u.protocol === "http:" || u.protocol === "https:") href = u.href;
+      } catch (_) {}
+      if (!href) continue;
+      box.append(text.slice(last, m.index));
+      const a = document.createElement("a");
+      a.href = href;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
+      a.dataset.duiNav = "1";
+      a.textContent = url;
+      box.append(a);
+      last = m.index + url.length;
+    }
+    box.append(text.slice(last));
+  }
+
   // 사이트 메모 창처럼 저장된 메모가 있으면 읽기로 열고 편집을 눌러 고친다. 없으면 바로 편집.
-  // 삭제는 사이트처럼 두 번 눌러야 한다. 삭제 응답만으로는 지워졌는지 알 수 없어 다시 읽어 확인한다
-  function lmemoBuild(id) {
+  // 삭제는 사이트처럼 두 번 눌러야 한다. 삭제 응답만으로는 지워졌는지 알 수 없어 다시 읽어 확인한다.
+  // 탈퇴 회원 프로필의 상자와 목록 메모 바로 표시 창이 같이 쓴다. opts: modal(상자 id 없음), nick, tip, info, onClose(닫기 버튼), onChange(저장·삭제 뒤)
+  function lmemoBuild(id, opts) {
+    opts = opts || {};
     ensureLmemoStyle();
     const el = (tag, cls, text) => {
       const e = document.createElement(tag);
@@ -2761,13 +3057,16 @@
       return b;
     };
     const colorOf = (v) => LMEMO_COLORS.find(c => c[0] === v) || LMEMO_COLORS[0];
-    const box = el("div");
-    box.id = "dui-lmemo";
+    const box = el("div", "dui-lmemo");
+    if (!opts.modal) box.id = "dui-lmemo";
     box.dataset.duiId = id;
+    const uid = "dui-lmemo-" + (++lmemoSeq);
 
     const head = el("div", "hd");
-    head.append(el("b", "", "회원 메모"), el("span", "id", id));
-    head.append(leftInfoButton(LMEMO_TIP_TEXT));
+    head.append(el("b", "", "회원 메모"), el("span", "id", opts.nick ? opts.nick + " (" + id + ")" : id));
+    const info = leftInfoButton(opts.tip || LMEMO_TIP_TEXT);
+    if (opts.info === false) info.hidden = true;
+    head.append(info);
 
     const read = el("div");
     const pill = el("span", "pill");
@@ -2785,18 +3084,18 @@
     };
     const count = el("span", "n");
     const lab1 = el("label", "lb");
-    lab1.htmlFor = "dui-lmemo-content";
+    lab1.htmlFor = uid + "-content";
     lab1.append("메모 ", count);
     const input = el("input");
-    input.id = "dui-lmemo-content";
+    input.id = uid + "-content";
     input.type = "text";
     input.maxLength = LMEMO_MAX;
     input.placeholder = "배지에 표시될 짧은 메모";
     const lab2 = el("label", "lb");
-    lab2.htmlFor = "dui-lmemo-detail";
+    lab2.htmlFor = uid + "-detail";
     lab2.append("상세 메모 ", el("span", "n", "(선택)"));
     const detail = el("textarea");
-    detail.id = "dui-lmemo-detail";
+    detail.id = uid + "-detail";
     detail.rows = 3;
     detail.placeholder = "자세한 메모 내용 (선택사항)";
     const form = el("div");
@@ -2805,11 +3104,12 @@
     const ft = el("div", "ft");
     const remove = button("dng", "삭제");
     const st = el("span", "st");
+    const close = button("sec", "닫기");
     const cancel = button("sec", "취소");
     const edit = button("pri", "편집");
     const save = button("pri", "저장");
     const act = el("span", "act");
-    act.append(st, cancel, edit, save);
+    act.append(st, close, cancel, edit, save);
     ft.append(remove, act);
 
     box.append(head, el("p", "sub", "이 회원에 대한 개인 메모를 작성합니다. 본인만 볼 수 있습니다."), read, form, ft);
@@ -2830,6 +3130,10 @@
       try { return JSON.parse(await r.text()); } catch (_) { return null; }
     };
     const httpError = (r, j) => new Error((j && (j.message || (j.error && j.error.message))) || "HTTP " + r.status);
+    const notify = (v) => {
+      if (!opts.onChange) return;
+      try { opts.onChange(v ? Object.assign({}, v) : null); } catch (e) { console.warn("[다모앙UI] 메모 배지 갱신 실패", e); }
+    };
     const disarm = () => {
       clearTimeout(armed);
       armed = 0;
@@ -2852,6 +3156,7 @@
       edit.hidden = read.hidden;
       save.hidden = form.hidden;
       cancel.hidden = form.hidden || !saved;
+      close.hidden = !opts.onClose || (ready && mode === "edit" && !!saved);
       remove.hidden = !ready || !saved;
       remove.disabled = busy;
       const c = input.value.trim();
@@ -2865,7 +3170,7 @@
       pill.style.backgroundColor = bg;
       pill.style.color = fg;
       pillText.textContent = saved.content;
-      detailBox.textContent = saved.detail;
+      lmemoLinkify(detailBox, saved.detail);
       detailRead.hidden = !saved.detail;
     };
     const fillForm = () => {
@@ -2901,6 +3206,9 @@
       mode = "edit";
       status("");
       refresh();
+    });
+    close.addEventListener("click", () => {
+      if (opts.onClose) opts.onClose();
     });
     cancel.addEventListener("click", () => {
       if (busy || !saved) return;
@@ -2965,6 +3273,7 @@
           const d = j.success === true && j.data && typeof j.data === "object" ? j.data : null;
           if (!d || !d.id) throw new Error("서버가 저장하지 않았습니다");
           saved = { content: body.content, detail: body.memo_detail, color: body.color };
+          notify(saved);
           showSaved();
           fillForm();
           mode = "read";
@@ -3015,6 +3324,7 @@
           }
           if (v.data && typeof v.data === "object" && String(v.data.content || "").trim()) throw new Error("서버가 삭제하지 않았습니다");
           saved = null;
+          notify(null);
           fillForm();
           mode = "edit";
           busy = false;
@@ -3034,6 +3344,502 @@
     load();
     return box;
   }
+
+  // ---- 목록 메모 바로 표시 ----
+  // 목록 행의 메모 배지는 링크 안의 span 이라 눌러도 아무 일이 없다 (사이트 메모 창은 글 보기와 프로필에서만 열린다).
+  // 배지를 누르면 같은 API 를 쓰는 우리 메모 창을 가운데에 띄운다. 작성자 아이디는 목록 데이터(글 번호 → 아이디)에서 받고,
+  // 없으면 닉으로 프로필을 조회한다. 저장·삭제 결과는 사이트가 새로고침 전까지 모르므로 배지를 직접 고친다
+  const LISTMEMO_TIP_TEXT = "다모앙 UI 확장이 추가한 메모 창입니다. 목록의 메모 배지를 누르면 그 회원의 다모앙 회원메모를 여기서 고치거나 지웁니다. 설정: 확장 팝업 › 추가 기능 › 표시 › 목록 메모 바로 표시 [관리]";
+  const LISTMEMO_WAIT = 10000;
+
+  function applyListMemo() {
+    const on = view.listMemo && !!document.querySelector("a.post-row .memo-badge");
+    document.documentElement.classList.toggle("dui-listmemo", on);
+    if (on) ensureLmemoStyle();
+    if (lmemoDlg && (!view.listMemo || lmemoDlg.dataset.duiUrl !== miListUrl())) lmemoCloseDialog();
+  }
+
+  function lmemoCloseDialog() {
+    if (!lmemoDlg) return;
+    const info = lmemoDlg.querySelector(".dui-mic-info");
+    if (info && qpbTipAnchor === info) qpbCloseTip();
+    lmemoDlg.remove();
+    lmemoDlg = null;
+  }
+
+  function lmemoRowNick(row) {
+    const btn = row.querySelector(COMMENT_AUTHOR_SEL);
+    return btn ? btn.textContent.trim() : "";
+  }
+
+  // 목록 데이터가 오기 전이면 기다리고, 실패하면 닉으로 프로필을 조회한다. alive 가 false 를 주면 그만둔다
+  function lmemoResolveId(pid, nick, cb, fail, alive) {
+    const t0 = Date.now();
+    const byNick = () => {
+      if (!alive()) return;
+      if (!nick) return fail("작성자를 찾지 못했습니다");
+      const rec = miGet(nick);
+      if (rec) return rec.p && rec.p.id ? cb(rec.p.id) : fail("회원을 찾지 못했습니다");
+      const failedAt = miFail.get(nick);
+      if (failedAt && Date.now() - failedAt < MINFO_FAIL_TTL) return fail("회원 정보를 불러오지 못했습니다");
+      if (Date.now() - t0 > LISTMEMO_WAIT) return fail("회원 정보를 기다리다 중단했습니다");
+      miRequest(nick);
+      setTimeout(byNick, 100);
+    };
+    const byList = () => {
+      if (!alive()) return;
+      const url = miListUrl();
+      if (miList && miList.url === url) {
+        const id = miList.byPost.get(pid);
+        return id ? cb(id) : byNick();
+      }
+      if (miListFail.url === url && Date.now() - miListFail.at < MINFO_FAIL_TTL) return byNick();
+      if (Date.now() - t0 > LISTMEMO_WAIT) return byNick();
+      miLoadList();
+      setTimeout(byList, 100);
+    };
+    if (pid) byList();
+    else byNick();
+  }
+
+  function lmemoNoteBox(nick, text, err) {
+    const box = document.createElement("div");
+    box.className = "dui-lmemo";
+    const head = document.createElement("div");
+    head.className = "hd";
+    const title = document.createElement("b");
+    title.textContent = "회원 메모";
+    const who = document.createElement("span");
+    who.className = "id";
+    who.textContent = nick;
+    head.append(title, who);
+    const st = document.createElement("p");
+    st.className = err ? "sub err" : "sub";
+    st.textContent = text;
+    const ft = document.createElement("div");
+    ft.className = "ft";
+    const act = document.createElement("span");
+    act.className = "act";
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "sec";
+    close.textContent = "닫기";
+    close.addEventListener("click", lmemoCloseDialog);
+    act.append(close);
+    ft.append(act);
+    box.append(head, st, ft);
+    return box;
+  }
+
+  function lmemoOpenDialog(badge) {
+    const row = badge.closest("a.post-row");
+    if (!row) return;
+    const pid = miListRowId(badge);
+    const nick = lmemoRowNick(row);
+    lmemoCloseDialog();
+    ensureLmemoStyle();
+    const dlg = document.createElement("div");
+    dlg.id = "dui-lmemo-dlg";
+    dlg.dataset.duiUrl = miListUrl();
+    miShield(dlg);
+    let panel = lmemoNoteBox(nick, "작성자를 확인하는 중…");
+    let downOnBack = false;
+    dlg.addEventListener("pointerdown", (e) => { downOnBack = e.target === dlg; });
+    dlg.addEventListener("click", (e) => {
+      if (downOnBack && e.target === dlg) lmemoCloseDialog();
+      downOnBack = false;
+    });
+    // 뒤 페이지가 따라 스크롤되지 않게. 창 안쪽 스크롤은 그대로
+    const block = (e) => { if (!panel.contains(e.target)) e.preventDefault(); };
+    dlg.addEventListener("wheel", block, { passive: false });
+    dlg.addEventListener("touchmove", block, { passive: false });
+    dlg.append(panel);
+    miHostOf().append(dlg);
+    lmemoDlg = dlg;
+    const alive = () => lmemoDlg === dlg;
+    const swap = (box) => {
+      panel.replaceWith(box);
+      panel = box;
+    };
+    lmemoResolveId(pid, nick, (id) => {
+      swap(lmemoBuild(id, { modal: true, nick, tip: LISTMEMO_TIP_TEXT, info: view.listMemoInfo, onClose: lmemoCloseDialog,
+        onChange: (saved) => lmemoUpdateBadges(id, nick, saved) }));
+    }, (why) => swap(lmemoNoteBox(nick, why, true)), alive);
+  }
+
+  // 같은 작성자의 행 전부. 지운 배지는 숨겨 두었다가 다시 저장하면 되살린다 (사이트 요소라 새로 만들지 않는다)
+  function lmemoUpdateBadges(id, nick, saved) {
+    const byList = miList && miList.url === miListUrl() ? miList.byPost : null;
+    for (const row of document.querySelectorAll("a.post-row")) {
+      const pid = miListRowId(row);
+      const match = byList && pid && byList.has(pid) ? byList.get(pid) === id : !!nick && lmemoRowNick(row) === nick;
+      if (!match) continue;
+      const badge = row.querySelector(".memo-badge");
+      if (!badge) continue;
+      if (!saved) {
+        badge.style.display = "none";
+        continue;
+      }
+      badge.style.display = "";
+      badge.textContent = saved.content;
+      badge.title = saved.content;
+      for (const c of Array.from(badge.classList)) {
+        if (c.indexOf("memo-color--") === 0) badge.classList.remove(c);
+      }
+      badge.classList.add("memo-color--" + saved.color);
+    }
+  }
+
+  // 좁은 화면에서는 목록에서 무언가를 띄우지 않는다. 작은 표적을 잘못 누르기 쉬워 사용자들이 싫어한다
+  // (2026-10-25 사용자, 기능마다 '좁은 화면에서 사용' 옵션, 기본 끔). 좁음은 보이는 영역의 폭 600px 미만 또는 높이 480px 미만
+  // (Material 창 크기 기준. 폭은 세로 휴대폰, 높이는 가로 휴대폰을 가른다. 펼친 iPhone Duo 가로는 951x585 라 넓음)
+  const NARROW_W = 600;
+  const NARROW_H = 480;
+  function narrowView() {
+    return viewW() < NARROW_W || viewH() < NARROW_H;
+  }
+  // 창 크기가 바뀌거나 기기를 접고 펼 때 아이콘 호버 표시를 다시 맞춘다
+  let narrowLast = null;
+  listen(window, "resize", () => {
+    const n = narrowView();
+    if (n !== narrowLast) {
+      narrowLast = n;
+      schedule();
+    }
+  });
+  // 보조 키나 가운데 버튼은 새 탭 열기 등 원래 동작에 맡긴다
+  listen(document, "click", (e) => {
+    if (!view.listMemo) return;
+    const badge = e.target && e.target.closest ? e.target.closest("a.post-row .memo-badge") : null;
+    if (!badge || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    // 목록 메모는 좁은 화면이면 마우스로 눌러도 열지 않는다 (2026-10-25 사용자)
+    if (!view.listMemoNarrowOn && narrowView()) return;
+    e.preventDefault();
+    e.stopPropagation();
+    lmemoOpenDialog(badge);
+  }, true);
+
+  // ---- 목록 이미지 미리보기 ----
+  // 첨부 이미지가 있는 행의 이미지 아이콘(svg.lucide-image)에 마우스를 올리면 썸네일을 띄운다. 마우스에서만 동작하고
+  // 터치·펜·클릭은 건드리지 않아 아이콘을 눌러도 원래대로 글로 간다. 썸네일은 글 데이터(__data.json)의 thumbnail
+  // (사이트가 만든 400x225 webp). 이 요청은 조회수를 올리지 않는다 (2026-10-19 사용자 확인). 상자는 pointer-events 없음
+  const IMGPV_SEL = "a.post-row svg.lucide-image";
+  // 걸러진 글은 빈 채로 두면 고장처럼 보여 짧게 이유를 적는다 (2026-10-19 사용자)
+  const IMGPV_BLUR_TEXT = "성인·스포 표시 미리보기 끔";
+  const IMGPV_SECRET_TEXT = "비밀글 미리보기 없음";
+  // 다모앙은 동영상만 첨부한 글에도 그림 아이콘을 붙인다 (2026-10-25 확인)
+  const IMGPV_VIDEO_TEXT = "동영상 글 · 미리보기 없음";
+  const IMGPV_NONE_TEXT = "미리보기할 이미지 없음";
+  const IMGPV_IMAGE_EXT = /\.(jpe?g|png|gif|webp|avif|bmp)(?:$|[?#])/i;
+  const IMGPV_VIDEO_EXT = /\.(mp4|webm|mov|m4v|ogv|mkv|avi)(?:$|[?#])/i;
+  const IMGPV_CDN = "https://cdn.damoang.net/";
+  const imgpvCache = new Map();
+  const imgpvFail = new Map();
+  const imgpvPending = new Map();
+  let imgpvEl = null;
+  let imgpvIcon = null;
+  let imgpvWait = null;
+  let imgpvTimer = 0;
+  let imgpvSeq = 0;
+  // 눌러서 연 미리보기는 상자를 눌러도 닫힌다(밑의 행이 눌리지 않게 상자가 누름을 받는다). 직전 누름 때 열려 있던 아이콘(다시 누르면 닫기만)
+  let imgpvByClick = false;
+  let imgpvTapPrev = null;
+  // 직전 누름 때 열려 있던 미리보기가 마우스 오버로 연 것이었는가 (그 아이콘을 누르면 닫지 않고 고정)
+  let imgpvTapHover = false;
+  let imgpvUrl = "";
+
+  function ensureImgpvStyle() {
+    if (document.getElementById("dui-imgpv-style")) return;
+    const style = document.createElement("style");
+    style.id = "dui-imgpv-style";
+    style.textContent =
+      "#dui-imgpv{position:fixed;left:0;top:0;z-index:2147483000;pointer-events:none;box-sizing:border-box;max-width:min(414px,calc(100% - 16px));padding:6px;border-radius:10px;" +
+      "background:var(--background,#fff);color:var(--muted-foreground,#6b7280);border:1px solid rgba(0,0,0,.12);box-shadow:0 8px 24px rgba(0,0,0,.18);font-size:12px;line-height:1.4;}" +
+      "#dui-imgpv[data-dui-touch]{pointer-events:auto;cursor:pointer;}" +
+      "#dui-imgpv img{display:block;max-width:min(400px,100%);max-height:min(320px,calc(100vh - 64px));width:auto;height:auto;border-radius:6px;}" +
+      "#dui-imgpv .ph{display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-width:160px;max-width:100%;padding:14px 18px;border-radius:6px;background:rgba(0,0,0,.05);text-align:center;white-space:nowrap;}" +
+      "#dui-imgpv .ft{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-top:4px;padding:0 2px;font-size:11px;}" +
+      "#dui-imgpv .by{opacity:.75;}" +
+      "#dui-imgpv .n{margin-left:auto;}" +
+      "html.dui-dark #dui-imgpv{border-color:rgba(255,255,255,.14);box-shadow:0 8px 24px rgba(0,0,0,.5);}" +
+      "html.dui-dark #dui-imgpv .ph{background:rgba(255,255,255,.06);}" +
+      "@media (hover:hover){html.dui-imgpv a.post-row svg.lucide-image{transition:color .12s,transform .12s;}" +
+      "html.dui-imgpv:not(.dui-imgpv-n) a.post-row svg.lucide-image:hover{color:var(--primary,#2563eb);transform:scale(1.25);}}";
+    document.documentElement.append(style);
+  }
+
+  // 호버 가능한 기기에서는 아이콘에 마우스가 올라가면 색이 바뀌어 반응한다는 것을 보여 준다 (클리앙 확장과 같은 감각, 2026-10-19 사용자)
+  function applyImgPreview() {
+    const on = view.imgPreview && !!document.querySelector(IMGPV_SEL);
+    document.documentElement.classList.toggle("dui-imgpv", on);
+    // 좁은 화면이라 미리보기를 띄우지 않을 때는 아이콘도 반응하지 않는다
+    document.documentElement.classList.toggle("dui-imgpv-n", on && !view.imgPreviewNarrowOn && narrowView());
+    if (on) ensureImgpvStyle();
+    if (imgpvEl && (!view.imgPreview || imgpvUrl !== miListUrl())) imgpvClose();
+  }
+
+  function imgpvClose() {
+    clearTimeout(imgpvTimer);
+    imgpvTimer = 0;
+    imgpvWait = null;
+    imgpvIcon = null;
+    imgpvByClick = false;
+    if (imgpvEl) imgpvEl.remove();
+    imgpvEl = null;
+  }
+
+  // 행 링크의 글 경로 /<게시판>/<번호>
+  function imgpvPathOf(icon) {
+    const a = icon.closest("a.post-row");
+    const href = a ? (a.getAttribute("href") || "").split(/[?#]/)[0] : "";
+    const m = /^\/[A-Za-z0-9_-]+\/\d+\/?$/.exec(href);
+    return m ? href.replace(/\/$/, "") : "";
+  }
+
+  function imgpvAbs(u) {
+    if (/^https?:\/\//i.test(u) || u.charAt(0) === "/") return u;
+    return IMGPV_CDN + u;
+  }
+
+  // thumbnail → thumbnail_raw → images → 본문 첫 img → 첨부 목록의 이미지 파일. 장수는 이 이미지들을 합쳐 센다.
+  // 이미지가 없으면 thumb 를 비우고 동영상 글인지 알려 준다
+  function imgpvParse(text) {
+    const j = JSON.parse(text.split("\n")[0]);
+    for (const n of Array.isArray(j.nodes) ? j.nodes : []) {
+      if (!n || n.type !== "data" || !Array.isArray(n.data)) continue;
+      const root = unflatten(n.data);
+      const post = root && typeof root === "object" ? root.post : null;
+      if (!post || typeof post !== "object") continue;
+      const str = (v) => (typeof v === "string" && v.trim() ? imgpvAbs(v.trim()) : "");
+      const urls = [];
+      const push = (u) => {
+        u = str(u);
+        if (u && urls.indexOf(u) < 0) urls.push(u);
+      };
+      for (const im of Array.isArray(post.images) ? post.images : []) push(typeof im === "string" ? im : im && (im.url || im.src || im.path || im.thumbnail));
+      const html = typeof post.content === "string" ? post.content : "";
+      const re = /<img\b[^>]*\ssrc=["']([^"']+)["']/gi;
+      let m;
+      while ((m = re.exec(html))) push(m[1]);
+      const files = Array.isArray(post.downloads) ? post.downloads.filter(f => f && typeof f === "object") : [];
+      const isExt = (f, ext) => ext.test(String(f.url || "")) || ext.test(String(f.filename || ""));
+      for (const f of files) if (isExt(f, IMGPV_IMAGE_EXT)) push(f.url);
+      const raw = str(post.thumbnail_raw) || urls[0] || "";
+      const thumb = str(post.thumbnail) || raw;
+      // 성인·스포 표시 글은 글 데이터의 is_blur 로 온다 (목록 데이터에는 없음, 2026-10-19 확인)
+      const flags = { blur: post.is_blur === true, secret: post.is_secret === true };
+      if (thumb) return Object.assign({ thumb, raw: raw || thumb, count: Math.max(urls.length, 1) }, flags);
+      const video = post.has_video === true || /<video\b/i.test(html) || files.some(f => isExt(f, IMGPV_VIDEO_EXT));
+      return Object.assign({ thumb: "", raw: "", count: 0, video }, flags);
+    }
+    throw new Error("no post node");
+  }
+
+  function imgpvLoad(path) {
+    if (imgpvCache.has(path)) return Promise.resolve(imgpvCache.get(path));
+    if (imgpvPending.has(path)) return imgpvPending.get(path);
+    const failedAt = imgpvFail.get(path);
+    if (failedAt && Date.now() - failedAt < MINFO_FAIL_TTL) return Promise.resolve(null);
+    const pr = fetch(path + "/__data.json?x-sveltekit-invalidated=0111111111", { credentials: "same-origin" })
+      .then((r) => {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return miFirstLine(r);
+      })
+      .then((t) => {
+        const v = imgpvParse(t);
+        if (imgpvCache.size > 300) imgpvCache.clear();
+        imgpvCache.set(path, v);
+        return v;
+      })
+      .catch((e) => {
+        imgpvFail.set(path, Date.now());
+        miLogFail("이미지 미리보기 조회 실패", path, e);
+        return null;
+      })
+      .finally(() => { imgpvPending.delete(path); });
+    imgpvPending.set(path, pr);
+    return pr;
+  }
+
+  function imgpvPlace() {
+    if (!imgpvEl || !imgpvIcon) return;
+    if (!imgpvIcon.isConnected) {
+      imgpvClose();
+      return;
+    }
+    const r = imgpvIcon.getBoundingClientRect();
+    const b = miBoundsOf(document.body);
+    const w = imgpvEl.offsetWidth;
+    const h = imgpvEl.offsetHeight;
+    const left = Math.max(b.left, Math.min(r.left - 8, b.right - w));
+    let top = r.bottom + 8;
+    if (top + h > b.bottom) top = Math.max(b.top, r.top - h - 8);
+    miPlaceFixed(imgpvEl, left, top);
+  }
+
+  // 비밀글은 행의 자물쇠 아이콘으로 가른다 (목록 데이터를 받지 않아도 된다). 성인·스포는 글 데이터의 is_blur 로만 온다
+  function imgpvShow(icon, byClick) {
+    const path = imgpvPathOf(icon);
+    if (!path) return;
+    imgpvClose();
+    imgpvIcon = icon;
+    imgpvByClick = !!byClick;
+    imgpvUrl = miListUrl();
+    const seq = ++imgpvSeq;
+    if (icon.closest("a.post-row").querySelector("svg.lucide-lock")) imgpvNote(IMGPV_SECRET_TEXT);
+    else imgpvOpen(icon, path, seq);
+  }
+
+  // 안내도 썸네일과 같은 모양(16:9 자리 + 아랫줄)으로 보여 준다 (2026-10-19 사용자)
+  function imgpvNote(text) {
+    const el = imgpvEl || imgpvBox();
+    el.textContent = "";
+    const ph = document.createElement("div");
+    ph.className = "ph";
+    ph.textContent = text;
+    el.append(ph);
+    if (view.imgPreviewBrand) {
+      const ft = document.createElement("div");
+      ft.className = "ft";
+      const by = document.createElement("span");
+      by.className = "by";
+      by.textContent = "다모앙 UI 확장";
+      ft.append(by);
+      el.append(ft);
+    }
+    imgpvPlace();
+  }
+
+  // 상자는 데이터가 온 뒤에 만든다. 오래 걸릴 때만 '불러오는 중…' 을 먼저 보여 준다
+  function imgpvBox() {
+    ensureImgpvStyle();
+    const el = document.createElement("div");
+    el.id = "dui-imgpv";
+    if (imgpvByClick) el.dataset.duiTouch = "1";
+    el.addEventListener("click", (e) => {
+      if (!imgpvByClick) return;
+      e.preventDefault();
+      e.stopPropagation();
+      imgpvClose();
+    });
+    miHostOf().append(el);
+    imgpvEl = el;
+    return el;
+  }
+
+  function imgpvOpen(icon, path, seq) {
+    const alive = () => seq === imgpvSeq && imgpvIcon === icon;
+    const slow = setTimeout(() => {
+      if (alive() && !imgpvEl) imgpvNote("불러오는 중…");
+    }, 400);
+    imgpvLoad(path).then((v) => {
+      clearTimeout(slow);
+      if (!alive()) return;
+      if (!v) {
+        imgpvClose();
+        return;
+      }
+      // 자물쇠 아이콘이 바뀌어도 글 데이터의 is_secret 으로 한 번 더 막는다
+      if (v.secret) {
+        imgpvNote(IMGPV_SECRET_TEXT);
+        return;
+      }
+      if (v.blur && !view.imgPreviewAdult) {
+        imgpvNote(IMGPV_BLUR_TEXT);
+        return;
+      }
+      if (!v.thumb) {
+        imgpvNote(v.video ? IMGPV_VIDEO_TEXT : IMGPV_NONE_TEXT);
+        return;
+      }
+      const el = imgpvEl || imgpvBox();
+      const img = document.createElement("img");
+      img.alt = "";
+      img.decoding = "async";
+      img.addEventListener("load", () => {
+        if (imgpvEl !== el) return;
+        el.textContent = "";
+        el.append(img);
+        // 마우스 오버 상자라 ⓘ 버튼을 둘 수 없어 왼쪽 아래에 확장 이름을 적는다 (2026-10-19 사용자)
+        if (view.imgPreviewBrand || v.count > 1) {
+          const ft = document.createElement("div");
+          ft.className = "ft";
+          if (view.imgPreviewBrand) {
+            const by = document.createElement("span");
+            by.className = "by";
+            by.textContent = "다모앙 UI 확장";
+            ft.append(by);
+          }
+          if (v.count > 1) {
+            const n = document.createElement("span");
+            n.className = "n";
+            n.textContent = "이미지 " + v.count + "장";
+            ft.append(n);
+          }
+          el.append(ft);
+        }
+        imgpvPlace();
+      });
+      img.addEventListener("error", () => { if (imgpvEl === el) imgpvClose(); });
+      img.src = view.imgPreviewRaw ? v.raw : v.thumb;
+    });
+  }
+
+  // pointerover 는 svg 안의 path 사이를 오갈 때도 오므로 같은 아이콘이면 무시한다
+  // 미리보기 모드: 마우스 오버 / 클릭(터치) / 마우스 오버 + 클릭(터치)(기본). 마우스 오버 모드에서는 아이콘을 눌러도 아무것도 하지 않는다.
+  // 좁은 화면에서 사용(기본 끔)이 꺼져 있으면 좁은 화면에선 아무것도 하지 않는다
+  function imgpvAllowed() {
+    return view.imgPreview && (view.imgPreviewNarrowOn || !narrowView());
+  }
+  listen(document, "pointerover", (e) => {
+    if (e.pointerType !== "mouse" || view.imgPreviewMode === "click" || !imgpvAllowed()) return;
+    const icon = e.target && e.target.closest ? e.target.closest(IMGPV_SEL) : null;
+    if (!icon || icon === imgpvIcon || icon === imgpvWait) return;
+    clearTimeout(imgpvTimer);
+    imgpvWait = icon;
+    imgpvTimer = setTimeout(() => {
+      imgpvTimer = 0;
+      if (imgpvWait !== icon) return;
+      imgpvWait = null;
+      imgpvShow(icon);
+    }, view.imgPreviewDelay);
+  }, true);
+  // 눌러서 연 미리보기는 마우스가 아이콘을 벗어나도 둔다 (상자를 눌러 글로 가야 해서)
+  listen(document, "pointerout", (e) => {
+    if (e.pointerType !== "mouse" || imgpvByClick) return;
+    const icon = e.target && e.target.closest ? e.target.closest(IMGPV_SEL) : null;
+    if (!icon) return;
+    const to = e.relatedTarget;
+    if (to && to.nodeType === 1 && icon.contains(to)) return;
+    imgpvClose();
+  }, true);
+  listen(document, "pointerdown", (e) => {
+    imgpvTapPrev = imgpvIcon;
+    imgpvTapHover = !!imgpvIcon && !imgpvByClick;
+    if (imgpvByClick && imgpvEl && imgpvEl.contains(e.target)) return;
+    // 마우스 오버로 뜬 미리보기의 아이콘을 누르면 닫지 않는다 (click 에서 고정)
+    if (imgpvTapHover && imgpvIcon.contains(e.target)) return;
+    imgpvClose();
+  }, true);
+  // 아이콘은 미리보기를 열고 닫는 버튼이다. 마우스 클릭과 터치가 똑같이 동작한다 (2026-10-25 사용자, 일관성).
+  // 마우스 오버로 뜬 미리보기는 아이콘을 누르면 눌러서 연 것처럼 고정된다(벗어나도 유지, 다시 누르면 닫힘).
+  // 글은 제목 등 행의 다른 곳을 눌러 연다. 보조 키·가운데 버튼은 원래 동작에 맡긴다
+  listen(document, "click", (e) => {
+    if (!imgpvAllowed()) return;
+    if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    const icon = e.target && e.target.closest ? e.target.closest(IMGPV_SEL) : null;
+    if (!icon) return;
+    e.preventDefault();
+    e.stopPropagation();
+    // 마우스 오버 모드는 클릭·탭이 없는 모드라 글로도 가지 않고 미리보기도 건드리지 않는다 (2026-10-25 사용자)
+    if (view.imgPreviewMode === "hover") return;
+    if (imgpvTapPrev !== icon) {
+      imgpvShow(icon, true);
+    } else if (imgpvTapHover && imgpvIcon === icon) {
+      imgpvByClick = true;
+      if (imgpvEl) imgpvEl.dataset.duiTouch = "1";
+    }
+  }, true);
 
   // 댓글의 배지 줄. 본문(.comment-body)을 감싼 div 바로 뒤에 둔다 (댓글 목록은 평면이라 항목당 하나)
   function miBoxOf(item) {
