@@ -919,6 +919,10 @@
   }
   .opt-btns button { flex: 1; }
   #notice-dialog { width: 360px; }
+  .lg-intro { margin: 0 0 12px; }
+  .lg-menu { margin: 12px 0 8px; font-size: 12px; font-weight: 600; }
+  .opt-caption + .lg-menu { margin-top: 0; }
+  .opt-row.lg-sub { padding-left: 12px; }
   .notice-row { display: flex; align-items: baseline; gap: 8px; width: 100%; margin: 0; padding: 8px 6px; border: 0; border-top: 1px solid var(--divider); border-radius: 0; background: none; color: var(--fg); font: inherit; text-align: left; cursor: pointer; }
   .notice-row:first-child { border-top: 0; }
   .notice-row:hover { background: var(--selected); }
@@ -1385,6 +1389,19 @@
     letter-spacing: 0.02em;
   }
   .count:empty { display: none; }
+  /* 버튼 쌍이 있는 행의 아랫줄 요약 (스크린샷 모드의 적용 범위) */
+  .row:has(> .row-sum) {
+    flex-wrap: wrap;
+    row-gap: 2px;
+  }
+  .row > .row-sum {
+    order: 1;
+    flex-basis: 100%;
+    color: var(--muted);
+    font-size: 11px;
+    letter-spacing: 0.02em;
+  }
+  .row-sum:empty { display: none; }
 
   #status {
     flex-shrink: 0;
@@ -1419,11 +1436,12 @@
           <h1 class="group-head" id="quick-head"><span class="chev"></span>빠른 실행<button id="quick-settings-btn" class="head-btn" title="빠른 실행 옵션"></button></h1>
           <div class="rows">
             <div class="row" id="quick-row-shot">
-              <label>스크린샷 모드<span class="info" data-tip="다모앙 규칙상 스크린샷에 회원 메모가 보이면 안 됩니다. 켜면 메모를 전부 가리고, 설정에 따라 내 프로필도 가립니다."></span></label>
+              <label>스크린샷 모드<span class="info" data-tip="다모앙 규칙상 스크린샷에 회원 메모가 보이면 안 됩니다. 켜면 메모를 전부 가리고, 옵션에 따라 내 프로필과 제목·사용자 강조도 가립니다. 강조 설정은 그대로 두고 효과만 멈춥니다."></span></label>
               <span class="quick-btns">
                 <button id="shot-on" disabled>켜기</button>
                 <button id="shot-off" disabled>끄기</button>
               </span>
+              <span class="row-sum" id="shot-summary"></span>
             </div>
             <div class="row" id="quick-row-qp">
               <label>빠른 프로필 보기<span class="info" data-tip="등록한 회원의 프로필 페이지로 바로 이동합니다. 닉네임이나 아이디로 등록합니다. 등록 목록은 이 확장에만 저장되며, 다모앙 서버에는 아무것도 저장하지 않습니다."></span></label>
@@ -1481,6 +1499,10 @@
                   <span class="quick-btns"><span class="count" id="ml-summary"></span><button id="ml-manage-btn">관리</button></span>
                 </div>
                 <div class="row">
+                  <label>목록 이미지 미리보기<span class="info" data-tip="게시판 목록에서 이미지가 있는 글의 이미지 아이콘에 마우스를 올리면 첫 이미지의 썸네일을 보여줍니다. 마우스에서만 동작하고, 터치나 클릭은 원래대로 글을 엽니다. 썸네일은 다모앙이 만들어 둔 것을 글 데이터에서 읽으며 조회수는 올라가지 않고, 다모앙 서버에는 아무것도 저장하지 않습니다."></span></label>
+                  <span class="quick-btns"><span class="count" id="imgpv-summary"></span><button id="imgpv-manage-btn">관리</button></span>
+                </div>
+                <div class="row">
                   <label>글 작성자 정보 바로 표시<span class="info" data-tip="글 본문 아래 카드에 작성자의 프로필 정보(가입일, 접속일, 게시글·댓글 수, 닉네임 변경 이력, 이용제한 내역)를 보여줍니다. 회원 정보는 다모앙 프로필에서 읽기만 하며, 다모앙 서버에는 아무것도 저장하지 않습니다."></span></label>
                   <span class="quick-btns"><span class="count" id="acard-summary"></span><button id="acard-manage-btn">관리</button></span>
                 </div>
@@ -1506,12 +1528,16 @@
                   <span class="switch"><input type="checkbox" id="view-dlog-switch"><span class="track"></span></span>
                 </div>
                 <div class="row">
-                  <label>탈퇴 회원 메모<span class="info" data-tip="다모앙은 탈퇴한 회원의 프로필을 보여 주지 않아 메모 버튼도 없습니다. 남긴 글이나 댓글이 없으면 메모할 곳이 없으므로 탈퇴 회원 프로필 화면에 메모 상자를 붙입니다. 이용제한 기록에서 아이디를 누르면 그 화면이 열립니다. 메모는 다모앙 회원메모에 저장되어 회원메모 관리에서도 보고 지울 수 있습니다."></span></label>
-                  <span class="quick-btns"><span class="count" id="lmemo-summary"></span><button id="lmemo-manage-btn">관리</button></span>
+                  <label>목록 메모 편집<span class="info" data-tip="게시판 목록의 메모 배지를 누르면 그 회원의 메모를 보고 고치거나 지우는 창을 엽니다. 다모앙은 글 보기와 프로필에서만 메모 창을 열어 주고 목록의 배지는 눌러도 반응이 없습니다. 메모는 다모앙 회원메모에 저장됩니다. 메모가 없는 회원은 배지가 없으므로 글 보기나 프로필에서 먼저 작성합니다."></span></label>
+                  <span class="quick-btns"><span class="count" id="listmemo-summary"></span><button id="listmemo-manage-btn">관리</button></span>
                 </div>
                 <div class="row">
-                  <label>프로필 검색 바로가기<span class="info" data-tip="다른 회원의 프로필 맨 아래에 그 회원의 아이디로 자유게시판 제목, 작성자, 댓글 작성자와 신고 누적 게시글, 소명게시판 작성자를 검색하는 버튼을 붙입니다. 탈퇴한 회원은 메모 상자 아래에 붙고 이용제한 열람 검색도 함께 보여 줍니다. 미리 조회하지 않으며, 다모앙 서버에는 아무것도 저장하지 않습니다."></span></label>
+                  <label>프로필 검색 바로가기<span class="info" data-tip="다른 회원의 프로필 맨 아래에 그 회원을 찾는 검색 버튼을 붙입니다. 자유게시판 제목은 닉네임과 아이디로, 자유게시판 작성자와 댓글 작성자, 신고 누적 게시글, 소명게시판 작성자는 아이디로 검색합니다. 탈퇴한 회원은 설정에 따라 자유게시판 제목 검색만 붙습니다. 미리 조회하지 않으며, 다모앙 서버에는 아무것도 저장하지 않습니다."></span></label>
                   <span class="quick-btns"><span class="count" id="idsearch-summary"></span><button id="idsearch-manage-btn">관리</button></span>
+                </div>
+                <div class="row">
+                  <label>게시판 내 댓글 검색<span class="info" data-tip="닉네임을 누르면 열리는 다모앙 회원 메뉴에 '게시판 내 댓글 검색'을 추가합니다. 그 회원이 지금 게시판에 단 댓글을 아이디로 찾습니다. 같은 메뉴의 '게시판 내 검색'은 글을 찾는 기능이라 '게시판 내 글 검색'으로 이름을 바꿉니다. 다모앙 서버에는 아무것도 저장하지 않습니다."></span></label>
+                  <span class="quick-btns"><span class="count" id="menucmt-summary"></span><button id="menucmt-manage-btn">관리</button></span>
                 </div>
               </div>
             </section>
@@ -1640,6 +1666,12 @@
       <button id="notice-open-btn">보기</button>
     </div>
     <div class="opt-divider"></div>
+    <div class="opt-caption">레거시 기능</div>
+    <div class="opt-note">지금은 동작하지 않아 원래 메뉴에서 뺀 기능입니다. 처음에는 모두 꺼져 있습니다.</div>
+    <div class="opt-btns">
+      <button id="legacy-open-btn">관리</button>
+    </div>
+    <div class="opt-divider"></div>
     <div class="opt-caption">추가 기능 백업 및 복원</div>
     <div class="opt-note" id="backup-note">추가 기능의 설정은 브라우저 계정으로 기기 간 동기화됩니다. 백업 파일에는 이 설정이 담기며, 다른 종류의 브라우저로 옮기거나 만약을 대비해 보관할 때 사용합니다.</div>
     <div class="opt-btns">
@@ -1678,12 +1710,22 @@
   </dialog>
   <dialog id="quick-dialog">
     <h2>빠른 실행 옵션</h2>
+    <div class="opt-divider"></div>
+    <div class="opt-caption">스크린샷 모드</div>
     <div class="opt-row">
-      <label for="shot-scope-select">스크린샷 모드</label>
+      <label for="shot-scope-select">가리기 범위</label>
       <select id="shot-scope-select">
-        <option value="memo">전체 메모 가리기</option>
-        <option value="memo-profile">전체 메모 + 내 프로필 가리기</option>
+        <option value="memo">전체 메모</option>
+        <option value="memo-profile">전체 메모 + 내 프로필</option>
       </select>
+    </div>
+    <div class="opt-row">
+      <label for="shot-hide-hl">제목 강조 가리기<span class="info" data-tip="스크린샷 모드가 켜져 있는 동안 제목 강조 효과를 내지 않습니다. 제목 강조 설정은 그대로 두고, 끄기를 누르면 다시 보입니다."></span></label>
+      <span class="switch"><input type="checkbox" id="shot-hide-hl"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <label for="shot-hide-member">사용자 강조 가리기<span class="info" data-tip="스크린샷 모드가 켜져 있는 동안 사용자 강조 효과를 내지 않습니다. 사용자 강조 설정은 그대로 두고, 끄기를 누르면 다시 보입니다."></span></label>
+      <span class="switch"><input type="checkbox" id="shot-hide-member"><span class="track"></span></span>
     </div>
     <div class="opt-divider"></div>
     <div class="opt-caption">표시할 항목</div>
@@ -1770,19 +1812,89 @@
     </div>
     <div class="opt-note">기능 설명 버튼은 눈 모양 버튼 옆에 표시되고, 확장 기능임을 알려줍니다.</div>
   </dialog>
-  <dialog id="lmemo-dialog">
-    <h2>탈퇴 회원 메모</h2>
+  <dialog id="imgpv-dialog">
+    <h2>목록 이미지 미리보기</h2>
     <div class="opt-row">
-      <label for="lmemo-on">탈퇴 회원 메모 사용</label>
-      <span class="switch"><input type="checkbox" id="lmemo-on"><span class="track"></span></span>
+      <label for="imgpv-on">목록 이미지 미리보기 사용</label>
+      <span class="switch"><input type="checkbox" id="imgpv-on"><span class="track"></span></span>
     </div>
-    <div class="opt-note">탈퇴한 회원의 프로필 화면에서 '탈퇴한 회원입니다' 안내 아래에 추가됩니다.</div>
+    <div class="opt-row">
+      <label for="imgpv-delay-select">표시까지 기다리는 시간</label>
+      <select id="imgpv-delay-select">
+        <option value="150">0.15초</option>
+        <option value="300">0.3초</option>
+        <option value="500">0.5초</option>
+        <option value="1000">1초</option>
+      </select>
+    </div>
+    <div class="opt-row">
+      <label for="imgpv-raw-switch">원본 이미지로 보기<span class="info" data-tip="끄면 다모앙이 만들어 둔 400×225 썸네일을, 켜면 원본 이미지를 줄여서 보여줍니다. 원본은 크기가 커서 느릴 수 있습니다."></span></label>
+      <span class="switch"><input type="checkbox" id="imgpv-raw-switch"><span class="track"></span></span>
+    </div>
+    <div class="opt-row">
+      <label for="imgpv-adult-switch">성인·스포 표시 글도 미리보기<span class="info" data-tip="다모앙이 성인이나 스포일러 표시를 붙여 흐리게 보여주는 글은 기본으로 미리보기를 띄우지 않습니다. 켜면 그 글도 보여줍니다."></span></label>
+      <span class="switch"><input type="checkbox" id="imgpv-adult-switch"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">마우스 포인터가 이미지 아이콘 위에 있는 동안만 보이고, 아이콘을 누르면 원래대로 글이 열립니다.</div>
     <div class="opt-divider"></div>
     <div class="opt-row">
-      <label for="lmemo-info-on">기능 설명 버튼 표시</label>
-      <span class="switch"><input type="checkbox" id="lmemo-info-on"><span class="track"></span></span>
+      <label for="imgpv-brand-switch">다모앙 UI 확장 표시</label>
+      <span class="switch"><input type="checkbox" id="imgpv-brand-switch"><span class="track"></span></span>
     </div>
-    <div class="opt-note">기능 설명 버튼은 메모 상자 제목 옆에 표시되고, 확장 기능임을 알려줍니다.</div>
+    <div class="opt-note">미리보기 왼쪽 아래에 '다모앙 UI 확장'을 작게 적어 확장 기능임을 알려줍니다. 마우스를 올려 보는 상자라 기능 설명 버튼을 둘 수 없어 글자로 대신합니다.</div>
+  </dialog>
+  <dialog id="listmemo-dialog">
+    <h2>목록 메모 편집</h2>
+    <div class="opt-row">
+      <label for="listmemo-on">목록 메모 편집 사용</label>
+      <span class="switch"><input type="checkbox" id="listmemo-on"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">게시판 목록의 메모 배지를 누르면 메모 창이 열립니다. 빠른 설정의 '목록 메모 배지 가리기'가 켜져 있으면 배지가 없어 열 수 없습니다.</div>
+    <div class="opt-divider"></div>
+    <div class="opt-row">
+      <label for="listmemo-info-on">기능 설명 버튼 표시</label>
+      <span class="switch"><input type="checkbox" id="listmemo-info-on"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">기능 설명 버튼은 메모 창 제목 옆에 표시되고, 확장 기능임을 알려줍니다.</div>
+  </dialog>
+  <dialog id="legacy-dialog">
+    <h2>레거시 기능</h2>
+    <div class="opt-note lg-intro">지금은 동작하지 않는 기능을 원래 메뉴 위치 그대로 모아 두었습니다.</div>
+    <div class="opt-caption">추가 기능 › 표시</div>
+    <div class="lg-menu">글 작성자 정보 바로 표시</div>
+    <div class="opt-row lg-sub">
+      <label for="lg-card-left">탈퇴 회원에게도 표시<span class="info" data-tip="탈퇴한 회원이 쓴 글에도 작성자 정보를 보여줍니다."></span></label>
+      <span class="switch"><input type="checkbox" id="lg-card-left"><span class="track"></span></span>
+    </div>
+    <div class="lg-menu">미니 프로필 표시</div>
+    <div class="opt-row lg-sub">
+      <label for="lg-pop-left">탈퇴 회원에게도 표시<span class="info" data-tip="탈퇴한 회원의 미니 프로필도 보여줍니다."></span></label>
+      <span class="switch"><input type="checkbox" id="lg-pop-left"><span class="track"></span></span>
+    </div>
+    <div class="opt-caption">추가 기능 › 편의성</div>
+    <div class="opt-row">
+      <label for="lg-leftmemo">탈퇴 회원 메모<span class="info" data-tip="탈퇴한 회원의 프로필 화면에 메모 상자를 붙여 그 회원의 메모를 저장하고 지웁니다."></span></label>
+      <span class="switch"><input type="checkbox" id="lg-leftmemo"><span class="track"></span></span>
+    </div>
+    <div class="lg-menu">프로필 검색 바로가기</div>
+    <div class="opt-row lg-sub">
+      <label for="lg-idsearch-left">탈퇴 회원에게 모든 버튼 표시<span class="info" data-tip="탈퇴한 회원의 프로필에도 모든 검색 버튼을 붙이고, 이용제한 열람 검색 버튼을 함께 보여줍니다."></span></label>
+      <span class="switch"><input type="checkbox" id="lg-idsearch-left"><span class="track"></span></span>
+    </div>
+  </dialog>
+  <dialog id="menucmt-dialog">
+    <h2>게시판 내 댓글 검색</h2>
+    <div class="opt-row">
+      <label for="menucmt-on">게시판 내 댓글 검색 사용</label>
+      <span class="switch"><input type="checkbox" id="menucmt-on"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">게시판 목록과 글 화면에서 닉네임을 누르면 열리는 다모앙 회원 메뉴의 '게시판 내 글 검색' 아래에 추가됩니다.</div>
+    <div class="opt-divider"></div>
+    <div class="opt-row">
+      <label for="menucmt-info-on">기능 설명 버튼 표시</label>
+      <span class="switch"><input type="checkbox" id="menucmt-info-on"><span class="track"></span></span>
+    </div>
+    <div class="opt-note">기능 설명 버튼은 메뉴 항목 옆에 표시되고, 확장 기능임을 알려줍니다.</div>
   </dialog>
   <dialog id="notice-dialog">
     <h2>공지사항</h2>
@@ -1799,7 +1911,7 @@
       <label for="idsearch-on">프로필 검색 바로가기 사용</label>
       <span class="switch"><input type="checkbox" id="idsearch-on"><span class="track"></span></span>
     </div>
-    <div class="opt-note">다른 회원의 프로필 맨 아래에 추가됩니다. 탈퇴한 회원은 메모 상자 아래에 추가되고, 내 프로필에는 붙지 않습니다.</div>
+    <div class="opt-note">다른 회원의 프로필 맨 아래에 추가됩니다. 내 프로필에는 붙지 않습니다.</div>
     <div class="opt-row">
       <label for="idsearch-newtab">새 탭에서 열기<span class="info" data-tip="켜면 검색 결과를 새 탭에서 열어 보고 있던 프로필 화면이 그대로 남습니다. 끄면 지금 탭에서 이동합니다."></span></label>
       <span class="switch"><input type="checkbox" id="idsearch-newtab"><span class="track"></span></span>
@@ -1813,11 +1925,13 @@
       <label for="idsearch-claim">소명게시판 작성자<span class="info" data-tip="소명게시판에서 이 회원이 작성자인 글을 검색하는 버튼입니다."></span></label>
       <span class="switch"><input type="checkbox" id="idsearch-claim"><span class="track"></span></span>
     </div>
+    <div class="opt-note">자유게시판 제목(닉네임·아이디), 작성자, 댓글 작성자 버튼은 항상 표시됩니다.</div>
+    <div class="opt-divider"></div>
+    <div class="opt-caption">탈퇴 회원</div>
     <div class="opt-row">
-      <label for="idsearch-dlog">탈퇴자 이용제한 열람<span class="info" data-tip="탈퇴한 회원의 프로필에서만 이용제한 열람 검색 버튼을 함께 보여 줍니다. 탈퇴하면 프로필의 이용제한 내역도 볼 수 없기 때문입니다. 일반 회원은 프로필에 이용제한 내역이 있어 붙이지 않습니다."></span></label>
-      <span class="switch"><input type="checkbox" id="idsearch-dlog"><span class="track"></span></span>
+      <label for="idsearch-lefttitle">자유게시판 제목 검색<span class="info" data-tip="탈퇴한 회원의 프로필에 아이디로 자유게시판 제목을 검색하는 버튼을 붙입니다."></span></label>
+      <span class="switch"><input type="checkbox" id="idsearch-lefttitle"><span class="track"></span></span>
     </div>
-    <div class="opt-note">자유게시판 제목, 작성자, 댓글 작성자 버튼은 항상 표시됩니다.</div>
     <div class="opt-divider"></div>
     <div class="opt-row">
       <label for="idsearch-info-on">기능 설명 버튼 표시</label>
@@ -1912,7 +2026,7 @@
       <span class="switch"><input type="checkbox" id="acard-nick"><span class="track"></span></span>
     </div>
     <div class="opt-row">
-      <label for="acard-disc">이용제한 내역<span class="info" data-tip="현재 제한과 지난 내역, 전체 보기 링크. 탈퇴 회원은 프로필에 내역이 남지 않아 대신 이용제한 기록에서 아이디로 찾는 링크를 붙입니다."></span></label>
+      <label for="acard-disc">이용제한 내역<span class="info" data-tip="현재 이용제한과 지난 내역을 보여주고, 이용제한 기록에서 그 회원의 전체 내역을 보는 링크를 붙입니다."></span></label>
       <span class="switch"><input type="checkbox" id="acard-disc"><span class="track"></span></span>
     </div>
     <div class="opt-divider"></div>
@@ -1955,7 +2069,7 @@
       <span class="switch"><input type="checkbox" id="mipop-nick"><span class="track"></span></span>
     </div>
     <div class="opt-row">
-      <label for="mipop-disc">이용제한 내역<span class="info" data-tip="현재 제한과 지난 내역, 전체 보기 링크. 탈퇴 회원은 프로필에 내역이 남지 않아 대신 이용제한 기록에서 아이디로 찾는 링크를 붙입니다."></span></label>
+      <label for="mipop-disc">이용제한 내역<span class="info" data-tip="현재 이용제한과 지난 내역을 보여주고, 이용제한 기록에서 그 회원의 전체 내역을 보는 링크를 붙입니다."></span></label>
       <span class="switch"><input type="checkbox" id="mipop-disc"><span class="track"></span></span>
     </div>
     <div class="opt-divider"></div>

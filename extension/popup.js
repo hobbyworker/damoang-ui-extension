@@ -69,7 +69,7 @@ const EXTRA_SUBGROUPS = [{ id: "em", title: "강조" }, { id: "view", title: "�
 
 // 표시 옵션. 목록 닉네임 칸 넓히기 등
 const VIEW_KEY = "view";
-let view = { cwide: false, mwide: false, memberTab: true, dlgScroll: true, dlog: true, leftMemo: true, leftMemoInfo: true, idSearch: true, idSearchInfo: true, idSearchNewTab: true, idSearchTruth: true, idSearchClaim: true, idSearchDlog: true, mlayout: "default", mheart: "default", micon: false };
+let view = { cwide: false, mwide: false, memberTab: true, dlgScroll: true, dlog: true, menuCmt: true, menuCmtInfo: true, lgLeftMemo: false, listMemo: true, listMemoInfo: true, imgPreview: true, imgPreviewRaw: false, imgPreviewDelay: 300, imgPreviewBrand: true, imgPreviewAdult: false, idSearch: true, idSearchInfo: true, idSearchNewTab: true, idSearchTruth: true, idSearchClaim: true, idSearchLeftTitle: true, lgIdSearchLeft: false, mlayout: "default", mheart: "default", micon: false };
 
 // 프로필 메뉴. 헤더·사이드바의 마이페이지 링크를 메뉴로 바꾼다 (content.js 가 처리).
 // 마이페이지 항목은 항상 표시라 목록에 없다
@@ -80,6 +80,13 @@ const QP_KEY = "qprofile";
 const QP_MAX = 30;
 let qp = { btn: true, info: true, list: [] };
 const MINFO_KEY = "minfo";
+const SHOT_KEY = "shot";
+let shot = { on: false, hideHl: false, hideMember: false };
+function normalizeShot(raw) {
+  const r = raw && typeof raw === "object" ? raw : {};
+  return { on: !!r.on, hideHl: !!r.hideHl, hideMember: !!r.hideMember };
+}
+const saveShot = () => duiWrite(SHOT_KEY, shot).catch(e => setStatus("스크린샷 모드 설정 저장 실패: " + (e && e.message ? e.message : e)));
 // 배지 색. content.js 의 .dui-mib 색과 같은 값
 const MIB_TONES = ["g", "a", "r", "b", "e", "p"];
 const MIB_PALETTE = {
@@ -90,7 +97,7 @@ const MIB_PALETTE = {
   e: ["#dcfce7", "#166534", "rgba(34,197,94,.22)", "#86efac"],
   p: ["#ede9fe", "#5b21b6", "rgba(139,92,246,.25)", "#c4b5fd"]
 };
-let minfo = { on: true, comments: true, profile: true, mini: true, pop: true, popInfo: true, popMode: "direct", popShow: { account: true, activity: true, rcmd: true, nick: true, disc: true }, info: true, card: { on: true, info: true, show: { account: true, activity: true, rcmd: true, nick: true, disc: true } }, noPost: true, noComment: true, discNow: true, left: true, colors: { left: "r", new: "r", nick: "r", del: "r", cdel: "r", disc: "r", noPost: "r", noComment: "r" }, newDays: 100, nickDays: 30, delPct: 30, cdelPct: 30 };
+let minfo = { on: true, comments: true, profile: true, mini: true, pop: true, popInfo: true, popMode: "direct", popShow: { account: true, activity: true, rcmd: true, nick: true, disc: true }, info: true, card: { on: true, info: true, show: { account: true, activity: true, rcmd: true, nick: true, disc: true } }, noPost: true, noComment: true, discNow: true, left: true, colors: { left: "r", new: "r", nick: "r", del: "r", cdel: "r", disc: "r", noPost: "r", noComment: "r" }, newDays: 100, nickDays: 30, delPct: 30, cdelPct: 30, lgCardLeft: false, lgPopLeft: false };
 // 기본 켬. 메뉴 첫 항목이 마이페이지라 원래 이동을 잃지 않는다
 const PMENU_ITEMS = [
   { key: "points", label: "포인트" },
@@ -586,11 +593,25 @@ const clWideSwitch = document.getElementById("cl-wide-switch");
 const viewMemberTabSwitch = document.getElementById("view-membertab-switch");
 const viewDlgScrollSwitch = document.getElementById("view-dlgscroll-switch");
 const viewDlogSwitch = document.getElementById("view-dlog-switch");
-const lmemoSummary = document.getElementById("lmemo-summary");
-const lmemoManageBtn = document.getElementById("lmemo-manage-btn");
-const lmemoDialog = document.getElementById("lmemo-dialog");
-const lmemoOn = document.getElementById("lmemo-on");
-const lmemoInfoOn = document.getElementById("lmemo-info-on");
+const menuCmtSummary = document.getElementById("menucmt-summary");
+const menuCmtManageBtn = document.getElementById("menucmt-manage-btn");
+const menuCmtDialog = document.getElementById("menucmt-dialog");
+const menuCmtOn = document.getElementById("menucmt-on");
+const menuCmtInfoOn = document.getElementById("menucmt-info-on");
+const listMemoSummary = document.getElementById("listmemo-summary");
+const listMemoManageBtn = document.getElementById("listmemo-manage-btn");
+const listMemoDialog = document.getElementById("listmemo-dialog");
+const listMemoOn = document.getElementById("listmemo-on");
+const listMemoInfoOn = document.getElementById("listmemo-info-on");
+const imgpvSummary = document.getElementById("imgpv-summary");
+const imgpvManageBtn = document.getElementById("imgpv-manage-btn");
+const imgpvDialog = document.getElementById("imgpv-dialog");
+const imgpvOn = document.getElementById("imgpv-on");
+const imgpvDelaySelect = document.getElementById("imgpv-delay-select");
+const imgpvRawSwitch = document.getElementById("imgpv-raw-switch");
+const imgpvBrandSwitch = document.getElementById("imgpv-brand-switch");
+const imgpvAdultSwitch = document.getElementById("imgpv-adult-switch");
+const IMGPV_DELAYS = [150, 300, 500, 1000];
 const idSearchSummary = document.getElementById("idsearch-summary");
 const idSearchManageBtn = document.getElementById("idsearch-manage-btn");
 const idSearchDialog = document.getElementById("idsearch-dialog");
@@ -598,7 +619,7 @@ const idSearchOn = document.getElementById("idsearch-on");
 const idSearchNewTab = document.getElementById("idsearch-newtab");
 const idSearchTruth = document.getElementById("idsearch-truth");
 const idSearchClaim = document.getElementById("idsearch-claim");
-const idSearchDlog = document.getElementById("idsearch-dlog");
+const idSearchLeftTitle = document.getElementById("idsearch-lefttitle");
 const idSearchInfoOn = document.getElementById("idsearch-info-on");
 const mlSummary = document.getElementById("ml-summary");
 const mlManageBtn = document.getElementById("ml-manage-btn");
@@ -674,6 +695,9 @@ const quickHeadEl = document.getElementById("quick-head");
 const quickSettingsBtn = document.getElementById("quick-settings-btn");
 const quickDialog = document.getElementById("quick-dialog");
 const shotScopeSelect = document.getElementById("shot-scope-select");
+const shotHideHl = document.getElementById("shot-hide-hl");
+const shotHideMember = document.getElementById("shot-hide-member");
+const shotSummary = document.getElementById("shot-summary");
 const quickTipsSwitch = document.getElementById("quick-tips-switch");
 const quickRowShot = document.getElementById("quick-row-shot");
 const quickRowQp = document.getElementById("quick-row-qp");
@@ -1682,14 +1706,23 @@ function normalizeView(raw) {
     memberTab: typeof r.memberTab === "boolean" ? r.memberTab : true,
     dlgScroll: typeof r.dlgScroll === "boolean" ? r.dlgScroll : true,
     dlog: typeof r.dlog === "boolean" ? r.dlog : true,
-    leftMemo: typeof r.leftMemo === "boolean" ? r.leftMemo : true,
-    leftMemoInfo: typeof r.leftMemoInfo === "boolean" ? r.leftMemoInfo : true,
+    menuCmt: typeof r.menuCmt === "boolean" ? r.menuCmt : true,
+    menuCmtInfo: typeof r.menuCmtInfo === "boolean" ? r.menuCmtInfo : true,
+    lgLeftMemo: typeof r.lgLeftMemo === "boolean" ? r.lgLeftMemo : false,
+    listMemo: typeof r.listMemo === "boolean" ? r.listMemo : true,
+    listMemoInfo: typeof r.listMemoInfo === "boolean" ? r.listMemoInfo : true,
+    imgPreview: typeof r.imgPreview === "boolean" ? r.imgPreview : true,
+    imgPreviewRaw: typeof r.imgPreviewRaw === "boolean" ? r.imgPreviewRaw : false,
+    imgPreviewDelay: IMGPV_DELAYS.indexOf(Number(r.imgPreviewDelay)) >= 0 ? Number(r.imgPreviewDelay) : 300,
+    imgPreviewBrand: typeof r.imgPreviewBrand === "boolean" ? r.imgPreviewBrand : true,
+    imgPreviewAdult: typeof r.imgPreviewAdult === "boolean" ? r.imgPreviewAdult : false,
     idSearch: typeof r.idSearch === "boolean" ? r.idSearch : true,
     idSearchInfo: typeof r.idSearchInfo === "boolean" ? r.idSearchInfo : true,
     idSearchNewTab: typeof r.idSearchNewTab === "boolean" ? r.idSearchNewTab : true,
     idSearchTruth: typeof r.idSearchTruth === "boolean" ? r.idSearchTruth : true,
     idSearchClaim: typeof r.idSearchClaim === "boolean" ? r.idSearchClaim : true,
-    idSearchDlog: typeof r.idSearchDlog === "boolean" ? r.idSearchDlog : true,
+    idSearchLeftTitle: typeof r.idSearchLeftTitle === "boolean" ? r.idSearchLeftTitle : true,
+    lgIdSearchLeft: typeof r.lgIdSearchLeft === "boolean" ? r.lgIdSearchLeft : false,
     mlayout: r.mlayout === "l1" || r.mlayout === "l2" ? r.mlayout : "default",
     mheart: r.mheart === "desk" ? "desk" : "default",
     micon: !!r.micon
@@ -1764,10 +1797,23 @@ function setupView() {
     mlWideSwitch.checked = view.mwide;
     renderMlPreview();
   };
-  const renderLmemo = () => {
-    lmemoSummary.textContent = view.leftMemo ? "켜짐" : "꺼짐";
-    lmemoOn.checked = view.leftMemo;
-    lmemoInfoOn.checked = view.leftMemoInfo;
+  const renderMenuCmt = () => {
+    menuCmtSummary.textContent = view.menuCmt ? "켜짐" : "꺼짐";
+    menuCmtOn.checked = view.menuCmt;
+    menuCmtInfoOn.checked = view.menuCmtInfo;
+  };
+  const renderListMemo = () => {
+    listMemoSummary.textContent = view.listMemo ? "켜짐" : "꺼짐";
+    listMemoOn.checked = view.listMemo;
+    listMemoInfoOn.checked = view.listMemoInfo;
+  };
+  const renderImgpv = () => {
+    imgpvSummary.textContent = view.imgPreview ? "켜짐 · " + (view.imgPreviewDelay / 1000) + "초" + (view.imgPreviewRaw ? " · 원본" : "") : "꺼짐";
+    imgpvOn.checked = view.imgPreview;
+    imgpvDelaySelect.value = String(view.imgPreviewDelay);
+    imgpvRawSwitch.checked = view.imgPreviewRaw;
+    imgpvBrandSwitch.checked = view.imgPreviewBrand;
+    imgpvAdultSwitch.checked = view.imgPreviewAdult;
   };
   const renderIdSearch = () => {
     idSearchSummary.textContent = view.idSearch ? "켜짐" : "꺼짐";
@@ -1775,7 +1821,7 @@ function setupView() {
     idSearchNewTab.checked = view.idSearchNewTab;
     idSearchTruth.checked = view.idSearchTruth;
     idSearchClaim.checked = view.idSearchClaim;
-    idSearchDlog.checked = view.idSearchDlog;
+    idSearchLeftTitle.checked = view.idSearchLeftTitle;
     idSearchInfoOn.checked = view.idSearchInfo;
   };
   const renderCl = () => {
@@ -1789,7 +1835,9 @@ function setupView() {
     // Safari(WebKit)는 사이트가 목록 위치를 유지하므로 옵션이 할 일이 없다 (2026-09-04 브라우저별 확인). 값은 그대로 두고 행만 숨긴다
     if (DUI_SYNC.enabled) document.getElementById("view-dlgscroll-row").style.display = "none";
     viewDlogSwitch.checked = view.dlog;
-    renderLmemo();
+    renderMenuCmt();
+    renderListMemo();
+    renderImgpv();
     renderIdSearch();
     renderMl();
     renderCl();
@@ -1827,7 +1875,7 @@ function setupView() {
     view.idSearchNewTab = idSearchNewTab.checked;
     saveView();
   });
-  for (const [input, key] of [[idSearchTruth, "idSearchTruth"], [idSearchClaim, "idSearchClaim"], [idSearchDlog, "idSearchDlog"]]) {
+  for (const [input, key] of [[idSearchTruth, "idSearchTruth"], [idSearchClaim, "idSearchClaim"], [idSearchLeftTitle, "idSearchLeftTitle"]]) {
     input.nextElementSibling.addEventListener("click", () => input.click());
     input.addEventListener("change", () => {
       view[key] = input.checked;
@@ -1855,27 +1903,80 @@ function setupView() {
     view.dlgScroll = viewDlgScrollSwitch.checked;
     saveView();
   });
+  menuCmtManageBtn.addEventListener("click", () => {
+    renderMenuCmt();
+    menuCmtDialog.showModal();
+  });
+  menuCmtDialog.addEventListener("click", (e) => {
+    if (e.target === menuCmtDialog) menuCmtDialog.close();
+  });
+  menuCmtOn.nextElementSibling.addEventListener("click", () => menuCmtOn.click());
+  menuCmtOn.addEventListener("change", () => {
+    view.menuCmt = menuCmtOn.checked;
+    saveView();
+    renderMenuCmt();
+  });
+  menuCmtInfoOn.nextElementSibling.addEventListener("click", () => menuCmtInfoOn.click());
+  menuCmtInfoOn.addEventListener("change", () => {
+    view.menuCmtInfo = menuCmtInfoOn.checked;
+    saveView();
+  });
   viewDlogSwitch.nextElementSibling.addEventListener("click", () => viewDlogSwitch.click());
   viewDlogSwitch.addEventListener("change", () => {
     view.dlog = viewDlogSwitch.checked;
     saveView();
   });
-  lmemoManageBtn.addEventListener("click", () => {
-    renderLmemo();
-    lmemoDialog.showModal();
+  listMemoManageBtn.addEventListener("click", () => {
+    renderListMemo();
+    listMemoDialog.showModal();
   });
-  lmemoDialog.addEventListener("click", (e) => {
-    if (e.target === lmemoDialog) lmemoDialog.close();
+  listMemoDialog.addEventListener("click", (e) => {
+    if (e.target === listMemoDialog) listMemoDialog.close();
   });
-  lmemoOn.nextElementSibling.addEventListener("click", () => lmemoOn.click());
-  lmemoOn.addEventListener("change", () => {
-    view.leftMemo = lmemoOn.checked;
+  listMemoOn.nextElementSibling.addEventListener("click", () => listMemoOn.click());
+  listMemoOn.addEventListener("change", () => {
+    view.listMemo = listMemoOn.checked;
     saveView();
-    renderLmemo();
+    renderListMemo();
   });
-  lmemoInfoOn.nextElementSibling.addEventListener("click", () => lmemoInfoOn.click());
-  lmemoInfoOn.addEventListener("change", () => {
-    view.leftMemoInfo = lmemoInfoOn.checked;
+  listMemoInfoOn.nextElementSibling.addEventListener("click", () => listMemoInfoOn.click());
+  listMemoInfoOn.addEventListener("change", () => {
+    view.listMemoInfo = listMemoInfoOn.checked;
+    saveView();
+  });
+  imgpvManageBtn.addEventListener("click", () => {
+    renderImgpv();
+    imgpvDialog.showModal();
+  });
+  imgpvDialog.addEventListener("click", (e) => {
+    if (e.target === imgpvDialog) imgpvDialog.close();
+  });
+  imgpvOn.nextElementSibling.addEventListener("click", () => imgpvOn.click());
+  imgpvOn.addEventListener("change", () => {
+    view.imgPreview = imgpvOn.checked;
+    saveView();
+    renderImgpv();
+  });
+  imgpvDelaySelect.addEventListener("change", () => {
+    const v = Number(imgpvDelaySelect.value);
+    view.imgPreviewDelay = IMGPV_DELAYS.indexOf(v) >= 0 ? v : 300;
+    saveView();
+    renderImgpv();
+  });
+  imgpvRawSwitch.nextElementSibling.addEventListener("click", () => imgpvRawSwitch.click());
+  imgpvRawSwitch.addEventListener("change", () => {
+    view.imgPreviewRaw = imgpvRawSwitch.checked;
+    saveView();
+    renderImgpv();
+  });
+  imgpvAdultSwitch.nextElementSibling.addEventListener("click", () => imgpvAdultSwitch.click());
+  imgpvAdultSwitch.addEventListener("change", () => {
+    view.imgPreviewAdult = imgpvAdultSwitch.checked;
+    saveView();
+  });
+  imgpvBrandSwitch.nextElementSibling.addEventListener("click", () => imgpvBrandSwitch.click());
+  imgpvBrandSwitch.addEventListener("change", () => {
+    view.imgPreviewBrand = imgpvBrandSwitch.checked;
     saveView();
   });
   mlLayoutSelect.addEventListener("change", () => {
@@ -1944,8 +2045,40 @@ function normalizeMinfo(raw) {
     newDays: num(r.newDays, 100, 3650),
     nickDays: num(r.nickDays, 30, 3650),
     delPct: num(r.delPct, 30, 100),
-    cdelPct: num(r.cdelPct, 30, 100)
+    cdelPct: num(r.cdelPct, 30, 100),
+    lgCardLeft: b(r.lgCardLeft, false),
+    lgPopLeft: b(r.lgPopLeft, false)
   };
+}
+
+// 다모앙 정책에 따라 동작하지 않을 수 있어 원래 메뉴에서 뺀 기능. 옛 설정 키를 쓰지 않아 처음에는 모두 꺼져 있다
+function setupLegacy() {
+  const dialog = document.getElementById("legacy-dialog");
+  const items = [
+    { id: "lg-card-left", store: MINFO_KEY, key: "lgCardLeft" },
+    { id: "lg-pop-left", store: MINFO_KEY, key: "lgPopLeft" },
+    { id: "lg-leftmemo", store: VIEW_KEY, key: "lgLeftMemo" },
+    { id: "lg-idsearch-left", store: VIEW_KEY, key: "lgIdSearchLeft" }
+  ];
+  const obj = (it) => (it.store === VIEW_KEY ? view : minfo);
+  const render = () => {
+    for (const it of items) document.getElementById(it.id).checked = obj(it)[it.key];
+  };
+  document.getElementById("legacy-open-btn").addEventListener("click", () => {
+    render();
+    dialog.showModal();
+  });
+  dialog.addEventListener("click", (e) => {
+    if (e.target === dialog) dialog.close();
+  });
+  for (const it of items) {
+    const input = document.getElementById(it.id);
+    input.nextElementSibling.addEventListener("click", () => input.click());
+    input.addEventListener("change", () => {
+      obj(it)[it.key] = input.checked;
+      duiWrite(it.store, obj(it)).catch(e => setStatus("레거시 기능 설정 저장 실패: " + (e && e.message ? e.message : e)));
+    });
+  }
 }
 
 function setupMinfo() {
@@ -2685,6 +2818,11 @@ async function onShot(on) {
       document.getElementById("sw-" + key).checked = !!r.settings[key];
     }
     saveCache({ settings: fieldValues(r.settings), mute: muteBaseline });
+    // 강조 가리기는 이 표시를 본다. 설정은 그대로 두고 효과만 멈춘다. 새로고침 전에 저장해 새 페이지가 바로 읽게 한다
+    if (shot.on !== on) {
+      shot.on = on;
+      await saveShot();
+    }
     chrome.tabs.reload(damoangTab.id);
     setStatus("스크린샷 모드 " + (on ? "켬" : "끔") + " · 새로고침함");
   } else {
@@ -2817,7 +2955,7 @@ function setupReset() {
     resetHoldBtn.textContent = "지우는 중…";
     try {
       const resetT = Date.now();
-      await duiSyncPush(["highlight", "member", "pmenu", "emprio", "view", "qprofile", "minfo"].map(key => ({ key, json: null, t: resetT })));
+      await duiSyncPush(["highlight", "member", "pmenu", "emprio", "view", "qprofile", "minfo", "shot"].map(key => ({ key, json: null, t: resetT })));
       await chrome.storage.sync.clear();
     } catch (_) {}
     try {
@@ -3396,6 +3534,7 @@ async function init() {
   setupView();
   setupQp();
   setupMinfo();
+  setupLegacy();
   setupFavCollapse();
   setupSectionCollapse();
   setupSections();
@@ -3485,7 +3624,27 @@ async function init() {
   shotScopeSelect.addEventListener("change", () => {
     shotScope = shotScopeSelect.value;
     localStorage.setItem("shot-scope", shotScope);
+    renderShot();
   });
+  // 옵션 스위치에는 ⓘ 를 못 달아 행 아랫줄에 적용 범위를 적는다 (2026-10-19 사용자)
+  const renderShot = () => {
+    shotHideHl.checked = shot.hideHl;
+    shotHideMember.checked = shot.hideMember;
+    shotSummary.textContent = "가림: " + ["메모", shotScope === "memo-profile" && "내 프로필", shot.hideHl && "제목 강조", shot.hideMember && "사용자 강조"].filter(Boolean).join(" · ");
+  };
+  renderShot();
+  duiRead(SHOT_KEY).then(v => {
+    shot = normalizeShot(v);
+    renderShot();
+  });
+  for (const [input, key] of [[shotHideHl, "hideHl"], [shotHideMember, "hideMember"]]) {
+    input.nextElementSibling.addEventListener("click", () => input.click());
+    input.addEventListener("change", () => {
+      shot[key] = input.checked;
+      saveShot();
+      renderShot();
+    });
+  }
   const applyQuickHidden = () => {
     quickRowShot.style.display = quickHidden.includes("shot") ? "none" : "";
     quickRowQp.style.display = quickHidden.includes("qp") ? "none" : "";
