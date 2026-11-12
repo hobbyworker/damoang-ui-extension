@@ -345,7 +345,7 @@
 
   // 스타일은 한 번만 만들고, 내용이 달라질 때만 바꿔 MutationObserver 가 되먹임하지 않게 한다
   // 모바일 게시글 레이아웃. 사이트의 모바일 목록(md 미만)에서 제목줄과 메타줄을
-  // display:contents 로 풀어 grid 로 재배치한다. DOM 은 건드리지 않는다.
+  // display:contents 로 풀어 flex 로 재배치한다. DOM 은 건드리지 않는다.
   // 유형 1: [공감 제목] / [태그 시간 조회 ... 메모 닉네임]
   // 유형 2: [태그 제목] / [공감 시간 조회 ... 메모 닉네임]
   // 닉네임을 오른쪽 끝으로 보내 목록 가운데를 누르다 메뉴가 열리는 것을 막는 것이 목적
@@ -370,8 +370,9 @@
       let css = "";
       if (view.mlayout !== "default") {
         // grid 는 열 너비를 두 줄이 공유해 공감 칸이 2행 왼쪽까지 차지한다.
-        // flex wrap + 가짜 줄바꿈(::before, flex-basis 100%) + order 로 줄을 독립시킨다
-        css += CONTENT + "{display:flex !important;flex-wrap:wrap;align-items:center;row-gap:2px;column-gap:6px;}"
+        // flex wrap + 가짜 줄바꿈(::before, flex-basis 100%) + order 로 줄을 독립시킨다.
+        // 사이트가 이 칸에 flex-col 을 걸어 두므로 방향도 지정한다
+        css += CONTENT + "{display:flex !important;flex-direction:row !important;flex-wrap:wrap;align-items:center;row-gap:2px;column-gap:6px;}"
           + TLINE + "," + META + "{display:contents !important;}"
           + META + " > span:nth-of-type(2)::before," + META + " > span:nth-of-type(4)::before{content:none !important;}"
           + CONTENT + "::before{content:\"\";flex-basis:100%;height:0;order:3;}"
